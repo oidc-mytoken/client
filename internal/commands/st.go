@@ -43,7 +43,7 @@ type stCommand struct {
 }
 
 type CommonSTOptions struct {
-	generalOptions
+	ptOptions
 	TransferCode string `long:"TC" description:"Use the passed transfer code to exchange it into a super token"`
 	OIDCFlow     string `long:"oidc" choice:"auth" choice:"device" choice:"default" optional:"true" optional-value:"default" description:"Use the passed OpenID Connect flow to create a super token"`
 
@@ -89,7 +89,7 @@ func obtainST(args *CommonSTOptions, name string, responseType model.ResponseTyp
 	if len(args.TransferCode) > 0 {
 		return mytoken.GetSuperTokenByTransferCode(args.TransferCode)
 	}
-	provider, err := args.generalOptions.checkProvider()
+	provider, err := args.ptOptions.checkProvider()
 	if err != nil {
 		return "", err
 	}
@@ -163,7 +163,7 @@ func obtainST(args *CommonSTOptions, name string, responseType model.ResponseTyp
 			return "", fmt.Errorf("Unknown oidc flow. Implementation error.")
 		}
 	}
-	stGrant, err := args.generalOptions.checkToken(provider.Issuer)
+	stGrant, err := args.ptOptions.checkToken(provider.Issuer)
 	if err != nil {
 		return "", err
 	}
@@ -175,7 +175,7 @@ func (sstc *stStoreCommand) Execute(args []string) error {
 	if len(sstc.Capabilities) > 0 && sstc.Capabilities[0] == "default" {
 		sstc.Capabilities = config.Get().DefaultTokenCapabilities.Stored
 	}
-	provider, err := sstc.CommonSTOptions.generalOptions.checkProvider()
+	provider, err := sstc.CommonSTOptions.ptOptions.checkProvider()
 	if err != nil {
 		return err
 	}
@@ -305,6 +305,6 @@ func parseTime(t string) (int64, error) {
 		d, err := duration.ParseDuration(t[1:])
 		return time.Now().Add(d).Unix(), err
 	}
-	tt, err := time.ParseInLocation("2006-01-02 15:04", t, time.Local) //TODO
+	tt, err := time.ParseInLocation("2006-01-02 15:04", t, time.Local)
 	return tt.Unix(), err
 }

@@ -12,7 +12,7 @@ import (
 
 // infoCommand is a type for holding and handling the info command
 type infoCommand struct {
-	generalOptions
+	ptOptions
 	// EventHistory historyCommand `command:"history" description:"List the event history for this token"`
 	// SubTree      treeCommand    `command:"tree" description:"List the tree of subtokens for this token"`
 }

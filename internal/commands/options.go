@@ -1,29 +1,37 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/jessevdk/go-flags"
+
 	"github.com/oidc-mytoken/client/internal/config"
+	"github.com/oidc-mytoken/client/internal/model/version"
 )
 
-type configOptions struct {
-	Config func(filename flags.Filename) `long:"config" value-name:"FILE" default:"" description:"Use FILE as the config file instead of the default one."`
+type generalOptions struct {
+	Config  func(filename flags.Filename) `long:"config" value-name:"FILE" default:"" description:"Use FILE as the config file instead of the default one."`
+	Version func()                        `short:"V" long:"version" description:"Prints the version and exits."`
 }
 
 // options holds all the command line commands and their options
 var options struct {
-	ConfigOptions configOptions
-	ST            stCommand
-	AT            atCommand
-	Revoke        revokeCommand
-	Info          infoCommand
+	GeneralOptions generalOptions
+	ST             stCommand
+	AT             atCommand
+	Revoke         revokeCommand
+	Info           infoCommand
 }
 
 var parser *flags.Parser
 
 func init() {
-	options.ConfigOptions.Config = func(filename flags.Filename) {
+	options.GeneralOptions.Version = func() {
+		fmt.Printf("mytoken %s\n", version.VERSION)
+		os.Exit(0)
+	}
+	options.GeneralOptions.Config = func(filename flags.Filename) {
 		if len(filename) > 0 {
 			config.Load(string(filename))
 		} else {
@@ -32,7 +40,7 @@ func init() {
 	}
 
 	parser = flags.NewNamedParser("mytoken", flags.Default)
-	parser.AddGroup("Config Options", "", &options.ConfigOptions)
+	parser.AddGroup("Config Options", "", &options.GeneralOptions)
 	parser.AddCommand("AT", "Obtain access token", "Obtain a new OpenID Connect access token", &options.AT)
 	parser.AddCommand("revoke", "Revoke super token", "Revoke a mytoken super token", &options.Revoke)
 	info, _ := parser.AddCommand("info", "Get information about a super token", "Get information about a super token", &options.Info)
