@@ -31,7 +31,7 @@ jobs:
         fi
 
     - name: Build Client
-      run: go build -v github.com/zachmann/mytoken-client/cmd/mytoken
+      run: go build -v github.com/oidc-mytoken/client/cmd/mytoken
 
     - name: Test
       run: go test -v ./...
