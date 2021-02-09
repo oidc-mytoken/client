@@ -51,15 +51,15 @@ type CommonSTOptions struct {
 	SubtokenCapabilities []string `long:"subtoken-capability" description:"Request the passed subtoken capabilities. Can be used multiple times"`
 	Restrictions         string   `long:"restrictions" description:"The restrictions that restrict the requested super token. Can be a json object or array or '@<filepath>' where <filepath> is the path to a json file.'"`
 
-	RestrictScopes      []string `long:"scope" short:"s" description:"Restrict the supertoken so that it can only be used to request ATs with these scopes. Can be used multiple times. Overwritten by --restriction."`
-	RestrictAudiences   []string `long:"aud" description:"Restrict the supertoken so that it can only be used to request ATs with these audiences. Can be used multiple times. Overwritten by --restriction."`
-	RestrictExp         string   `long:"exp" description:"Restrict the supertoken so that it cannot be used after this time. The time given can be an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'."`
-	RestrictNbf         string   `long:"nbf" description:"Restrict the supertoken so that it cannot be used before this time. The time given can be an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'."`
-	RestrictIP          []string `long:"ip" description:"Restrict the supertoken so that it can only be used from these ips. Can be a network address block or a single ip. Can be given multiple times."`
-	RestrictGeoIPWhite  []string `long:"geo-ip-white" description:"Restrict the supertoken so that it can be only used from these countries. Must be a short country code, e.g. 'us'. Can be given multiple times."`
-	RestrictGeoIPBlack  []string `long:"geo-ip-black" description:"Restrict the supertoken so that it cannot be used from these countries. Must be a short country code, e.g. 'us'. Can be given multiple times."`
-	RestrictUsagesOther *int64   `long:"usages-other" description:"Restrict how often the supertoken can be used for actions other than requesting an access token."`
-	RestrictUsagesAT    *int64   `long:"usages-at" description:"Restrict how often the supertoken can be used for requesting an access token."`
+	RestrictScopes        []string `long:"scope" short:"s" description:"Restrict the supertoken so that it can only be used to request ATs with these scopes. Can be used multiple times. Overwritten by --restriction."`
+	RestrictAudiences     []string `long:"aud" description:"Restrict the supertoken so that it can only be used to request ATs with these audiences. Can be used multiple times. Overwritten by --restriction."`
+	RestrictExp           string   `long:"exp" description:"Restrict the supertoken so that it cannot be used after this time. The time given can be an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'."`
+	RestrictNbf           string   `long:"nbf" description:"Restrict the supertoken so that it cannot be used before this time. The time given can be an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'."`
+	RestrictIP            []string `long:"ip" description:"Restrict the supertoken so that it can only be used from these ips. Can be a network address block or a single ip. Can be given multiple times."`
+	RestrictGeoIPAllow    []string `long:"geo-ip-allow" description:"Restrict the supertoken so that it can be only used from these countries. Must be a short country code, e.g. 'us'. Can be given multiple times."`
+	RestrictGeoIPDisallow []string `long:"geo-ip-disallow" description:"Restrict the supertoken so that it cannot be used from these countries. Must be a short country code, e.g. 'us'. Can be given multiple times."`
+	RestrictUsagesOther   *int64   `long:"usages-other" description:"Restrict how often the supertoken can be used for actions other than requesting an access token."`
+	RestrictUsagesAT      *int64   `long:"usages-at" description:"Restrict how often the supertoken can be used for requesting an access token."`
 }
 
 type stStoreCommand struct {
@@ -115,15 +115,15 @@ func obtainST(args *CommonSTOptions, name string, responseType model.ResponseTyp
 		}
 		r = restrictions.Restrictions{
 			restrictions.Restriction{
-				NotBefore:   nbf,
-				ExpiresAt:   exp,
-				Scope:       strings.Join(args.RestrictScopes, " "),
-				Audiences:   args.RestrictAudiences,
-				IPs:         args.RestrictIP,
-				GeoIPWhite:  args.RestrictGeoIPWhite,
-				GeoIPBlack:  args.RestrictGeoIPBlack,
-				UsagesAT:    args.RestrictUsagesAT,
-				UsagesOther: args.RestrictUsagesOther,
+				NotBefore:     nbf,
+				ExpiresAt:     exp,
+				Scope:         strings.Join(args.RestrictScopes, " "),
+				Audiences:     args.RestrictAudiences,
+				IPs:           args.RestrictIP,
+				GeoIPAllow:    args.RestrictGeoIPAllow,
+				GeoIPDisallow: args.RestrictGeoIPDisallow,
+				UsagesAT:      args.RestrictUsagesAT,
+				UsagesOther:   args.RestrictUsagesOther,
 			},
 		}
 	}
