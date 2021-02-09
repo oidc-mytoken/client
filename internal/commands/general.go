@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/oidc-mytoken/server/shared/utils"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/oidc-mytoken/client/internal/config"
@@ -18,10 +19,14 @@ type ptOptions struct {
 }
 
 func (g *ptOptions) Check() (*model.Provider, string) {
-	p, pErr := g.checkProvider()
 	if len(g.SuperToken) > 0 {
+		if utils.IsJWT(g.SuperToken) {
+			g.Provider = utils.GetStringFromJWT(g.SuperToken, "oidc_issuer")
+		}
+		p, _ := g.checkProvider()
 		return p, g.SuperToken
 	}
+	p, pErr := g.checkProvider()
 	if pErr != nil {
 		log.Fatal(pErr)
 	}
