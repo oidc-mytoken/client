@@ -22,6 +22,7 @@ var options struct {
 	AT             atCommand
 	Revoke         revokeCommand
 	Info           infoCommand
+	List           listCommand
 }
 
 var parser *flags.Parser
@@ -43,6 +44,7 @@ func init() {
 	parser.AddGroup("Config Options", "", &options.GeneralOptions)
 	parser.AddCommand("AT", "Obtain access token", "Obtain a new OpenID Connect access token", &options.AT)
 	parser.AddCommand("revoke", "Revoke super token", "Revoke a mytoken super token", &options.Revoke)
+	parser.AddCommand("list", "List different information", "List different information", &options.List)
 	info, _ := parser.AddCommand("info", "Get information about a super token", "Get information about a super token", &options.Info)
 	info.SubcommandsOptional = true
 }
