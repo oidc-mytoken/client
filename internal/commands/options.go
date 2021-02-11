@@ -28,7 +28,7 @@ var parser *flags.Parser
 
 func init() {
 	options.GeneralOptions.Version = func() {
-		fmt.Printf("mytoken %s\n", version.VERSION)
+		fmt.Printf("mytoken %s\n", version.VERSION())
 		os.Exit(0)
 	}
 	options.GeneralOptions.Config = func(filename flags.Filename) {

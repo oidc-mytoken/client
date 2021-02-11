@@ -116,8 +116,8 @@ func SaveTokens(tokens map[string][]TokenEntry) error {
 func LoadTokens() (map[string][]TokenEntry, error) {
 	tokens := make(map[string][]TokenEntry)
 	data, err := ioutil.ReadFile(getTokensFilePath())
-	if err != nil {
-		return tokens, err
+	if err != nil || len(data) == 0 {
+		return tokens, nil
 	}
 	err = json.Unmarshal(data, &tokens)
 	return tokens, err
