@@ -33,11 +33,39 @@ type config struct {
 
 	TokenNamePrefix string `yaml:"token_name_prefix"`
 
-	Providers  model.Providers         `yaml:"providers"`
-	TokensFile string                  `yaml:"tokens_file"`
-	Tokens     map[string][]TokenEntry `yaml:"-"`
+	Providers         model.Providers   `yaml:"providers"`
+	TokensFilePath    string            `yaml:"tokens_file"`
+	TokensFileContent *tokenFileContent `yaml:"-"`
 
 	usedConfigDir string
+}
+
+type tokenFileContent struct {
+	TokenMapping tokenNameMapping `json:"mapping"`
+	Tokens       tokenEntries     `json:"tokens"`
+}
+
+type tokenNameMapping map[string][]string
+
+type tokenEntries map[string][]TokenEntry
+
+func (f *tokenFileContent) Add(t TokenEntry, iss string) {
+	f.Tokens.add(t, iss)
+	f.TokenMapping.add(t, iss)
+}
+func (e *tokenEntries) add(t TokenEntry, iss string) {
+	toks := (*e)[iss]
+	for i, tt := range toks {
+		if tt.Name == t.Name {
+			tt.GPGKey = t.GPGKey
+			tt.Token = t.Token
+			(*e)[iss][i] = tt
+		}
+	}
+	(*e)[iss] = append((*e)[iss], t)
+}
+func (m *tokenNameMapping) add(t TokenEntry, iss string) {
+	(*m)[t.Name] = append((*m)[t.Name], iss)
 }
 
 type TokenEntry struct {
@@ -47,13 +75,18 @@ type TokenEntry struct {
 }
 
 func (c *config) GetToken(issuer, name string) (string, error) {
-	tt, found := c.Tokens[issuer]
+	tt, found := c.TokensFileContent.Tokens[issuer]
 	if !found {
 		return "", fmt.Errorf("No tokens found for provider '%s'", issuer)
 	}
 	if len(name) == 0 {
 		p, _ := c.Providers.FindBy(issuer, true)
 		name = p.DefaultToken
+		if len(name) == 0 {
+			if len(tt) == 1 {
+				name = tt[0].Name
+			}
+		}
 	}
 	for _, t := range tt {
 		if t.Name == name {
@@ -83,7 +116,7 @@ var defaultConfig = config{
 		Returned: capabilities.Capabilities{capabilities.CapabilityAT}.Strings(),
 	},
 	TokenNamePrefix: "<hostname>",
-	TokensFile:      "tokens.json",
+	TokensFilePath:  "tokens.json",
 }
 
 var conf *config
@@ -94,33 +127,35 @@ func Get() *config {
 }
 
 func getTokensFilePath() string {
-	filename := conf.TokensFile
+	filename := conf.TokensFilePath
 	if filepath.IsAbs(filename) {
 		return filename
 	}
 	return filepath.Join(conf.usedConfigDir, filename)
 }
 
-func SaveTokens(tokens map[string][]TokenEntry) error {
-	data, err := json.MarshalIndent(tokens, "", "  ")
+func (f *tokenFileContent) Save() error {
+	data, err := json.MarshalIndent(*f, "", "  ")
 	if err != nil {
 		return err
 	}
 	if err = ioutil.WriteFile(getTokensFilePath(), data, 0600); err != nil {
 		return err
 	}
-	conf.Tokens = tokens
 	return nil
 }
 
-func LoadTokens() (map[string][]TokenEntry, error) {
-	tokens := make(map[string][]TokenEntry)
+func LoadTokens() (*tokenFileContent, error) {
+	f := tokenFileContent{
+		TokenMapping: tokenNameMapping{},
+		Tokens:       tokenEntries{},
+	}
 	data, err := ioutil.ReadFile(getTokensFilePath())
 	if err != nil || len(data) == 0 {
-		return tokens, nil
+		return &f, nil
 	}
-	err = json.Unmarshal(data, &tokens)
-	return tokens, err
+	err = json.Unmarshal(data, &f)
+	return &f, err
 }
 
 func load(name string, locations []string) {
@@ -146,7 +181,7 @@ func load(name string, locations []string) {
 			}
 		}
 	}
-	conf.Tokens, err = LoadTokens()
+	conf.TokensFileContent, err = LoadTokens()
 	if err != nil {
 		log.Fatal(err)
 	}

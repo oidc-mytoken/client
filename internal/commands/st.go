@@ -89,7 +89,7 @@ func obtainST(args *CommonSTOptions, name string, responseType model.ResponseTyp
 	if len(args.TransferCode) > 0 {
 		return mytoken.GetSuperTokenByTransferCode(args.TransferCode)
 	}
-	provider, err := args.ptOptions.checkProvider()
+	provider, err := args.ptOptions.checkProvider(args.Name)
 	if err != nil {
 		return "", err
 	}
@@ -175,7 +175,7 @@ func (sstc *stStoreCommand) Execute(args []string) error {
 	if len(sstc.Capabilities) > 0 && sstc.Capabilities[0] == "default" {
 		sstc.Capabilities = config.Get().DefaultTokenCapabilities.Stored
 	}
-	provider, err := sstc.CommonSTOptions.ptOptions.checkProvider()
+	provider, err := sstc.CommonSTOptions.ptOptions.checkProvider(sstc.Name)
 	if err != nil {
 		return err
 	}
@@ -208,25 +208,12 @@ func (sstc *stStoreCommand) Execute(args []string) error {
 }
 
 func saveEncryptedToken(token, issuer, name, gpgKey string) error {
-	tokens, err := config.LoadTokens()
-	if err != nil {
-		return err
-	}
-	tokensForIssuer := tokens[issuer]
-	for i, t := range tokensForIssuer {
-		if t.Name == name {
-			t.Token = token
-			t.GPGKey = gpgKey
-			tokensForIssuer[i] = t
-			return config.SaveTokens(tokens)
-		}
-	}
-	tokens[issuer] = append(tokens[issuer], config.TokenEntry{
+	config.Get().TokensFileContent.Add(config.TokenEntry{
 		Token:  token,
 		Name:   name,
 		GPGKey: gpgKey,
-	})
-	return config.SaveTokens(tokens)
+	}, issuer)
+	return config.Get().TokensFileContent.Save()
 }
 
 type pRestriction struct {

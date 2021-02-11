@@ -24,10 +24,10 @@ func (g *ptOptions) Check() (*model.Provider, string) {
 		if utils.IsJWT(g.SuperToken) {
 			g.Provider, _ = jwtutils.GetStringFromJWT(g.SuperToken, "oidc_issuer")
 		}
-		p, _ := g.checkProvider()
+		p, _ := g.checkProvider("")
 		return p, g.SuperToken
 	}
-	p, pErr := g.checkProvider()
+	p, pErr := g.checkProvider(g.Name)
 	if pErr != nil {
 		log.Fatal(pErr)
 	}
@@ -45,13 +45,28 @@ func (g *ptOptions) checkToken(issuer string) (string, error) {
 	return config.Get().GetToken(issuer, g.Name)
 }
 
-func (g *ptOptions) checkProvider() (p *model.Provider, err error) {
+func (g *ptOptions) checkProvider(tokenName string) (p *model.Provider, err error) {
 	provider := g.Provider
 	if len(provider) == 0 {
-		provider = config.Get().DefaultProvider
+		issForToken, found := config.Get().TokensFileContent.TokenMapping[tokenName]
+		if found && len(issForToken) > 0 {
+			if len(issForToken) > 1 {
+				err = fmt.Errorf("Provider not specified and token name exists for multiple providers.")
+				return
+			}
+			provider = issForToken[0]
+		} else {
+			provider = config.Get().DefaultProvider
+		}
 		if len(provider) == 0 {
-			err = fmt.Errorf("Provider not specified and no default provider set")
-			return
+			if len(config.Get().TokensFileContent.Tokens) != 1 {
+				err = fmt.Errorf("Provider not specified and no default provider set")
+				return
+			}
+			for provider = range config.Get().TokensFileContent.Tokens {
+				// There's also one provider with an token, use that one
+				break
+			}
 		}
 	}
 	isURL := strings.HasPrefix(provider, "https://")
