@@ -22,7 +22,7 @@ type ptOptions struct {
 func (g *ptOptions) Check() (*model.Provider, string) {
 	if len(g.SuperToken) > 0 {
 		if utils.IsJWT(g.SuperToken) {
-			g.Provider, _ = jwtutils.GetStringFromJWT(g.SuperToken, "oidc_issuer")
+			g.Provider, _ = jwtutils.GetStringFromJWT(g.SuperToken, "oidc_iss")
 		}
 		p, _ := g.checkProvider("")
 		return p, g.SuperToken
