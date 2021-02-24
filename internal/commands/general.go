@@ -47,7 +47,7 @@ func (g *ptOptions) checkToken(issuer string) (string, error) {
 
 func (g *ptOptions) checkProvider(tokenName string) (p *model.Provider, err error) {
 	provider := g.Provider
-	if len(provider) == 0 {
+	if provider == "" {
 		issForToken, found := config.Get().TokensFileContent.TokenMapping[tokenName]
 		if found && len(issForToken) > 0 {
 			if len(issForToken) > 1 {
@@ -58,7 +58,7 @@ func (g *ptOptions) checkProvider(tokenName string) (p *model.Provider, err erro
 		} else {
 			provider = config.Get().DefaultProvider
 		}
-		if len(provider) == 0 {
+		if provider == "" {
 			if len(config.Get().TokensFileContent.Tokens) != 1 {
 				err = fmt.Errorf("Provider not specified and no default provider set")
 				return

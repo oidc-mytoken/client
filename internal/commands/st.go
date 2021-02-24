@@ -186,11 +186,11 @@ func (sstc *stStoreCommand) Execute(args []string) error {
 	gpgKey := sstc.GPGKey
 	if sstc.Password {
 		gpgKey = ""
-	} else if len(gpgKey) == 0 {
+	} else if gpgKey == "" {
 		gpgKey = provider.GPGKey
 	}
 	var encryptedToken string
-	if len(gpgKey) == 0 {
+	if gpgKey == "" {
 		encryptedToken, err = cryptutils.EncryptPassword(st)
 	} else {
 		encryptedToken, err = cryptutils.EncryptGPG(st, gpgKey)
@@ -223,7 +223,7 @@ type pRestriction struct {
 type restriction restrictions.Restriction
 
 func parseRestrictionOption(arg string) (restrictions.Restrictions, error) {
-	if len(arg) == 0 {
+	if arg == "" {
 		return nil, nil
 	}
 	if arg[0] == '@' {
@@ -276,7 +276,7 @@ func (r *restriction) UnmarshalJSON(data []byte) error {
 }
 
 func parseTime(t string) (int64, error) {
-	if len(t) == 0 {
+	if t == "" {
 		return 0, nil
 	}
 	i, err := strconv.ParseInt(t, 10, 64)
