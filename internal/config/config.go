@@ -92,7 +92,7 @@ func (c *Config) GetToken(issuer, name string) (string, error) {
 		if t.Name == name {
 			var token string
 			var err error
-			if len(t.GPGKey) > 0 {
+			if t.GPGKey != "" {
 				token, err = cryptutils.DecryptGPG(t.Token, t.GPGKey)
 			} else {
 				token, err = cryptutils.DecryptPassword(t.Token)
@@ -171,7 +171,7 @@ func load(name string, locations []string) {
 	}
 	conf.Mytoken = mytoken
 
-	if len(conf.DefaultGPGKey) > 0 {
+	if conf.DefaultGPGKey != "" {
 		for _, p := range conf.Providers {
 			if p.GPGKey == "" {
 				p.GPGKey = conf.DefaultGPGKey

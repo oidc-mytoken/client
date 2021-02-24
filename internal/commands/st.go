@@ -86,7 +86,7 @@ func (stc *stCommand) Execute(args []string) error {
 
 func obtainST(args *CommonSTOptions, name string, responseType model.ResponseType) (string, error) {
 	mytoken := config.Get().Mytoken
-	if len(args.TransferCode) > 0 {
+	if args.TransferCode != "" {
 		return mytoken.GetSuperTokenByTransferCode(args.TransferCode)
 	}
 	provider, err := args.ptOptions.checkProvider(args.Name)
@@ -95,11 +95,11 @@ func obtainST(args *CommonSTOptions, name string, responseType model.ResponseTyp
 	}
 	tokenName := name
 	prefix := config.Get().TokenNamePrefix
-	if len(name) > 0 && len(prefix) > 0 {
+	if name != "" && prefix != "" {
 		tokenName = fmt.Sprintf("%s:%s", prefix, name)
 	}
 	var r restrictions.Restrictions
-	if len(args.Restrictions) > 0 {
+	if args.Restrictions != "" {
 		r, err = parseRestrictionOption(args.Restrictions)
 		if err != nil {
 			return "", err
@@ -129,7 +129,7 @@ func obtainST(args *CommonSTOptions, name string, responseType model.ResponseTyp
 	}
 	c := capabilities.NewCapabilities(args.Capabilities)
 	sc := capabilities.NewCapabilities(args.SubtokenCapabilities)
-	if len(args.OIDCFlow) > 0 {
+	if args.OIDCFlow != "" {
 		if args.OIDCFlow == "default" {
 			args.OIDCFlow = config.Get().DefaultOIDCFlow
 		}

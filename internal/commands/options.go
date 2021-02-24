@@ -33,7 +33,7 @@ func init() {
 		os.Exit(0)
 	}
 	options.GeneralOptions.Config = func(filename flags.Filename) {
-		if len(filename) > 0 {
+		if filename != "" {
 			config.Load(string(filename))
 		} else {
 			config.LoadDefault()

@@ -20,7 +20,7 @@ type ptOptions struct {
 }
 
 func (g *ptOptions) Check() (*model.Provider, string) {
-	if len(g.SuperToken) > 0 {
+	if g.SuperToken != "" {
 		if utils.IsJWT(g.SuperToken) {
 			g.Provider, _ = jwtutils.GetStringFromJWT(g.SuperToken, "oidc_iss")
 		}
@@ -39,7 +39,7 @@ func (g *ptOptions) Check() (*model.Provider, string) {
 }
 
 func (g *ptOptions) checkToken(issuer string) (string, error) {
-	if len(g.SuperToken) > 0 {
+	if g.SuperToken != "" {
 		return g.SuperToken, nil
 	}
 	return config.Get().GetToken(issuer, g.Name)
