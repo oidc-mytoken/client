@@ -134,7 +134,6 @@ github.com/go-toolsmith/typep v1.0.2/go.mod h1:JSQCQMUPdRlMZFswiq3TGpNp1GMktqkR2
 github.com/go-xmlfmt/xmlfmt v0.0.0-20191208150333-d5b6f63a941b/go.mod h1:aUCEOzzezBEjDBbFBoSiya/gduyIiWYRP6CnSFIV8AM=
 github.com/gobwas/glob v0.2.3/go.mod h1:d3Ez4x06l9bZtSvzIay5+Yzi0fmZzPgnTbPcKjJAkT8=
 github.com/gofiber/fiber/v2 v2.2.2/go.mod h1:Aso7/M+EQOinVkWp4LUYjdlTpKTBoCk2Qo4djnMsyHE=
-github.com/gofiber/fiber/v2 v2.3.3/go.mod h1:f8BRRIMjMdRyt2qmJ/0Sea3j3rwwfufPrh9WNBRiVZ0=
 github.com/gofiber/fiber/v2 v2.4.1/go.mod h1:f8BRRIMjMdRyt2qmJ/0Sea3j3rwwfufPrh9WNBRiVZ0=
 github.com/gofiber/helmet/v2 v2.1.0/go.mod h1:BWTRxVM8ILkx7pv+xrRSnEZcMriqMbtywhqHsDCB98s=
 github.com/gofiber/template v1.6.7-0.20210204091541-84b1799fecd8/go.mod h1:7qhmoRBKeNr2pPh7L2d6JpN9gru8CzM0IbrsIIP7WGI=
@@ -269,6 +268,7 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
 github.com/kyoh86/exportloopref v0.1.4/go.mod h1:h1rDl2Kdj97+Kwh4gdz3ujE7XHmH51Q0lUiZ1z4NLj8=
 github.com/lestrrat-go/backoff/v2 v2.0.3/go.mod h1:mU93bMXuG27/Y5erI5E9weqavpTX5qiVFZI4uXAX0xk=
@@ -325,10 +325,8 @@ github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWb
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nishanths/exhaustive v0.0.0-20200525081945-8e46705b6132/go.mod h1:wBEpHwM2OdmeNpdCvRPUlkEbBuaFmcK4Wv8Q7FuGW3c=
 github.com/nkovacs/streamquote v1.0.0/go.mod h1:BN+NaZ2CmdKqUuTUXUEm9j95B2TRbpOWpxbJYzzgUsc=
-github.com/oidc-mytoken/server v0.1.0 h1:WVew3dAjAs2oDm2CNqvdx4yyX7g2w0c9MvoHpKGvCj8=
-github.com/oidc-mytoken/server v0.1.0/go.mod h1:e6KPCREXaQJCwQ/eT3nkqyz0wmkw9uE+1yron3moU4I=
-github.com/oidc-mytoken/server v0.1.1-0.20210209171032-0022e9264c53 h1:bF1Kqk7v66AeJrSQeaM423TALaE3eKuwhSduxmNCcDc=
-github.com/oidc-mytoken/server v0.1.1-0.20210209171032-0022e9264c53/go.mod h1:knRIkxPThqGnhuGrEtnw73ukrMF7TulMNnQwThyWmxw=
+github.com/oidc-mytoken/server v0.1.1-0.20210224103109-8921c7e97f63 h1:LINIxkxmEsHh35D+Wds7+F1yFtRnquy4IIpz7ArL8oA=
+github.com/oidc-mytoken/server v0.1.1-0.20210224103109-8921c7e97f63/go.mod h1:knRIkxPThqGnhuGrEtnw73ukrMF7TulMNnQwThyWmxw=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.12.0/go.mod h1:oUhWkIvk5aDxtKvDDuw8gItl8pKl42LzjC9KZE0HfGg=
