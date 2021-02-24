@@ -79,10 +79,10 @@ func (c *Config) GetToken(issuer, name string) (string, error) {
 	if !found {
 		return "", fmt.Errorf("No tokens found for provider '%s'", issuer)
 	}
-	if len(name) == 0 {
+	if name == "" {
 		p, _ := c.Providers.FindBy(issuer, true)
 		name = p.DefaultToken
-		if len(name) == 0 {
+		if name == "" {
 			if len(tt) == 1 {
 				name = tt[0].Name
 			}
@@ -162,7 +162,7 @@ func load(name string, locations []string) {
 		log.Fatal(err)
 	}
 	conf.usedConfigDir = usedLocation
-	if len(conf.URL) == 0 {
+	if conf.URL == "" {
 		log.Fatal("Must provide url of the mytoken instance in the config file.")
 	}
 	mytoken, err := mytokenlib.NewMytokenInstance(conf.URL)
@@ -173,7 +173,7 @@ func load(name string, locations []string) {
 
 	if len(conf.DefaultGPGKey) > 0 {
 		for _, p := range conf.Providers {
-			if len(p.GPGKey) == 0 {
+			if p.GPGKey == "" {
 				p.GPGKey = conf.DefaultGPGKey
 			}
 		}
