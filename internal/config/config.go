@@ -19,7 +19,7 @@ import (
 	"github.com/oidc-mytoken/client/internal/utils/cryptutils"
 )
 
-type config struct {
+type Config struct {
 	URL     string              `yaml:"instance"`
 	Mytoken *mytokenlib.Mytoken `yaml:"-"`
 
@@ -35,12 +35,12 @@ type config struct {
 
 	Providers         model.Providers   `yaml:"providers"`
 	TokensFilePath    string            `yaml:"tokens_file"`
-	TokensFileContent *tokenFileContent `yaml:"-"`
+	TokensFileContent *TokenFileContent `yaml:"-"`
 
 	usedConfigDir string
 }
 
-type tokenFileContent struct {
+type TokenFileContent struct {
 	TokenMapping tokenNameMapping `json:"mapping"`
 	Tokens       tokenEntries     `json:"tokens"`
 }
@@ -49,7 +49,7 @@ type tokenNameMapping map[string][]string
 
 type tokenEntries map[string][]TokenEntry
 
-func (f *tokenFileContent) Add(t TokenEntry, iss string) {
+func (f *TokenFileContent) Add(t TokenEntry, iss string) {
 	f.Tokens.add(t, iss)
 	f.TokenMapping.add(t, iss)
 }
@@ -74,7 +74,7 @@ type TokenEntry struct {
 	Token  string `json:"token"`
 }
 
-func (c *config) GetToken(issuer, name string) (string, error) {
+func (c *Config) GetToken(issuer, name string) (string, error) {
 	tt, found := c.TokensFileContent.Tokens[issuer]
 	if !found {
 		return "", fmt.Errorf("No tokens found for provider '%s'", issuer)
@@ -106,7 +106,7 @@ func (c *config) GetToken(issuer, name string) (string, error) {
 	return "", fmt.Errorf("Token name '%s' not found for '%s'", name, issuer)
 }
 
-var defaultConfig = config{
+var defaultConfig = Config{
 	DefaultOIDCFlow: "auth",
 	DefaultTokenCapabilities: struct {
 		Stored   []string `yaml:"stored"`
@@ -119,10 +119,10 @@ var defaultConfig = config{
 	TokensFilePath:  "tokens.json",
 }
 
-var conf *config
+var conf *Config
 
 // Get returns the config
-func Get() *config {
+func Get() *Config {
 	return conf
 }
 
@@ -134,19 +134,16 @@ func getTokensFilePath() string {
 	return filepath.Join(conf.usedConfigDir, filename)
 }
 
-func (f *tokenFileContent) Save() error {
+func (f *TokenFileContent) Save() error {
 	data, err := json.MarshalIndent(*f, "", "  ")
 	if err != nil {
 		return err
 	}
-	if err = ioutil.WriteFile(getTokensFilePath(), data, 0600); err != nil {
-		return err
-	}
-	return nil
+	return ioutil.WriteFile(getTokensFilePath(), data, 0600)
 }
 
-func LoadTokens() (*tokenFileContent, error) {
-	f := tokenFileContent{
+func LoadTokens() (*TokenFileContent, error) {
+	f := TokenFileContent{
 		TokenMapping: tokenNameMapping{},
 		Tokens:       tokenEntries{},
 	}

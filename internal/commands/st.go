@@ -186,10 +186,8 @@ func (sstc *stStoreCommand) Execute(args []string) error {
 	gpgKey := sstc.GPGKey
 	if sstc.Password {
 		gpgKey = ""
-	} else {
-		if len(gpgKey) == 0 {
-			gpgKey = provider.GPGKey
-		}
+	} else if len(gpgKey) == 0 {
+		gpgKey = provider.GPGKey
 	}
 	var encryptedToken string
 	if len(gpgKey) == 0 {

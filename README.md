@@ -1,7 +1,10 @@
 ![mytoken logo](https://git.scc.kit.edu/oidc/mytoken/-/raw/master/docs/img/mytoken.png)
 
 [![License](https://img.shields.io/github/license/oidc-mytoken/client.svg)](https://github.com/oidc-mytoken/client/blob/master/LICENSE)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/oidc-mytoken/client)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/oidc-mytoken/client/Go)
 [![Go Report](https://goreportcard.com/badge/github.com/oidc-mytoken/client)](https://goreportcard.com/report/github.com/oidc-mytoken/client)
+[![DeepSource](https://deepsource.io/gh/oidc-mytoken/client.svg/?label=active+issues&show_trend=true)](https://deepsource.io/gh/oidc-mytoken/client/?ref=repository-badge)
 [![Release date](https://img.shields.io/github/release-date/oidc-mytoken/client.svg)](https://github.com/oidc-mytoken/client/releases/latest)
 [![Release version](https://img.shields.io/github/release/oidc-mytoken/client.svg)](https://github.com/oidc-mytoken/client/releases/latest)
 
