@@ -7,7 +7,7 @@ import (
 )
 
 type revokeCommand struct {
-	ptOptions
+	PTOptions
 	Recursive bool `short:"r" long:"recursive" description:"If set also all subtokens are revoked"`
 }
 

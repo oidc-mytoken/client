@@ -15,11 +15,13 @@ default_token_capabilities:
     - "create_super_token"    # allows to create subtokens
     - "tokeninfo_history"     # allows to query a event history for the super token
     - "tokeninfo_tree"        # allows to query a subtoken tree
+    - "tokeninfo_introspect"  # allows to query basic token info
   #  - "settings"             # allows to change user settings
   #  - "list_super_tokens"    # allows to list all your tokens
   # The default capabilities for super tokens that are returned for other usage
   returned:
     - "AT"
+    - "tokeninfo_introspect"  # allows to query basic token info
 # The global default for the used gpg_key id
 default_gpg_key:
 # The name of the provider you want to use as your default. If no provider is specified the default provider is used.

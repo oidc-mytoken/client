@@ -12,14 +12,14 @@ import (
 	"github.com/oidc-mytoken/client/internal/model"
 )
 
-// ptOptions holds command line options that can be used with all commands
-type ptOptions struct {
+// PTOptions holds command line options that can be used with all commands
+type PTOptions struct {
 	Provider   string `short:"p" long:"provider" description:"The name or issuer url of the OpenID provider that should be used"`
 	Name       string `short:"t" long:"name" description:"The name of the super token that should be used"`
 	SuperToken string `long:"ST" description:"The passed super token is used instead of a stored one"`
 }
 
-func (g *ptOptions) Check() (*model.Provider, string) {
+func (g *PTOptions) Check() (*model.Provider, string) {
 	if g.SuperToken != "" {
 		if utils.IsJWT(g.SuperToken) {
 			g.Provider, _ = jwtutils.GetStringFromJWT(g.SuperToken, "oidc_iss")
@@ -38,14 +38,14 @@ func (g *ptOptions) Check() (*model.Provider, string) {
 	return p, token
 }
 
-func (g *ptOptions) checkToken(issuer string) (string, error) {
+func (g *PTOptions) checkToken(issuer string) (string, error) {
 	if g.SuperToken != "" {
 		return g.SuperToken, nil
 	}
 	return config.Get().GetToken(issuer, g.Name)
 }
 
-func (g *ptOptions) checkProvider(tokenName string) (p *model.Provider, err error) {
+func (g *PTOptions) checkProvider(tokenName string) (p *model.Provider, err error) {
 	provider := g.Provider
 	if provider == "" {
 		issForToken, found := config.Get().TokensFileContent.TokenMapping[tokenName]

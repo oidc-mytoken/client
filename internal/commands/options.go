@@ -45,6 +45,11 @@ func init() {
 	parser.AddCommand("AT", "Obtain access token", "Obtain a new OpenID Connect access token", &options.AT)
 	parser.AddCommand("revoke", "Revoke super token", "Revoke a mytoken super token", &options.Revoke)
 	parser.AddCommand("list", "List different information", "List different information", &options.List)
+	options.Info.PTOptions = &PTOptions{}
+	options.Info.Introspect.PTOptions = options.Info.PTOptions
+	options.Info.EventHistory.PTOptions = options.Info.PTOptions
+	options.Info.SubTree.PTOptions = options.Info.PTOptions
+	options.Info.TokenList.PTOptions = options.Info.PTOptions
 	info, _ := parser.AddCommand("info", "Get information about a super token", "Get information about a super token", &options.Info)
 	info.SubcommandsOptional = true
 }

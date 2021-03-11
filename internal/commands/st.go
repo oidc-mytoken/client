@@ -12,7 +12,7 @@ import (
 	"github.com/oidc-mytoken/server/pkg/model"
 	"github.com/oidc-mytoken/server/shared/supertoken/capabilities"
 	"github.com/oidc-mytoken/server/shared/supertoken/restrictions"
-	"github.com/oidc-mytoken/server/shared/utils"
+	"github.com/oidc-mytoken/server/shared/utils/unixtime"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/utils/cryptutils"
@@ -43,7 +43,7 @@ type stCommand struct {
 }
 
 type CommonSTOptions struct {
-	ptOptions
+	PTOptions
 	TransferCode string `long:"TC" description:"Use the passed transfer code to exchange it into a super token"`
 	OIDCFlow     string `long:"oidc" choice:"auth" choice:"device" choice:"default" optional:"true" optional-value:"default" description:"Use the passed OpenID Connect flow to create a super token"`
 
@@ -89,7 +89,7 @@ func obtainST(args *CommonSTOptions, name string, responseType model.ResponseTyp
 	if args.TransferCode != "" {
 		return mytoken.GetSuperTokenByTransferCode(args.TransferCode)
 	}
-	provider, err := args.ptOptions.checkProvider(args.Name)
+	provider, err := args.PTOptions.checkProvider(args.Name)
 	if err != nil {
 		return "", err
 	}
@@ -163,7 +163,7 @@ func obtainST(args *CommonSTOptions, name string, responseType model.ResponseTyp
 			return "", fmt.Errorf("Unknown oidc flow. Implementation error.")
 		}
 	}
-	stGrant, err := args.ptOptions.checkToken(provider.Issuer)
+	stGrant, err := args.PTOptions.checkToken(provider.Issuer)
 	if err != nil {
 		return "", err
 	}
@@ -175,7 +175,7 @@ func (sstc *stStoreCommand) Execute(args []string) error {
 	if len(sstc.Capabilities) > 0 && sstc.Capabilities[0] == "default" {
 		sstc.Capabilities = config.Get().DefaultTokenCapabilities.Stored
 	}
-	provider, err := sstc.CommonSTOptions.ptOptions.checkProvider(sstc.Name)
+	provider, err := sstc.CommonSTOptions.PTOptions.checkProvider(sstc.Name)
 	if err != nil {
 		return err
 	}
@@ -275,21 +275,21 @@ func (r *restriction) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func parseTime(t string) (int64, error) {
+func parseTime(t string) (unixtime.UnixTime, error) {
 	if t == "" {
 		return 0, nil
 	}
 	i, err := strconv.ParseInt(t, 10, 64)
 	if err == nil {
 		if t[0] == '+' {
-			return utils.GetUnixTimeIn(i), nil
+			return unixtime.InSeconds(i), nil
 		}
-		return i, nil
+		return unixtime.UnixTime(i), nil
 	}
 	if t[0] == '+' {
 		d, err := duration.ParseDuration(t[1:])
-		return time.Now().Add(d).Unix(), err
+		return unixtime.New(time.Now().Add(d)), err
 	}
 	tt, err := time.ParseInLocation("2006-01-02 15:04", t, time.Local)
-	return tt.Unix(), err
+	return unixtime.New(tt), err
 }
