@@ -20,8 +20,8 @@ func (atc *atCommand) Execute(args []string) error {
 		comment = args[0]
 	}
 	mytoken := config.Get().Mytoken
-	provider, superToken := atc.Check()
-	at, err := mytoken.GetAccessToken(superToken, provider.Issuer, atc.Scopes, atc.Audiences, comment)
+	provider, mToken := atc.Check()
+	at, err := mytoken.GetAccessToken(mToken, provider.Issuer, atc.Scopes, atc.Audiences, comment)
 	if err != nil {
 		return err
 	}

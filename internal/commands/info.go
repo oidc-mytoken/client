@@ -14,11 +14,11 @@ import (
 
 // infoCommand is a type for holding and handling the info command
 type infoCommand struct {
-	*PTOptions                          //TODO that poitner order stuff
-	EventHistory historyCommand         `command:"history" description:"List the event history for this token"`
-	SubTree      subTreeCommand         `command:"subtokens" description:"List the tree of subtokens for this token"`
-	Introspect   introspectCommand      `command:"introspect" description:"Gives basic information about this token and its usages"`
-	TokenList    listSuperTokensCommand `command:"list-supertokens" description:"List all super tokens"`
+	*PTOptions
+	EventHistory historyCommand      `command:"history" description:"List the event history for this token"`
+	SubTree      subTreeCommand      `command:"subtokens" description:"List the tree of subtokens for this token"`
+	Introspect   introspectCommand   `command:"introspect" description:"Gives basic information about this token and its usages"`
+	TokenList    listMytokensCommand `command:"list-mytokens" description:"List all mytokens"`
 }
 
 // introspectCommand is a type for holding and handling the info command
@@ -36,8 +36,8 @@ type subTreeCommand struct {
 	*PTOptions
 }
 
-// listSuperTokensCommand is a type for holding and handling the info command
-type listSuperTokensCommand struct {
+// listMytokensCommand is a type for holding and handling the info command
+type listMytokensCommand struct {
 	*PTOptions
 }
 
@@ -64,11 +64,11 @@ func prettyPrintJSON(obj interface{}) error {
 
 // Execute implements the flags.Commander interface
 func (ic *infoCommand) Execute(args []string) error {
-	_, superToken := ic.Check()
-	if !utils.IsJWT(superToken) {
+	_, mToken := ic.Check()
+	if !utils.IsJWT(mToken) {
 		return fmt.Errorf("The token is not a JWT.")
 	}
-	payload := strings.Split(superToken, ".")[1]
+	payload := strings.Split(mToken, ".")[1]
 	decodedPayload, err := base64.URLEncoding.WithPadding(base64.NoPadding).DecodeString(payload)
 	if err != nil {
 		return err
@@ -79,8 +79,8 @@ func (ic *infoCommand) Execute(args []string) error {
 // Execute implements the flags.Commander interface
 func (ic *introspectCommand) Execute(args []string) error {
 	mytoken := config.Get().Mytoken
-	_, superToken := ic.Check()
-	res, err := mytoken.TokeninfoIntrospect(superToken)
+	_, mToken := ic.Check()
+	res, err := mytoken.TokeninfoIntrospect(mToken)
 	if err != nil {
 		return err
 	}
@@ -90,8 +90,8 @@ func (ic *introspectCommand) Execute(args []string) error {
 // Execute implements the flags.Commander interface
 func (hc *historyCommand) Execute(args []string) error {
 	mytoken := config.Get().Mytoken
-	_, superToken := hc.Check()
-	res, err := mytoken.TokeninfoHistory(superToken)
+	_, mToken := hc.Check()
+	res, err := mytoken.TokeninfoHistory(mToken)
 	if err != nil {
 		return err
 	}
@@ -101,8 +101,8 @@ func (hc *historyCommand) Execute(args []string) error {
 // Execute implements the flags.Commander interface
 func (sc *subTreeCommand) Execute(args []string) error {
 	mytoken := config.Get().Mytoken
-	_, superToken := sc.Check()
-	res, err := mytoken.TokeninfoSubtokens(superToken)
+	_, mToken := sc.Check()
+	res, err := mytoken.TokeninfoSubtokens(mToken)
 	if err != nil {
 		return err
 	}
@@ -110,10 +110,10 @@ func (sc *subTreeCommand) Execute(args []string) error {
 }
 
 // Execute implements the flags.Commander interface
-func (lc *listSuperTokensCommand) Execute(args []string) error {
+func (lc *listMytokensCommand) Execute(args []string) error {
 	mytoken := config.Get().Mytoken
-	_, superToken := lc.Check()
-	res, err := mytoken.TokeninfoListSuperTokens(superToken)
+	_, mToken := lc.Check()
+	res, err := mytoken.TokeninfoListMytokens(mToken)
 	if err != nil {
 		return err
 	}

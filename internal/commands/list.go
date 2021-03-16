@@ -9,7 +9,7 @@ import (
 
 // listCommand is a type for holding and handling the list command
 type listCommand struct {
-	ListTokens    listTokenCommand    `command:"tokens" description:"List the stored super tokens"`
+	ListTokens    listTokenCommand    `command:"tokens" description:"List the stored mytokens"`
 	ListProviders listProviderCommand `command:"providers" description:"List the available providers"`
 	// EventHistory historyCommand `command:"history" description:"List the event history for this token"`
 	// SubTree      treeCommand    `command:"tree" description:"List the tree of subtokens for this token"`
@@ -28,7 +28,7 @@ func (lt *listTokenCommand) Execute(args []string) error {
 			header = provider.Name
 			defaultToken = provider.DefaultToken
 		}
-		fmt.Printf("The following super tokens are stored for provider '%s':\n", header)
+		fmt.Printf("The following mytokens are stored for provider '%s':\n", header)
 		for _, t := range tokens {
 			defaultMark := ""
 			if t.Name == defaultToken {

@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/oidc-mytoken/server/pkg/model"
-	"github.com/oidc-mytoken/server/shared/supertoken/capabilities"
-	"github.com/oidc-mytoken/server/shared/supertoken/restrictions"
+	"github.com/oidc-mytoken/server/shared/mytoken/capabilities"
+	"github.com/oidc-mytoken/server/shared/mytoken/restrictions"
 	"github.com/oidc-mytoken/server/shared/utils/unixtime"
 
 	"github.com/oidc-mytoken/client/internal/config"
@@ -20,9 +20,9 @@ import (
 )
 
 func init() {
-	options.ST.CommonSTOptions = &CommonSTOptions{}
-	options.ST.Store.CommonSTOptions = options.ST.CommonSTOptions
-	st, _ := parser.AddCommand("ST", "Obtain super token", "Obtain a new mytoken super token", &options.ST)
+	options.MT.CommonMTOptions = &CommonMTOptions{}
+	options.MT.Store.CommonMTOptions = options.MT.CommonMTOptions
+	st, _ := parser.AddCommand("MT", "Obtain a mytoken", "Obtain a new mytoken mytoken", &options.MT)
 	st.SubcommandsOptional = true
 	for _, o := range st.Options() {
 		if o.LongName == "capability" {
@@ -34,49 +34,49 @@ func init() {
 	}
 }
 
-type stCommand struct {
-	Store stStoreCommand `command:"store" description:"Store the obtained super token encrypted instead of returning it. This way the super token can be easily used with mytoken."`
+type mtCommand struct {
+	Store mtStoreCommand `command:"store" description:"Store the obtained mytoken encrypted instead of returning it. This way the mytoken can be easily used with mytoken."`
 
-	*CommonSTOptions
+	*CommonMTOptions
 
 	TokenType string `long:"token-type" choice:"short" choice:"transfer" choice:"token" default:"token" description:"The type of the returned token. Can only be used if token is not stored."`
 }
 
-type CommonSTOptions struct {
+type CommonMTOptions struct {
 	PTOptions
-	TransferCode string `long:"TC" description:"Use the passed transfer code to exchange it into a super token"`
-	OIDCFlow     string `long:"oidc" choice:"auth" choice:"device" choice:"default" optional:"true" optional-value:"default" description:"Use the passed OpenID Connect flow to create a super token"`
+	TransferCode string `long:"TC" description:"Use the passed transfer code to exchange it into a mytoken"`
+	OIDCFlow     string `long:"oidc" choice:"auth" choice:"device" choice:"default" optional:"true" optional-value:"default" description:"Use the passed OpenID Connect flow to create a mytoken"`
 
 	Capabilities         []string `long:"capability" default:"default" description:"Request the passed capabilities. Can be used multiple times"`
 	SubtokenCapabilities []string `long:"subtoken-capability" description:"Request the passed subtoken capabilities. Can be used multiple times"`
-	Restrictions         string   `long:"restrictions" description:"The restrictions that restrict the requested super token. Can be a json object or array or '@<filepath>' where <filepath> is the path to a json file.'"`
+	Restrictions         string   `long:"restrictions" description:"The restrictions that restrict the requested mytoken. Can be a json object or array or '@<filepath>' where <filepath> is the path to a json file.'"`
 
-	RestrictScopes        []string `long:"scope" short:"s" description:"Restrict the supertoken so that it can only be used to request ATs with these scopes. Can be used multiple times. Overwritten by --restriction."`
-	RestrictAudiences     []string `long:"aud" description:"Restrict the supertoken so that it can only be used to request ATs with these audiences. Can be used multiple times. Overwritten by --restriction."`
-	RestrictExp           string   `long:"exp" description:"Restrict the supertoken so that it cannot be used after this time. The time given can be an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'."`
-	RestrictNbf           string   `long:"nbf" description:"Restrict the supertoken so that it cannot be used before this time. The time given can be an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'."`
-	RestrictIP            []string `long:"ip" description:"Restrict the supertoken so that it can only be used from these ips. Can be a network address block or a single ip. Can be given multiple times."`
-	RestrictGeoIPAllow    []string `long:"geo-ip-allow" description:"Restrict the supertoken so that it can be only used from these countries. Must be a short country code, e.g. 'us'. Can be given multiple times."`
-	RestrictGeoIPDisallow []string `long:"geo-ip-disallow" description:"Restrict the supertoken so that it cannot be used from these countries. Must be a short country code, e.g. 'us'. Can be given multiple times."`
-	RestrictUsagesOther   *int64   `long:"usages-other" description:"Restrict how often the supertoken can be used for actions other than requesting an access token."`
-	RestrictUsagesAT      *int64   `long:"usages-at" description:"Restrict how often the supertoken can be used for requesting an access token."`
+	RestrictScopes        []string `long:"scope" short:"s" description:"Restrict the mytoken so that it can only be used to request ATs with these scopes. Can be used multiple times. Overwritten by --restriction."`
+	RestrictAudiences     []string `long:"aud" description:"Restrict the mytoken so that it can only be used to request ATs with these audiences. Can be used multiple times. Overwritten by --restriction."`
+	RestrictExp           string   `long:"exp" description:"Restrict the mytoken so that it cannot be used after this time. The time given can be an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'."`
+	RestrictNbf           string   `long:"nbf" description:"Restrict the mytoken so that it cannot be used before this time. The time given can be an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'."`
+	RestrictIP            []string `long:"ip" description:"Restrict the mytoken so that it can only be used from these ips. Can be a network address block or a single ip. Can be given multiple times."`
+	RestrictGeoIPAllow    []string `long:"geo-ip-allow" description:"Restrict the mytoken so that it can be only used from these countries. Must be a short country code, e.g. 'us'. Can be given multiple times."`
+	RestrictGeoIPDisallow []string `long:"geo-ip-disallow" description:"Restrict the mytoken so that it cannot be used from these countries. Must be a short country code, e.g. 'us'. Can be given multiple times."`
+	RestrictUsagesOther   *int64   `long:"usages-other" description:"Restrict how often the mytoken can be used for actions other than requesting an access token."`
+	RestrictUsagesAT      *int64   `long:"usages-at" description:"Restrict how often the mytoken can be used for requesting an access token."`
 }
 
-type stStoreCommand struct {
-	*CommonSTOptions
+type mtStoreCommand struct {
+	*CommonMTOptions
 	PositionalArgs struct {
-		StoreName string `positional-arg-name:"NAME" description:"Store the obtained super token under NAME. It can be used later by referencing NAME."`
+		StoreName string `positional-arg-name:"NAME" description:"Store the obtained mytoken under NAME. It can be used later by referencing NAME."`
 	} `positional-args:"true" required:"true"`
 	GPGKey   string `short:"k" long:"gpg-key" value-name:"KEY" description:"Use KEY for encryption instead of the default key"`
 	Password bool   `long:"password" description:"Use a password for encrypting the token instead of a gpg key."`
 }
 
 // Execute implements the flags.Commander interface
-func (stc *stCommand) Execute(args []string) error {
-	if len(stc.Capabilities) > 0 && stc.Capabilities[0] == "default" {
-		stc.Capabilities = config.Get().DefaultTokenCapabilities.Returned
+func (mtc *mtCommand) Execute(args []string) error {
+	if len(mtc.Capabilities) > 0 && mtc.Capabilities[0] == "default" {
+		mtc.Capabilities = config.Get().DefaultTokenCapabilities.Returned
 	}
-	st, err := obtainST(stc.CommonSTOptions, "", model.NewResponseType(stc.TokenType))
+	st, err := obtainMT(mtc.CommonMTOptions, "", model.NewResponseType(mtc.TokenType))
 	if err != nil {
 		return err
 	}
@@ -84,10 +84,10 @@ func (stc *stCommand) Execute(args []string) error {
 	return nil
 }
 
-func obtainST(args *CommonSTOptions, name string, responseType model.ResponseType) (string, error) {
+func obtainMT(args *CommonMTOptions, name string, responseType model.ResponseType) (string, error) {
 	mytoken := config.Get().Mytoken
 	if args.TransferCode != "" {
-		return mytoken.GetSuperTokenByTransferCode(args.TransferCode)
+		return mytoken.GetMytokenByTransferCode(args.TransferCode)
 	}
 	provider, err := args.PTOptions.checkProvider(args.Name)
 	if err != nil {
@@ -135,7 +135,7 @@ func obtainST(args *CommonSTOptions, name string, responseType model.ResponseTyp
 		}
 		switch args.OIDCFlow {
 		case "auth":
-			return mytoken.GetSuperTokenByAuthorizationFlow(provider.Issuer, r, c, sc, responseType, tokenName,
+			return mytoken.GetMytokenByAuthorizationFlow(provider.Issuer, r, c, sc, responseType, tokenName,
 				func(authorizationURL string) error {
 					fmt.Fprintln(os.Stderr, "Using any device please visit the following url to continue:")
 					fmt.Fprintln(os.Stderr)
@@ -167,24 +167,24 @@ func obtainST(args *CommonSTOptions, name string, responseType model.ResponseTyp
 	if err != nil {
 		return "", err
 	}
-	return mytoken.GetSuperTokenBySuperToken(stGrant, provider.Issuer, r, c, sc, responseType, tokenName)
+	return mytoken.GetMytokenByMytoken(stGrant, provider.Issuer, r, c, sc, responseType, tokenName)
 }
 
 // Execute implements the flags.Commander interface
-func (sstc *stStoreCommand) Execute(args []string) error {
-	if len(sstc.Capabilities) > 0 && sstc.Capabilities[0] == "default" {
-		sstc.Capabilities = config.Get().DefaultTokenCapabilities.Stored
+func (smtc *mtStoreCommand) Execute(args []string) error {
+	if len(smtc.Capabilities) > 0 && smtc.Capabilities[0] == "default" {
+		smtc.Capabilities = config.Get().DefaultTokenCapabilities.Stored
 	}
-	provider, err := sstc.CommonSTOptions.PTOptions.checkProvider(sstc.Name)
+	provider, err := smtc.CommonMTOptions.PTOptions.checkProvider(smtc.Name)
 	if err != nil {
 		return err
 	}
-	st, err := obtainST(sstc.CommonSTOptions, sstc.PositionalArgs.StoreName, model.ResponseTypeToken)
+	st, err := obtainMT(smtc.CommonMTOptions, smtc.PositionalArgs.StoreName, model.ResponseTypeToken)
 	if err != nil {
 		return err
 	}
-	gpgKey := sstc.GPGKey
-	if sstc.Password {
+	gpgKey := smtc.GPGKey
+	if smtc.Password {
 		gpgKey = ""
 	} else if gpgKey == "" {
 		gpgKey = provider.GPGKey
@@ -198,10 +198,10 @@ func (sstc *stStoreCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err = saveEncryptedToken(encryptedToken, provider.Issuer, sstc.PositionalArgs.StoreName, gpgKey); err != nil {
+	if err = saveEncryptedToken(encryptedToken, provider.Issuer, smtc.PositionalArgs.StoreName, gpgKey); err != nil {
 		return err
 	}
-	fmt.Printf("Saved super token '%s'\n", sstc.PositionalArgs.StoreName)
+	fmt.Printf("Saved mytoken '%s'\n", smtc.PositionalArgs.StoreName)
 	return nil
 }
 

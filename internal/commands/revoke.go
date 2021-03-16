@@ -14,8 +14,8 @@ type revokeCommand struct {
 // Execute implements the flags.Commander interface
 func (rc *revokeCommand) Execute(args []string) error {
 	mytoken := config.Get().Mytoken
-	provider, superToken := rc.Check()
-	err := mytoken.Revoke(superToken, provider.Issuer, rc.Recursive)
+	provider, mToken := rc.Check()
+	err := mytoken.Revoke(mToken, provider.Issuer, rc.Recursive)
 	if err != nil {
 		return err
 	}

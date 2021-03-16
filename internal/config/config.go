@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/oidc-mytoken/server/pkg/mytokenlib"
-	"github.com/oidc-mytoken/server/shared/supertoken/capabilities"
+	"github.com/oidc-mytoken/server/shared/mytoken/capabilities"
 	"github.com/oidc-mytoken/server/shared/utils/fileutil"
 
 	"github.com/oidc-mytoken/client/internal/model"
@@ -20,8 +20,8 @@ import (
 )
 
 type Config struct {
-	URL     string              `yaml:"instance"`
-	Mytoken *mytokenlib.Mytoken `yaml:"-"`
+	URL     string                      `yaml:"instance"`
+	Mytoken *mytokenlib.MytokenProvider `yaml:"-"`
 
 	DefaultGPGKey            string `yaml:"default_gpg_key"`
 	DefaultProvider          string `yaml:"default_provider"`
@@ -112,7 +112,7 @@ var defaultConfig = Config{
 		Stored   []string `yaml:"stored"`
 		Returned []string `yaml:"returned"`
 	}{
-		Stored:   capabilities.Capabilities{capabilities.CapabilityAT, capabilities.CapabilityCreateST, capabilities.CapabilityTokeninfoHistory, capabilities.CapabilityTokeninfoTree}.Strings(),
+		Stored:   capabilities.Capabilities{capabilities.CapabilityAT, capabilities.CapabilityCreateMT, capabilities.CapabilityTokeninfoHistory, capabilities.CapabilityTokeninfoTree}.Strings(),
 		Returned: capabilities.Capabilities{capabilities.CapabilityAT}.Strings(),
 	},
 	TokenNamePrefix: "<hostname>",
@@ -165,7 +165,7 @@ func load(name string, locations []string) {
 	if conf.URL == "" {
 		log.Fatal("Must provide url of the mytoken instance in the config file.")
 	}
-	mytoken, err := mytokenlib.NewMytokenInstance(conf.URL)
+	mytoken, err := mytokenlib.NewMytokenProvider(conf.URL)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -334,8 +334,8 @@ github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWb
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nishanths/exhaustive v0.0.0-20200525081945-8e46705b6132/go.mod h1:wBEpHwM2OdmeNpdCvRPUlkEbBuaFmcK4Wv8Q7FuGW3c=
 github.com/nkovacs/streamquote v1.0.0/go.mod h1:BN+NaZ2CmdKqUuTUXUEm9j95B2TRbpOWpxbJYzzgUsc=
-github.com/oidc-mytoken/server v0.1.1-0.20210311114639-bfc369aa5cd8 h1:qb+be7jNpl/rfJzmkQsIZYmwFh0zPY6ZA22RAN+kxqM=
-github.com/oidc-mytoken/server v0.1.1-0.20210311114639-bfc369aa5cd8/go.mod h1:knRIkxPThqGnhuGrEtnw73ukrMF7TulMNnQwThyWmxw=
+github.com/oidc-mytoken/server v0.1.1-0.20210316195655-d968b6edd57a h1:AUvvqvCiBvhfz/RKYMizHDktiAJ+kemDSGVlJuuz8SU=
+github.com/oidc-mytoken/server v0.1.1-0.20210316195655-d968b6edd57a/go.mod h1:knRIkxPThqGnhuGrEtnw73ukrMF7TulMNnQwThyWmxw=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.12.0/go.mod h1:oUhWkIvk5aDxtKvDDuw8gItl8pKl42LzjC9KZE0HfGg=
