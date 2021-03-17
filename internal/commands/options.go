@@ -41,10 +41,10 @@ func init() {
 	}
 
 	parser = flags.NewNamedParser("mytoken", flags.Default)
-	parser.AddGroup("Config Options", "", &options.GeneralOptions)
-	parser.AddCommand("AT", "Obtain access token", "Obtain a new OpenID Connect access token", &options.AT)
-	parser.AddCommand("revoke", "Revoke mytoken", "Revoke a mytoken token", &options.Revoke)
-	parser.AddCommand("list", "List different information", "List different information", &options.List)
+	_, _ = parser.AddGroup("Config Options", "", &options.GeneralOptions)
+	_, _ = parser.AddCommand("AT", "Obtain access token", "Obtain a new OpenID Connect access token", &options.AT)
+	_, _ = parser.AddCommand("revoke", "Revoke mytoken", "Revoke a mytoken token", &options.Revoke)
+	_, _ = parser.AddCommand("list", "List different information", "List different information", &options.List)
 	options.Info.PTOptions = &PTOptions{}
 	options.Info.Introspect.PTOptions = options.Info.PTOptions
 	options.Info.EventHistory.PTOptions = options.Info.PTOptions
