@@ -165,11 +165,11 @@ func obtainMT(args *CommonMTOptions, name string, responseType model.ResponseTyp
 			return "", fmt.Errorf("Unknown oidc flow. Implementation error.")
 		}
 	}
-	stGrant, err := args.PTOptions.checkToken(provider.Issuer)
+	mtGrant, err := args.PTOptions.checkToken(provider.Issuer)
 	if err != nil {
 		return "", err
 	}
-	return mytoken.GetMytokenByMytoken(stGrant, provider.Issuer, r, c, sc, responseType, tokenName)
+	return mytoken.GetMytokenByMytoken(mtGrant, provider.Issuer, r, c, sc, responseType, tokenName)
 }
 
 // Execute implements the flags.Commander interface

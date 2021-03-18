@@ -2,8 +2,11 @@ package commands
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 
+	"github.com/Songmu/prompter"
 	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/jwtutils"
 	log "github.com/sirupsen/logrus"
@@ -14,33 +17,60 @@ import (
 
 // PTOptions holds command line options that can be used with all commands
 type PTOptions struct {
-	Provider string `short:"p" long:"provider" description:"The name or issuer url of the OpenID provider that should be used"`
-	Name     string `short:"t" long:"name" description:"The name of the mytoken that should be used"`
-	Mytoken  string `long:"MT" description:"The passed mytoken is used instead of a stored one"`
+	Provider    string  `short:"p" long:"provider" description:"The name or issuer url of the OpenID provider that should be used"`
+	Name        string  `short:"t" long:"name" description:"The name of the mytoken that should be used"`
+	Mytoken     *string `long:"MT" optional:"true" optional-value:"" description:"The passed mytoken is used instead of a stored one. If cou want to use this, please check if one of the more secure options --MT-file or --MT-env can be used"`
+	MytokenFile string  `long:"MT-file" description:"Read the mytoken that should be used from the first line of the passed file"`
+	MytokenEnv  string  `long:"MT-env" description:"Read the mytoken that should be used from the passed environment variable"`
 }
 
 func (g *PTOptions) Check() (*model.Provider, string) {
-	if g.Mytoken != "" {
-		if utils.IsJWT(g.Mytoken) {
-			g.Provider, _ = jwtutils.GetStringFromJWT(g.Mytoken, "oidc_iss")
+	token, _ := g.getToken()
+	if token != "" {
+		if utils.IsJWT(token) {
+			g.Provider, _ = jwtutils.GetStringFromJWT(token, "oidc_iss")
 		}
 		p, _ := g.checkProvider("")
-		return p, g.Mytoken
+		return p, token
 	}
-	p, pErr := g.checkProvider(g.Name)
-	if pErr != nil {
-		log.Fatal(pErr)
+	p, err := g.checkProvider(g.Name)
+	if err != nil {
+		log.Fatal(err)
 	}
-	token, tErr := config.Get().GetToken(p.Issuer, g.Name)
-	if tErr != nil {
-		log.Fatal(tErr)
+	token, err = config.Get().GetToken(p.Issuer, g.Name)
+	if err != nil {
+		log.Fatal(err)
 	}
 	return p, token
 }
 
+func (g *PTOptions) getToken() (string, error) {
+	if g.Mytoken != nil {
+		if *g.Mytoken != "" {
+			return *g.Mytoken, nil
+		}
+		return prompter.Password("Enter mytoken"), nil
+	}
+	if g.MytokenEnv != "" {
+		tok, ok := os.LookupEnv(g.MytokenEnv)
+		if ok {
+			return tok, nil
+		}
+	}
+	if g.MytokenFile != "" {
+		content, err := ioutil.ReadFile(g.MytokenFile)
+		if err != nil {
+			return "", err
+		}
+		return strings.SplitN(string(content), "\n", 2)[0], nil
+	}
+	return "", nil
+}
+
 func (g *PTOptions) checkToken(issuer string) (string, error) {
-	if g.Mytoken != "" {
-		return g.Mytoken, nil
+	tok, err := g.getToken()
+	if err != nil || tok != "" {
+		return tok, err
 	}
 	return config.Get().GetToken(issuer, g.Name)
 }
