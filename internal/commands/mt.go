@@ -41,6 +41,7 @@ type mtCommand struct {
 	*CommonMTOptions
 
 	TokenType string `long:"token-type" choice:"short" choice:"transfer" choice:"token" default:"token" description:"The type of the returned token. Can only be used if token is not stored."`
+	Out       string `long:"out" short:"o" default:"/dev/stdout" description:"The mytoken will be printed to this output."`
 }
 
 type CommonMTOptions struct {
@@ -77,12 +78,12 @@ func (mtc *mtCommand) Execute(args []string) error {
 	if len(mtc.Capabilities) > 0 && mtc.Capabilities[0] == "default" {
 		mtc.Capabilities = config.Get().DefaultTokenCapabilities.Returned
 	}
+
 	st, err := obtainMT(mtc.CommonMTOptions, "", model.NewResponseType(mtc.TokenType))
 	if err != nil {
 		return err
 	}
-	fmt.Println(st)
-	return nil
+	return ioutil.WriteFile(mtc.Out, append([]byte(st), '\n'), 0600)
 }
 
 func obtainMT(args *CommonMTOptions, name string, responseType model.ResponseType) (string, error) {
