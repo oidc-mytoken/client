@@ -137,8 +137,11 @@ github.com/gobwas/glob v0.2.3/go.mod h1:d3Ez4x06l9bZtSvzIay5+Yzi0fmZzPgnTbPcKjJA
 github.com/gofiber/fiber/v2 v2.2.2/go.mod h1:Aso7/M+EQOinVkWp4LUYjdlTpKTBoCk2Qo4djnMsyHE=
 github.com/gofiber/fiber/v2 v2.4.1 h1:aPIE50JPlNJjaGMuyt6dC6bZGY4czdLt8WLhHrFnAFk=
 github.com/gofiber/fiber/v2 v2.4.1/go.mod h1:f8BRRIMjMdRyt2qmJ/0Sea3j3rwwfufPrh9WNBRiVZ0=
+github.com/gofiber/fiber/v2 v2.5.0 h1:yml405Um7b98EeMjx63OjSFTATLmX985HPWFfNUPV0w=
+github.com/gofiber/fiber/v2 v2.5.0/go.mod h1:f8BRRIMjMdRyt2qmJ/0Sea3j3rwwfufPrh9WNBRiVZ0=
 github.com/gofiber/helmet/v2 v2.1.0/go.mod h1:BWTRxVM8ILkx7pv+xrRSnEZcMriqMbtywhqHsDCB98s=
 github.com/gofiber/template v1.6.7-0.20210204091541-84b1799fecd8/go.mod h1:7qhmoRBKeNr2pPh7L2d6JpN9gru8CzM0IbrsIIP7WGI=
+github.com/gofiber/template v1.6.7/go.mod h1:jOu6EHGH36OeeVbw14cZE3r7RAQGLNhBG2NieyjsTfk=
 github.com/gofrs/flock v0.7.1/go.mod h1:F1TvTiK9OcQqauNUHlbJvyl9Qa1QvF/gOUDKA14jxHU=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/gogo/protobuf v1.2.1/go.mod h1:hp+jE20tsWTFYpLwKvXlhS1hjn+gTNwPg2I6zVXpSg4=
@@ -336,6 +339,8 @@ github.com/nishanths/exhaustive v0.0.0-20200525081945-8e46705b6132/go.mod h1:wBE
 github.com/nkovacs/streamquote v1.0.0/go.mod h1:BN+NaZ2CmdKqUuTUXUEm9j95B2TRbpOWpxbJYzzgUsc=
 github.com/oidc-mytoken/server v0.1.1-0.20210316195655-d968b6edd57a h1:AUvvqvCiBvhfz/RKYMizHDktiAJ+kemDSGVlJuuz8SU=
 github.com/oidc-mytoken/server v0.1.1-0.20210316195655-d968b6edd57a/go.mod h1:knRIkxPThqGnhuGrEtnw73ukrMF7TulMNnQwThyWmxw=
+github.com/oidc-mytoken/server v0.1.1-0.20210317110631-d8ae947309b4 h1:vUWaLnqCbsTNw1FxQ2vIGwoMbkqMMcxrp7+SddQ1Ao0=
+github.com/oidc-mytoken/server v0.1.1-0.20210317110631-d8ae947309b4/go.mod h1:rigNCPnEg1pYzagFjgRQswkZjYRJql3trJQkJCIssbY=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.12.0/go.mod h1:oUhWkIvk5aDxtKvDDuw8gItl8pKl42LzjC9KZE0HfGg=

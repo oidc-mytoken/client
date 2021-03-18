@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Songmu/prompter"
 	"github.com/oidc-mytoken/server/pkg/model"
 	"github.com/oidc-mytoken/server/shared/mytoken/capabilities"
 	"github.com/oidc-mytoken/server/shared/mytoken/restrictions"
@@ -19,7 +20,7 @@ import (
 	"github.com/oidc-mytoken/client/internal/utils/duration"
 )
 
-func init() {
+func mt_init() {
 	options.MT.CommonMTOptions = &CommonMTOptions{}
 	options.MT.Store.CommonMTOptions = options.MT.CommonMTOptions
 	st, _ := parser.AddCommand("MT", "Obtain a mytoken", "Obtain a new mytoken mytoken", &options.MT)
@@ -178,6 +179,15 @@ func (smtc *mtStoreCommand) Execute(args []string) error {
 	provider, err := smtc.CommonMTOptions.PTOptions.checkProvider(smtc.Name)
 	if err != nil {
 		return err
+	}
+	if config.Get().TokensFileContent.Has(smtc.PositionalArgs.StoreName, provider.Issuer) {
+		pStr := provider.Name
+		if pStr == "" {
+			pStr = provider.Issuer
+		}
+		if !prompter.YN(fmt.Sprintf("A token with the name '%s' is already stored for the provider '%s'. Do you want to overwrite it?", smtc.PositionalArgs.StoreName, pStr), false) {
+			os.Exit(1)
+		}
 	}
 	st, err := obtainMT(smtc.CommonMTOptions, smtc.PositionalArgs.StoreName, model.ResponseTypeToken)
 	if err != nil {

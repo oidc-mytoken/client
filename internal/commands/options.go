@@ -52,6 +52,7 @@ func init() {
 	options.Info.TokenList.PTOptions = options.Info.PTOptions
 	info, _ := parser.AddCommand("info", "Get information about a mytoken", "Get information about a mytoken", &options.Info)
 	info.SubcommandsOptional = true
+	mt_init()
 }
 
 // Parse parses the command line options and calls the specified command

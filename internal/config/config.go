@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/oidc-mytoken/server/shared/utils"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
@@ -49,22 +50,37 @@ type tokenNameMapping map[string][]string
 
 type tokenEntries map[string][]TokenEntry
 
+func (f TokenFileContent) Has(name, iss string) bool {
+	return f.Tokens.Has(name, iss)
+}
+func (e tokenEntries) Has(name, iss string) bool {
+	for _, tt := range e[iss] {
+		if tt.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 func (f *TokenFileContent) Add(t TokenEntry, iss string) {
 	f.Tokens.add(t, iss)
 	f.TokenMapping.add(t, iss)
 }
 func (e *tokenEntries) add(t TokenEntry, iss string) {
-	toks := (*e)[iss]
-	for i, tt := range toks {
+	for i, tt := range (*e)[iss] {
 		if tt.Name == t.Name {
 			tt.GPGKey = t.GPGKey
 			tt.Token = t.Token
 			(*e)[iss][i] = tt
+			return
 		}
 	}
 	(*e)[iss] = append((*e)[iss], t)
 }
 func (m *tokenNameMapping) add(t TokenEntry, iss string) {
+	if utils.StringInSlice(iss, (*m)[t.Name]) {
+		return
+	}
 	(*m)[t.Name] = append((*m)[t.Name], iss)
 }
 
