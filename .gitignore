@@ -5,3 +5,4 @@ tags
 config/config.yaml
 config/config-dev.yaml
 /cmd/test
+dist/
