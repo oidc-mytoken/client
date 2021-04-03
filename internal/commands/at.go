@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"fmt"
+	"io/ioutil"
 
 	"github.com/oidc-mytoken/client/internal/config"
 )
@@ -11,6 +11,7 @@ type atCommand struct {
 	PTOptions
 	Scopes    []string `long:"scope" short:"s" description:"Request the passed scope. Can be used multiple times"`
 	Audiences []string `long:"aud" description:"Request the passed audience. Can be used multiple times"`
+	Out       string   `long:"out" short:"o" default:"/dev/stdout" description:"The access token will be printed to this output."`
 }
 
 // Execute implements the flags.Commander interface
@@ -25,6 +26,5 @@ func (atc *atCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(at)
-	return nil
+	return ioutil.WriteFile(atc.Out, append([]byte(at), '\n'), 0600)
 }
