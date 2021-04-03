@@ -17,7 +17,7 @@ import (
 
 // PTOptions holds command line options that can be used with all commands
 type PTOptions struct {
-	Provider    string  `short:"p" long:"provider" description:"The name or issuer url of the OpenID provider that should be used"`
+	Provider    string  `short:"i" long:"provider" description:"The name or issuer url of the OpenID provider that should be used"`
 	Name        string  `short:"t" long:"name" description:"The name of the mytoken that should be used"`
 	Mytoken     *string `long:"MT" optional:"true" optional-value:"" description:"The passed mytoken is used instead of a stored one. If cou want to use this, please check if one of the more secure options --MT-file or --MT-env can be used"`
 	MytokenFile string  `long:"MT-file" description:"Read the mytoken that should be used from the first line of the passed file"`
