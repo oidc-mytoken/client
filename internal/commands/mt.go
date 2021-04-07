@@ -40,6 +40,7 @@ type mtCommand struct {
 
 	*CommonMTOptions
 
+	Tag       string `long:"tag" value:"NAME" description:"A name for the returned mytoken; used for finding the token in a list of mytokens."`
 	TokenType string `long:"token-type" choice:"short" choice:"transfer" choice:"token" default:"token" description:"The type of the returned token. Can only be used if token is not stored."`
 	Out       string `long:"out" short:"o" default:"/dev/stdout" description:"The mytoken will be printed to this output."`
 }
@@ -66,7 +67,7 @@ type CommonMTOptions struct {
 
 type mtStoreCommand struct {
 	*CommonMTOptions
-	PositionalArgs struct {
+	Args struct {
 		StoreName string `positional-arg-name:"NAME" description:"Store the obtained mytoken under NAME. It can be used later by referencing NAME."`
 	} `positional-args:"true" required:"true"`
 	GPGKey   string `short:"k" long:"gpg-key" value-name:"KEY" description:"Use KEY for encryption instead of the default key"`
@@ -79,7 +80,7 @@ func (mtc *mtCommand) Execute(args []string) error {
 		mtc.Capabilities = config.Get().DefaultTokenCapabilities.Returned
 	}
 
-	st, err := obtainMT(mtc.CommonMTOptions, "", model.NewResponseType(mtc.TokenType))
+	st, err := obtainMT(mtc.CommonMTOptions, mtc.Tag, model.NewResponseType(mtc.TokenType))
 	if err != nil {
 		return err
 	}
@@ -181,16 +182,16 @@ func (smtc *mtStoreCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	if config.Get().TokensFileContent.Has(smtc.PositionalArgs.StoreName, provider.Issuer) {
+	if config.Get().TokensFileContent.Has(smtc.Args.StoreName, provider.Issuer) {
 		pStr := provider.Name
 		if pStr == "" {
 			pStr = provider.Issuer
 		}
-		if !prompter.YN(fmt.Sprintf("A token with the name '%s' is already stored for the provider '%s'. Do you want to overwrite it?", smtc.PositionalArgs.StoreName, pStr), false) {
+		if !prompter.YN(fmt.Sprintf("A token with the name '%s' is already stored for the provider '%s'. Do you want to overwrite it?", smtc.Args.StoreName, pStr), false) {
 			os.Exit(1)
 		}
 	}
-	st, err := obtainMT(smtc.CommonMTOptions, smtc.PositionalArgs.StoreName, model.ResponseTypeToken)
+	st, err := obtainMT(smtc.CommonMTOptions, smtc.Args.StoreName, model.ResponseTypeToken)
 	if err != nil {
 		return err
 	}
@@ -209,10 +210,10 @@ func (smtc *mtStoreCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err = saveEncryptedToken(encryptedToken, provider.Issuer, smtc.PositionalArgs.StoreName, gpgKey); err != nil {
+	if err = saveEncryptedToken(encryptedToken, provider.Issuer, smtc.Args.StoreName, gpgKey); err != nil {
 		return err
 	}
-	fmt.Printf("Saved mytoken '%s'\n", smtc.PositionalArgs.StoreName)
+	fmt.Printf("Saved mytoken '%s'\n", smtc.Args.StoreName)
 	return nil
 }
 
