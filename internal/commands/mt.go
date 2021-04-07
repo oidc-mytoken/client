@@ -11,6 +11,7 @@ import (
 
 	"github.com/Songmu/prompter"
 	"github.com/oidc-mytoken/server/pkg/model"
+	"github.com/oidc-mytoken/server/pkg/mytokenlib"
 	"github.com/oidc-mytoken/server/shared/mytoken/capabilities"
 	"github.com/oidc-mytoken/server/shared/mytoken/restrictions"
 	"github.com/oidc-mytoken/server/shared/utils/unixtime"
@@ -138,28 +139,29 @@ func obtainMT(args *CommonMTOptions, name string, responseType model.ResponseTyp
 		}
 		switch args.OIDCFlow {
 		case "auth":
-			return mytoken.GetMytokenByAuthorizationFlow(provider.Issuer, r, c, sc, responseType, tokenName,
-				func(authorizationURL string) error {
+			callbacks := mytokenlib.PollingCallbacks{
+				Init: func(authorizationURL string) error {
 					fmt.Fprintln(os.Stderr, "Using any device please visit the following url to continue:")
 					fmt.Fprintln(os.Stderr)
 					fmt.Fprintln(os.Stderr, authorizationURL)
 					fmt.Fprintln(os.Stderr)
 					return nil
 				},
-				func(interval int64, iteration int) {
+				Callback: func(interval int64, iteration int) {
 					if iteration == 0 {
-						fmt.Fprint(os.Stderr, "Starting polling ... ")
+						fmt.Fprint(os.Stderr, "Starting polling ...")
 						return
 					}
-					if int64(iteration)%(30/interval) == 0 { // every 30s
+					if int64(iteration)%(15/interval) == 0 { // every 15s
 						fmt.Fprint(os.Stderr, ".")
 					}
 				},
-				func() {
+				End: func() {
 					fmt.Fprintln(os.Stderr)
 					fmt.Fprintln(os.Stderr, "success")
 				},
-			)
+			}
+			return mytoken.GetMytokenByAuthorizationFlow(provider.Issuer, r, c, sc, responseType, tokenName, callbacks)
 		case "device":
 			return "", fmt.Errorf("Not yet implemented")
 		default:
