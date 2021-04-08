@@ -40,6 +40,9 @@ nfpms:
         type: config
 checksum:
   name_template: 'checksums.txt'
+release:
+  draft: true
+  name_template: "{{.ProjectName}} {{.Version}}"
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
