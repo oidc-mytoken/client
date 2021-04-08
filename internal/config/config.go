@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/oidc-mytoken/server/pkg/api/v0"
 	"github.com/oidc-mytoken/server/shared/utils"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 
 	"github.com/oidc-mytoken/server/pkg/mytokenlib"
-	"github.com/oidc-mytoken/server/shared/mytoken/capabilities"
 	"github.com/oidc-mytoken/server/shared/utils/fileutil"
 
 	"github.com/oidc-mytoken/client/internal/model"
@@ -128,8 +128,8 @@ var defaultConfig = Config{
 		Stored   []string `yaml:"stored"`
 		Returned []string `yaml:"returned"`
 	}{
-		Stored:   capabilities.Capabilities{capabilities.CapabilityAT, capabilities.CapabilityCreateMT, capabilities.CapabilityTokeninfoHistory, capabilities.CapabilityTokeninfoTree}.Strings(),
-		Returned: capabilities.Capabilities{capabilities.CapabilityAT}.Strings(),
+		Stored:   api.Capabilities{api.CapabilityAT, api.CapabilityCreateMT, api.CapabilityTokeninfoHistory, api.CapabilityTokeninfoTree}.Strings(),
+		Returned: api.Capabilities{api.CapabilityAT}.Strings(),
 	},
 	TokenNamePrefix: "<hostname>",
 	TokensFilePath:  "tokens.json",

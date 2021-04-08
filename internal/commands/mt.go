@@ -10,10 +10,8 @@ import (
 	"time"
 
 	"github.com/Songmu/prompter"
-	"github.com/oidc-mytoken/server/pkg/model"
+	"github.com/oidc-mytoken/server/pkg/api/v0"
 	"github.com/oidc-mytoken/server/pkg/mytokenlib"
-	"github.com/oidc-mytoken/server/shared/mytoken/capabilities"
-	"github.com/oidc-mytoken/server/shared/mytoken/restrictions"
 	"github.com/oidc-mytoken/server/shared/utils/unixtime"
 
 	"github.com/oidc-mytoken/client/internal/config"
@@ -21,17 +19,17 @@ import (
 	"github.com/oidc-mytoken/client/internal/utils/duration"
 )
 
-func mt_init() {
+func mtInit() {
 	options.MT.CommonMTOptions = &CommonMTOptions{}
 	options.MT.Store.CommonMTOptions = options.MT.CommonMTOptions
 	st, _ := parser.AddCommand("MT", "Obtain a mytoken", "Obtain a new mytoken mytoken", &options.MT)
 	st.SubcommandsOptional = true
 	for _, o := range st.Options() {
 		if o.LongName == "capability" {
-			o.Choices = capabilities.AllCapabilities.Strings()
+			o.Choices = api.AllCapabilities.Strings()
 		}
 		if o.LongName == "subtoken-capability" {
-			o.Choices = capabilities.AllCapabilities.Strings()
+			o.Choices = api.AllCapabilities.Strings()
 		}
 	}
 }
@@ -81,14 +79,14 @@ func (mtc *mtCommand) Execute(args []string) error {
 		mtc.Capabilities = config.Get().DefaultTokenCapabilities.Returned
 	}
 
-	st, err := obtainMT(mtc.CommonMTOptions, mtc.Tag, model.NewResponseType(mtc.TokenType))
+	st, err := obtainMT(mtc.CommonMTOptions, mtc.Tag, mtc.TokenType)
 	if err != nil {
 		return err
 	}
 	return ioutil.WriteFile(mtc.Out, append([]byte(st), '\n'), 0600)
 }
 
-func obtainMT(args *CommonMTOptions, name string, responseType model.ResponseType) (string, error) {
+func obtainMT(args *CommonMTOptions, name string, responseType string) (string, error) {
 	mytoken := config.Get().Mytoken
 	if args.TransferCode != "" {
 		return mytoken.GetMytokenByTransferCode(args.TransferCode)
@@ -102,7 +100,7 @@ func obtainMT(args *CommonMTOptions, name string, responseType model.ResponseTyp
 	if name != "" && prefix != "" {
 		tokenName = fmt.Sprintf("%s:%s", prefix, name)
 	}
-	var r restrictions.Restrictions
+	var r api.Restrictions
 	if args.Restrictions != "" {
 		r, err = parseRestrictionOption(args.Restrictions)
 		if err != nil {
@@ -117,8 +115,8 @@ func obtainMT(args *CommonMTOptions, name string, responseType model.ResponseTyp
 		if err != nil {
 			return "", err
 		}
-		r = restrictions.Restrictions{
-			restrictions.Restriction{
+		r = api.Restrictions{
+			api.Restriction{
 				NotBefore:     nbf,
 				ExpiresAt:     exp,
 				Scope:         strings.Join(args.RestrictScopes, " "),
@@ -131,8 +129,8 @@ func obtainMT(args *CommonMTOptions, name string, responseType model.ResponseTyp
 			},
 		}
 	}
-	c := capabilities.NewCapabilities(args.Capabilities)
-	sc := capabilities.NewCapabilities(args.SubtokenCapabilities)
+	c := api.NewCapabilities(args.Capabilities)
+	sc := api.NewCapabilities(args.SubtokenCapabilities)
 	if args.OIDCFlow != "" {
 		if args.OIDCFlow == "default" {
 			args.OIDCFlow = config.Get().DefaultOIDCFlow
@@ -193,7 +191,7 @@ func (smtc *mtStoreCommand) Execute(args []string) error {
 			os.Exit(1)
 		}
 	}
-	st, err := obtainMT(smtc.CommonMTOptions, smtc.Args.StoreName, model.ResponseTypeToken)
+	st, err := obtainMT(smtc.CommonMTOptions, smtc.Args.StoreName, api.ResponseTypeToken)
 	if err != nil {
 		return err
 	}
@@ -229,14 +227,14 @@ func saveEncryptedToken(token, issuer, name, gpgKey string) error {
 }
 
 type pRestriction struct {
-	restrictions.Restriction
+	api.Restriction
 	NotBefore string `json:"nbf,omitempty"`
 	ExpiresAt string `json:"exp,omitempty"`
 }
 
-type restriction restrictions.Restriction
+type restriction api.Restriction
 
-func parseRestrictionOption(arg string) (restrictions.Restrictions, error) {
+func parseRestrictionOption(arg string) (api.Restrictions, error) {
 	if arg == "" {
 		return nil, nil
 	}
@@ -250,21 +248,21 @@ func parseRestrictionOption(arg string) (restrictions.Restrictions, error) {
 	return parseRestrictions(arg)
 }
 
-func parseRestrictions(str string) (restrictions.Restrictions, error) {
+func parseRestrictions(str string) (api.Restrictions, error) {
 	str = strings.TrimSpace(str)
 	switch str[0] {
 	case '[': // multiple restrictions
 		var rs []restriction
 		err := json.Unmarshal([]byte(str), &rs)
-		r := restrictions.Restrictions{}
+		r := api.Restrictions{}
 		for _, rr := range rs {
-			r = append(r, restrictions.Restriction(rr))
+			r = append(r, api.Restriction(rr))
 		}
 		return r, err
 	case '{': // single restriction
 		var r restriction
 		err := json.Unmarshal([]byte(str), &r)
-		return restrictions.Restrictions{restrictions.Restriction(r)}, err
+		return api.Restrictions{api.Restriction(r)}, err
 	default:
 		return nil, fmt.Errorf("malformed restriction")
 	}
@@ -289,21 +287,21 @@ func (r *restriction) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func parseTime(t string) (unixtime.UnixTime, error) {
+func parseTime(t string) (int64, error) {
 	if t == "" {
 		return 0, nil
 	}
 	i, err := strconv.ParseInt(t, 10, 64)
 	if err == nil {
 		if t[0] == '+' {
-			return unixtime.InSeconds(i), nil
+			return int64(unixtime.InSeconds(i)), nil
 		}
-		return unixtime.UnixTime(i), nil
+		return i, nil
 	}
 	if t[0] == '+' {
 		d, err := duration.ParseDuration(t[1:])
-		return unixtime.New(time.Now().Add(d)), err
+		return int64(unixtime.New(time.Now().Add(d))), err
 	}
 	tt, err := time.ParseInLocation("2006-01-02 15:04", t, time.Local)
-	return unixtime.New(tt), err
+	return int64(unixtime.New(tt)), err
 }
