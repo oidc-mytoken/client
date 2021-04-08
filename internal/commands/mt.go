@@ -86,7 +86,7 @@ func (mtc *mtCommand) Execute(args []string) error {
 	return ioutil.WriteFile(mtc.Out, append([]byte(st), '\n'), 0600)
 }
 
-func obtainMT(args *CommonMTOptions, name string, responseType string) (string, error) {
+func obtainMT(args *CommonMTOptions, name, responseType string) (string, error) {
 	mytoken := config.Get().Mytoken
 	if args.TransferCode != "" {
 		return mytoken.GetMytokenByTransferCode(args.TransferCode)
