@@ -8,20 +8,21 @@ import (
 	"path/filepath"
 	"strings"
 
+	mytokenlib "github.com/oidc-mytoken/lib"
+	"github.com/oidc-mytoken/server/pkg/api/v0"
+	"github.com/oidc-mytoken/server/shared/utils"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 
-	"github.com/oidc-mytoken/server/pkg/mytokenlib"
-	"github.com/oidc-mytoken/server/shared/supertoken/capabilities"
 	"github.com/oidc-mytoken/server/shared/utils/fileutil"
 
 	"github.com/oidc-mytoken/client/internal/model"
 	"github.com/oidc-mytoken/client/internal/utils/cryptutils"
 )
 
-type config struct {
-	URL     string              `yaml:"instance"`
-	Mytoken *mytokenlib.Mytoken `yaml:"-"`
+type Config struct {
+	URL     string                      `yaml:"instance"`
+	Mytoken *mytokenlib.MytokenProvider `yaml:"-"`
 
 	DefaultGPGKey            string `yaml:"default_gpg_key"`
 	DefaultProvider          string `yaml:"default_provider"`
@@ -33,11 +34,54 @@ type config struct {
 
 	TokenNamePrefix string `yaml:"token_name_prefix"`
 
-	Providers  model.Providers         `yaml:"providers"`
-	TokensFile string                  `yaml:"tokens_file"`
-	Tokens     map[string][]TokenEntry `yaml:"-"`
+	Providers         model.Providers   `yaml:"providers"`
+	TokensFilePath    string            `yaml:"tokens_file"`
+	TokensFileContent *TokenFileContent `yaml:"-"`
 
 	usedConfigDir string
+}
+
+type TokenFileContent struct {
+	TokenMapping tokenNameMapping `json:"mapping"`
+	Tokens       tokenEntries     `json:"tokens"`
+}
+
+type tokenNameMapping map[string][]string
+
+type tokenEntries map[string][]TokenEntry
+
+func (f TokenFileContent) Has(name, iss string) bool {
+	return f.Tokens.Has(name, iss)
+}
+func (e tokenEntries) Has(name, iss string) bool {
+	for _, tt := range e[iss] {
+		if tt.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *TokenFileContent) Add(t TokenEntry, iss string) {
+	f.Tokens.add(t, iss)
+	f.TokenMapping.add(t, iss)
+}
+func (e *tokenEntries) add(t TokenEntry, iss string) {
+	for i, tt := range (*e)[iss] {
+		if tt.Name == t.Name {
+			tt.GPGKey = t.GPGKey
+			tt.Token = t.Token
+			(*e)[iss][i] = tt
+			return
+		}
+	}
+	(*e)[iss] = append((*e)[iss], t)
+}
+func (m *tokenNameMapping) add(t TokenEntry, iss string) {
+	if utils.StringInSlice(iss, (*m)[t.Name]) {
+		return
+	}
+	(*m)[t.Name] = append((*m)[t.Name], iss)
 }
 
 type TokenEntry struct {
@@ -46,20 +90,25 @@ type TokenEntry struct {
 	Token  string `json:"token"`
 }
 
-func (c *config) GetToken(issuer, name string) (string, error) {
-	tt, found := c.Tokens[issuer]
+func (c *Config) GetToken(issuer, name string) (string, error) {
+	tt, found := c.TokensFileContent.Tokens[issuer]
 	if !found {
 		return "", fmt.Errorf("No tokens found for provider '%s'", issuer)
 	}
-	if len(name) == 0 {
+	if name == "" {
 		p, _ := c.Providers.FindBy(issuer, true)
 		name = p.DefaultToken
+		if name == "" {
+			if len(tt) == 1 {
+				name = tt[0].Name
+			}
+		}
 	}
 	for _, t := range tt {
 		if t.Name == name {
 			var token string
 			var err error
-			if len(t.GPGKey) > 0 {
+			if t.GPGKey != "" {
 				token, err = cryptutils.DecryptGPG(t.Token, t.GPGKey)
 			} else {
 				token, err = cryptutils.DecryptPassword(t.Token)
@@ -73,54 +122,53 @@ func (c *config) GetToken(issuer, name string) (string, error) {
 	return "", fmt.Errorf("Token name '%s' not found for '%s'", name, issuer)
 }
 
-var defaultConfig = config{
+var defaultConfig = Config{
 	DefaultOIDCFlow: "auth",
 	DefaultTokenCapabilities: struct {
 		Stored   []string `yaml:"stored"`
 		Returned []string `yaml:"returned"`
 	}{
-		Stored:   capabilities.Capabilities{capabilities.CapabilityAT, capabilities.CapabilityCreateST, capabilities.CapabilityTokeninfoHistory, capabilities.CapabilityTokeninfoTree}.Strings(),
-		Returned: capabilities.Capabilities{capabilities.CapabilityAT}.Strings(),
+		Stored:   api.Capabilities{api.CapabilityAT, api.CapabilityCreateMT, api.CapabilityTokeninfoHistory, api.CapabilityTokeninfoTree}.Strings(),
+		Returned: api.Capabilities{api.CapabilityAT}.Strings(),
 	},
 	TokenNamePrefix: "<hostname>",
-	TokensFile:      "tokens.json",
+	TokensFilePath:  "tokens.json",
 }
 
-var conf *config
+var conf *Config
 
 // Get returns the config
-func Get() *config {
+func Get() *Config {
 	return conf
 }
 
 func getTokensFilePath() string {
-	filename := conf.TokensFile
+	filename := conf.TokensFilePath
 	if filepath.IsAbs(filename) {
 		return filename
 	}
 	return filepath.Join(conf.usedConfigDir, filename)
 }
 
-func SaveTokens(tokens map[string][]TokenEntry) error {
-	data, err := json.MarshalIndent(tokens, "", "  ")
+func (f *TokenFileContent) Save() error {
+	data, err := json.MarshalIndent(*f, "", "  ")
 	if err != nil {
 		return err
 	}
-	if err = ioutil.WriteFile(getTokensFilePath(), data, 0600); err != nil {
-		return err
-	}
-	conf.Tokens = tokens
-	return nil
+	return ioutil.WriteFile(getTokensFilePath(), data, 0600)
 }
 
-func LoadTokens() (map[string][]TokenEntry, error) {
-	tokens := make(map[string][]TokenEntry)
-	data, err := ioutil.ReadFile(getTokensFilePath())
-	if err != nil {
-		return tokens, err
+func LoadTokens() (*TokenFileContent, error) {
+	f := TokenFileContent{
+		TokenMapping: tokenNameMapping{},
+		Tokens:       tokenEntries{},
 	}
-	err = json.Unmarshal(data, &tokens)
-	return tokens, err
+	data, err := ioutil.ReadFile(getTokensFilePath())
+	if err != nil || len(data) == 0 {
+		return &f, nil
+	}
+	err = json.Unmarshal(data, &f)
+	return &f, err
 }
 
 func load(name string, locations []string) {
@@ -130,23 +178,23 @@ func load(name string, locations []string) {
 		log.Fatal(err)
 	}
 	conf.usedConfigDir = usedLocation
-	if len(conf.URL) == 0 {
+	if conf.URL == "" {
 		log.Fatal("Must provide url of the mytoken instance in the config file.")
 	}
-	mytoken, err := mytokenlib.NewMytokenInstance(conf.URL)
+	mytoken, err := mytokenlib.NewMytokenProvider(conf.URL)
 	if err != nil {
 		log.Fatal(err)
 	}
 	conf.Mytoken = mytoken
 
-	if len(conf.DefaultGPGKey) > 0 {
+	if conf.DefaultGPGKey != "" {
 		for _, p := range conf.Providers {
-			if len(p.GPGKey) == 0 {
+			if p.GPGKey == "" {
 				p.GPGKey = conf.DefaultGPGKey
 			}
 		}
 	}
-	conf.Tokens, err = LoadTokens()
+	conf.TokensFileContent, err = LoadTokens()
 	if err != nil {
 		log.Fatal(err)
 	}

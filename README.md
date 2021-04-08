@@ -1,7 +1,10 @@
 ![mytoken logo](https://git.scc.kit.edu/oidc/mytoken/-/raw/master/docs/img/mytoken.png)
 
 [![License](https://img.shields.io/github/license/oidc-mytoken/client.svg)](https://github.com/oidc-mytoken/client/blob/master/LICENSE)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/oidc-mytoken/client)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/oidc-mytoken/client/Go)
 [![Go Report](https://goreportcard.com/badge/github.com/oidc-mytoken/client)](https://goreportcard.com/report/github.com/oidc-mytoken/client)
+[![DeepSource](https://deepsource.io/gh/oidc-mytoken/client.svg/?label=active+issues&show_trend=true)](https://deepsource.io/gh/oidc-mytoken/client/?ref=repository-badge)
 [![Release date](https://img.shields.io/github/release-date/oidc-mytoken/client.svg)](https://github.com/oidc-mytoken/client/releases/latest)
 [![Release version](https://img.shields.io/github/release/oidc-mytoken/client.svg)](https://github.com/oidc-mytoken/client/releases/latest)
 
@@ -16,6 +19,8 @@ The power of a super token can be restricted by the user, so he can create exact
 
 The mytoken server can be found at [https://github.com/oidc-mytoken/server](https://github.com/oidc-mytoken/server).
 
-Documentation is available at [https://docs-sdm.scc.kit.edu/mytoken](https://docs-sdm.scc.kit.edu/mytoken) (currently no public access).
+A go library for interacting with the mytoken server can be found at [https://github.com/oidc-mytoken/lib](https://github.com/oidc-mytoken/lib).
+
+Documentation is available at [https://mytoken-docs.data.kit.edu/](https://mytoken-docs.data.kit.edu/).
 
 A demo instance of mytoken is running at [https://mytoken.data.kit.edu/](https://mytoken.data.kit.edu/).
