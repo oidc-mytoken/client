@@ -314,8 +314,10 @@ github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d/go.mod h1:o96d
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWbfPhv4DMiApHyliiK5xCTNVSPiaAs=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nishanths/exhaustive v0.0.0-20200525081945-8e46705b6132/go.mod h1:wBEpHwM2OdmeNpdCvRPUlkEbBuaFmcK4Wv8Q7FuGW3c=
-github.com/oidc-mytoken/server v0.1.1-0.20210408090810-de6218fcfc68 h1:0qDDF+lbhBjnDK6HuXwAiehTJbjCXsDdFjbL4NKsTko=
-github.com/oidc-mytoken/server v0.1.1-0.20210408090810-de6218fcfc68/go.mod h1:6uFm+Za9NMK3gq4OOIeX3gs3T6leluVIWsGiM1zlQbA=
+github.com/oidc-mytoken/lib v0.0.0-20210408095137-119e5768293a h1:VvY2/gwKmQLDNorLKKi8lDleJ4I+zuGSxeCkjgch2bc=
+github.com/oidc-mytoken/lib v0.0.0-20210408095137-119e5768293a/go.mod h1:O0XOIZL1ocIvTWH5byqfDQQoxjrCNQK52KhAnRPU8/U=
+github.com/oidc-mytoken/server v0.1.1-0.20210408094857-353b733d8e2b h1:emPZZ/YY8mdSCKjxIJjUCwqdq8PQfliCL5FOK4olHU8=
+github.com/oidc-mytoken/server v0.1.1-0.20210408094857-353b733d8e2b/go.mod h1:6uFm+Za9NMK3gq4OOIeX3gs3T6leluVIWsGiM1zlQbA=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.12.0/go.mod h1:oUhWkIvk5aDxtKvDDuw8gItl8pKl42LzjC9KZE0HfGg=

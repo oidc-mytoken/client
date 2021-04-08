@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/server/pkg/api/v0"
 	"github.com/oidc-mytoken/server/shared/utils"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v3"
 
-	"github.com/oidc-mytoken/server/pkg/mytokenlib"
 	"github.com/oidc-mytoken/server/shared/utils/fileutil"
 
 	"github.com/oidc-mytoken/client/internal/model"

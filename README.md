@@ -19,6 +19,8 @@ The power of a super token can be restricted by the user, so he can create exact
 
 The mytoken server can be found at [https://github.com/oidc-mytoken/server](https://github.com/oidc-mytoken/server).
 
+A go library for interacting with the mytoken server can be found at [https://github.com/oidc-mytoken/lib](https://github.com/oidc-mytoken/lib).
+
 Documentation is available at [https://mytoken-docs.data.kit.edu/](https://mytoken-docs.data.kit.edu/).
 
 A demo instance of mytoken is running at [https://mytoken.data.kit.edu/](https://mytoken.data.kit.edu/).

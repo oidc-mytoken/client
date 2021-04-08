@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/Songmu/prompter"
+	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/server/pkg/api/v0"
-	"github.com/oidc-mytoken/server/pkg/mytokenlib"
 	"github.com/oidc-mytoken/server/shared/utils/unixtime"
 
 	"github.com/oidc-mytoken/client/internal/config"
@@ -238,14 +238,14 @@ func parseRestrictionOption(arg string) (api.Restrictions, error) {
 	if arg == "" {
 		return nil, nil
 	}
-	if arg[0] == '@' {
-		data, err := ioutil.ReadFile(arg[1:])
-		if err != nil {
-			return nil, err
-		}
-		return parseRestrictions(string(data))
+	if arg[0] == '[' || arg[0] == '{' {
+		return parseRestrictions(arg)
 	}
-	return parseRestrictions(arg)
+	data, err := ioutil.ReadFile(arg)
+	if err != nil {
+		return nil, err
+	}
+	return parseRestrictions(string(data))
 }
 
 func parseRestrictions(str string) (api.Restrictions, error) {
