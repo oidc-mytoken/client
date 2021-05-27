@@ -1,64 +1,87 @@
 package commands
 
 import (
-	"fmt"
 	"os"
+	"time"
 
-	flags "github.com/jessevdk/go-flags"
+	log "github.com/sirupsen/logrus"
+	"github.com/zachmann/cli/v2"
+	"golang.org/x/term"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/model/version"
 )
 
-type generalOptions struct {
-	Config  func(filename flags.Filename) `long:"config" value-name:"FILE" default:"" description:"Use FILE as the config file instead of the default one."`
-	Version func()                        `short:"V" long:"version" description:"Prints the version and exits."`
+var app = &cli.App{
+	Name:     "mytoken",
+	Usage:    "Command line client for the mytoken server",
+	Version:  version.VERSION(),
+	Compiled: time.Time{},
+	Authors: []*cli.Author{{
+		Name:  "Gabriel Zachmann",
+		Email: "gabriel.zachmann@kit.edu",
+	}},
+	Copyright:              "Karlsruhe Institute of Technology 2020-2021",
+	UseShortOptionHandling: true,
 }
 
-// options holds all the command line commands and their options
-var options struct {
-	GeneralOptions generalOptions
-	MT             mtCommand
-	AT             atCommand
-	Revoke         revokeCommand
-	Info           infoCommand
-	List           listCommand
-}
-
-var parser *flags.Parser
+var configFile string
 
 func init() {
-	options.GeneralOptions.Version = func() {
-		fmt.Printf("mytoken %s\n", version.VERSION())
-		os.Exit(0)
+	cli.AppHelpTemplate = `NAME:
+   {{$v := offset .Name 6}}{{wrap .Name 3}}{{if .Usage}} - {{wrap .Usage $v}}{{end}}
+
+USAGE:
+   {{if .UsageText}}{{wrap .UsageText 3}}{{else}}{{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}{{if .Commands}} command [command options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}{{end}}{{if .Description}}
+
+DESCRIPTION:
+   {{wrap .Description 3}}{{end}}{{if .VisibleCommands}}
+
+COMMANDS:{{range .VisibleCategories}}{{if .Name}}
+   {{.Name}}:{{range .VisibleCommands}}
+     {{join .Names ", "}}{{"\t"}}{{.Usage}}{{end}}{{else}}{{range .VisibleCommands}}
+   {{join .Names ", "}}{{"\t"}}{{.Usage}}{{end}}{{end}}{{end}}{{end}}{{if .VisibleFlags}}
+
+GLOBAL OPTIONS:
+   {{range $index, $option := .VisibleFlags}}{{if $index}}
+   {{end}}{{$option.String}}{{end}}{{end}}{{if .Version}}{{if not .HideVersion}}
+
+VERSION:
+   {{.Version}}{{end}}{{end}}
+
+DOCUMENTATION: 
+	https://mytoken-docs.data.kit.edu/client/intro
+
+CONTACT: 
+	m-contact@lists.kit.edu
+`
+
+	termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err == nil {
+		cli.HelpWrapAt = termWidth
 	}
-	options.GeneralOptions.Config = func(filename flags.Filename) {
-		if filename != "" {
-			config.Load(string(filename))
+
+	app.Flags = append(app.Flags, &cli.StringFlag{
+		Name:        "config",
+		Usage:       "Load configuration from `FILE`",
+		EnvVars:     []string{"MYTOKEN_CONFIG", "MYTOKEN_CONF"},
+		TakesFile:   true,
+		DefaultText: "",
+		Destination: &configFile,
+	})
+	app.Before = func(context *cli.Context) error {
+		if context.IsSet("config") {
+			config.Load(configFile)
 		} else {
 			config.LoadDefault()
 		}
+		return nil
 	}
-
-	parser = flags.NewNamedParser("mytoken", flags.Default)
-	_, _ = parser.AddGroup("Config Options", "", &options.GeneralOptions)
-	_, _ = parser.AddCommand("AT", "Obtain access token", "Obtain a new OpenID Connect access token", &options.AT)
-	_, _ = parser.AddCommand("revoke", "Revoke mytoken", "Revoke a mytoken token", &options.Revoke)
-	_, _ = parser.AddCommand("list", "List different information", "List different information", &options.List)
-	options.Info.PTOptions = &PTOptions{}
-	options.Info.Introspect.PTOptions = options.Info.PTOptions
-	options.Info.EventHistory.PTOptions = options.Info.PTOptions
-	options.Info.SubTree.PTOptions = options.Info.PTOptions
-	options.Info.TokenList.PTOptions = options.Info.PTOptions
-	info, _ := parser.AddCommand("info", "Get information about a mytoken", "Get information about a mytoken", &options.Info)
-	info.SubcommandsOptional = true
-	mtInit()
 }
 
 // Parse parses the command line options and calls the specified command
 func Parse() {
-	_, err := parser.Parse()
-	if err != nil {
-		os.Exit(1)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
 	}
 }

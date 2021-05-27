@@ -4,25 +4,61 @@ import (
 	"io/ioutil"
 
 	"github.com/oidc-mytoken/client/internal/config"
+	"github.com/zachmann/cli/v2"
 )
 
-// atCommand is a type for holding and handling the AT command
-type atCommand struct {
-	PTOptions
-	Scopes    []string `long:"scope" short:"s" description:"Request the passed scope. Can be used multiple times"`
-	Audiences []string `long:"aud" description:"Request the passed audience. Can be used multiple times"`
-	Out       string   `long:"out" short:"o" default:"/dev/stdout" description:"The access token will be printed to this output."`
+var atCommand = struct {
+	*PTOptions
+	Scopes    cli.StringSlice
+	Audiences cli.StringSlice
+	Out       string
+}{}
+
+func init() {
+	ptFlags, opts := getPTFlags()
+	atCommand.PTOptions = opts
+	app.Commands = append(app.Commands, &cli.Command{
+		Name:    "AT",
+		Aliases: []string{"at", "access-token"},
+		Usage:   "Obtain an OIDC access token",
+		Action:  getAT,
+		Flags: append(ptFlags,
+			&cli.StringSliceFlag{
+				Name:        "scope",
+				Aliases:     []string{"s"},
+				Usage:       "Request the passed scope.",
+				DefaultText: "all scopes allowed for the used mytoken",
+				Destination: &atCommand.Scopes,
+				Placeholder: "SCOPE",
+			},
+			&cli.StringSliceFlag{
+				Name:        "aud",
+				Aliases:     []string{"audience"},
+				Usage:       "Request the passed audience.",
+				Destination: &atCommand.Audiences,
+				Placeholder: "AUD",
+			},
+			&cli.StringFlag{
+				Name:        "out",
+				Aliases:     []string{"o"},
+				Usage:       "The access token will be printed to this output",
+				Value:       "/dev/stdout",
+				Destination: &atCommand.Out,
+				Placeholder: "FILE",
+			},
+		),
+	})
 }
 
-// Execute implements the flags.Commander interface
-func (atc *atCommand) Execute(args []string) error {
+func getAT(context *cli.Context) error {
+	atc := atCommand
 	var comment string
-	if len(args) > 0 {
-		comment = args[0]
+	if context.Args().Len() > 0 {
+		comment = context.Args().Get(0)
 	}
 	mytoken := config.Get().Mytoken
 	provider, mToken := atc.Check()
-	at, err := mytoken.GetAccessToken(mToken, provider.Issuer, atc.Scopes, atc.Audiences, comment)
+	at, err := mytoken.GetAccessToken(mToken, provider.Issuer, atc.Scopes.Value(), atc.Audiences.Value(), comment)
 	if err != nil {
 		return err
 	}
