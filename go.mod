@@ -6,7 +6,7 @@ require (
 	github.com/Songmu/prompter v0.4.0
 	github.com/go-resty/resty/v2 v2.5.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/jessevdk/go-flags v1.4.0
+	github.com/jessevdk/go-flags v1.5.0
 	github.com/oidc-mytoken/lib v0.2.0
 	github.com/oidc-mytoken/server v0.2.0
 	github.com/sirupsen/logrus v1.8.1
