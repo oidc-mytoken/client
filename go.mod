@@ -3,7 +3,7 @@ module github.com/oidc-mytoken/client
 go 1.14
 
 require (
-	github.com/Songmu/prompter v0.4.0
+	github.com/Songmu/prompter v0.5.0
 	github.com/go-resty/resty/v2 v2.5.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/jessevdk/go-flags v1.4.0
