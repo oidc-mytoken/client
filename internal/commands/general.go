@@ -100,7 +100,7 @@ func (g *PTOptions) getToken() (string, error) {
 	if g.MytokenPrompt {
 		return prompter.Password("Enter mytoken"), nil
 	}
-	if g.Mytoken == "" {
+	if g.Mytoken != "" {
 		return g.Mytoken, nil
 	}
 	if g.MytokenEnv != "" {
