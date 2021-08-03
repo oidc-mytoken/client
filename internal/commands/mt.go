@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/Songmu/prompter"
+	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
-	"github.com/oidc-mytoken/server/pkg/api/v0"
 	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/unixtime"
 	"github.com/zachmann/cli/v2"
