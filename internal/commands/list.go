@@ -5,21 +5,33 @@ import (
 	"strings"
 
 	"github.com/oidc-mytoken/client/internal/config"
+	"github.com/zachmann/cli/v2"
 )
 
-// listCommand is a type for holding and handling the list command
-type listCommand struct {
-	ListTokens    listTokenCommand    `command:"tokens" description:"List the stored mytokens"`
-	ListProviders listProviderCommand `command:"providers" description:"List the available providers"`
-	// EventHistory historyCommand `command:"history" description:"List the event history for this token"`
-	// SubTree      treeCommand    `command:"tree" description:"List the tree of subtokens for this token"`
+func init() {
+	cmd :=
+		&cli.Command{
+			Name:  "list",
+			Usage: "List different information",
+			Subcommands: []*cli.Command{
+				{
+					Name:    "tokens",
+					Aliases: []string{"MT", "mytokens"},
+					Usage:   "List the stored mytokens",
+					Action:  listTokens,
+				},
+				{
+					Name:    "providers",
+					Aliases: []string{"issuers"},
+					Usage:   "List the available providers",
+					Action:  listProviders,
+				},
+			},
+		}
+	app.Commands = append(app.Commands, cmd)
 }
 
-type listTokenCommand struct{}
-type listProviderCommand struct{}
-
-// Execute implements the flags.Commander interface
-func (lt *listTokenCommand) Execute(args []string) error {
+func listTokens(ctx *cli.Context) error {
 	for iss, tokens := range config.Get().TokensFileContent.Tokens {
 		provider, found := config.Get().Providers.FindBy(iss, true)
 		header := iss
@@ -41,8 +53,7 @@ func (lt *listTokenCommand) Execute(args []string) error {
 	return nil
 }
 
-// Execute implements the flags.Commander interface
-func (lp *listProviderCommand) Execute(args []string) error {
+func listProviders(ctx *cli.Context) error {
 	defaultProvider := config.Get().DefaultProvider
 	instanceProviders := config.Get().Mytoken.ProvidersSupported
 	configProviders := config.Get().Providers

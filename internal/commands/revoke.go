@@ -4,18 +4,37 @@ import (
 	"fmt"
 
 	"github.com/oidc-mytoken/client/internal/config"
+	"github.com/zachmann/cli/v2"
 )
 
-type revokeCommand struct {
-	PTOptions
-	Recursive bool `short:"r" long:"recursive" description:"If set also all subtokens are revoked"`
+var revokeCommand = struct {
+	*PTOptions
+	Recursive bool
+}{}
+
+func init() {
+	ptFlags, opts := getPTFlags()
+	revokeCommand.PTOptions = opts
+	app.Commands = append(app.Commands, &cli.Command{
+		Name:   "revoke",
+		Usage:  "Revokes a mytoken",
+		Action: revoke,
+		Flags: append(ptFlags,
+			&cli.BoolFlag{
+				Name:             "recursive",
+				Aliases:          []string{"r"},
+				Usage:            "If set, also all subtokens are revoked",
+				Destination:      &revokeCommand.Recursive,
+				HideDefaultValue: true,
+			},
+		),
+	})
 }
 
-// Execute implements the flags.Commander interface
-func (rc *revokeCommand) Execute(args []string) error {
+func revoke(context *cli.Context) error {
 	mytoken := config.Get().Mytoken
-	provider, mToken := rc.Check()
-	err := mytoken.Revoke(mToken, provider.Issuer, rc.Recursive)
+	provider, mToken := revokeCommand.Check()
+	err := mytoken.Revoke(mToken, provider.Issuer, revokeCommand.Recursive)
 	if err != nil {
 		return err
 	}

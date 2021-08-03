@@ -10,83 +10,248 @@ import (
 	"time"
 
 	"github.com/Songmu/prompter"
+	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
-	"github.com/oidc-mytoken/server/pkg/api/v0"
+	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/unixtime"
+	"github.com/zachmann/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/utils/cryptutils"
 	"github.com/oidc-mytoken/client/internal/utils/duration"
 )
 
-func mtInit() {
-	options.MT.CommonMTOptions = &CommonMTOptions{}
-	options.MT.Store.CommonMTOptions = options.MT.CommonMTOptions
-	st, _ := parser.AddCommand("MT", "Obtain a mytoken", "Obtain a new mytoken mytoken", &options.MT)
-	st.SubcommandsOptional = true
-	for _, o := range st.Options() {
-		if o.LongName == "capability" {
-			o.Choices = api.AllCapabilities.Strings()
-		}
-		if o.LongName == "subtoken-capability" {
-			o.Choices = api.AllCapabilities.Strings()
-		}
-	}
-}
+var mtCommand = struct {
+	*commonMTOptions
 
-type mtCommand struct {
-	Store mtStoreCommand `command:"store" description:"Store the obtained mytoken encrypted instead of returning it. This way the mytoken can be easily used with mytoken."`
+	Tag       string
+	TokenType string
+	Out       string
+}{}
 
-	*CommonMTOptions
-
-	Tag       string `long:"tag" value:"NAME" description:"A name for the returned mytoken; used for finding the token in a list of mytokens."`
-	TokenType string `long:"token-type" choice:"short" choice:"transfer" choice:"token" default:"token" description:"The type of the returned token. Can only be used if token is not stored."`
-	Out       string `long:"out" short:"o" default:"/dev/stdout" description:"The mytoken will be printed to this output."`
-}
-
-type CommonMTOptions struct {
-	PTOptions
-	TransferCode string `long:"TC" description:"Use the passed transfer code to exchange it into a mytoken"`
-	OIDCFlow     string `long:"oidc" choice:"auth" choice:"device" choice:"default" optional:"true" optional-value:"default" description:"Use the passed OpenID Connect flow to create a mytoken"`
-
-	Capabilities         []string `long:"capability" default:"default" description:"Request the passed capabilities. Can be used multiple times"`
-	SubtokenCapabilities []string `long:"subtoken-capability" description:"Request the passed subtoken capabilities. Can be used multiple times"`
-	Restrictions         string   `long:"restrictions" description:"The restrictions that restrict the requested mytoken. Can be a json object or array or '@<filepath>' where <filepath> is the path to a json file.'"`
-
-	RestrictScopes        []string `long:"scope" short:"s" description:"Restrict the mytoken so that it can only be used to request ATs with these scopes. Can be used multiple times. Overwritten by --restriction."`
-	RestrictAudiences     []string `long:"aud" description:"Restrict the mytoken so that it can only be used to request ATs with these audiences. Can be used multiple times. Overwritten by --restriction."`
-	RestrictExp           string   `long:"exp" description:"Restrict the mytoken so that it cannot be used after this time. The time given can be an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'."`
-	RestrictNbf           string   `long:"nbf" description:"Restrict the mytoken so that it cannot be used before this time. The time given can be an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'."`
-	RestrictIP            []string `long:"ip" description:"Restrict the mytoken so that it can only be used from these ips. Can be a network address block or a single ip. Can be given multiple times."`
-	RestrictGeoIPAllow    []string `long:"geo-ip-allow" description:"Restrict the mytoken so that it can be only used from these countries. Must be a short country code, e.g. 'us'. Can be given multiple times."`
-	RestrictGeoIPDisallow []string `long:"geo-ip-disallow" description:"Restrict the mytoken so that it cannot be used from these countries. Must be a short country code, e.g. 'us'. Can be given multiple times."`
-	RestrictUsagesOther   *int64   `long:"usages-other" description:"Restrict how often the mytoken can be used for actions other than requesting an access token."`
-	RestrictUsagesAT      *int64   `long:"usages-at" description:"Restrict how often the mytoken can be used for requesting an access token."`
-}
-
-type mtStoreCommand struct {
-	*CommonMTOptions
-	Args struct {
-		StoreName string `positional-arg-name:"NAME" description:"Store the obtained mytoken under NAME. It can be used later by referencing NAME."`
-	} `positional-args:"true" required:"true"`
+var mtStoreCommand = struct {
+	*commonMTOptions
 	GPGKey   string `short:"k" long:"gpg-key" value-name:"KEY" description:"Use KEY for encryption instead of the default key"`
 	Password bool   `long:"password" description:"Use a password for encrypting the token instead of a gpg key."`
+}{}
+
+type commonMTOptions struct {
+	*PTOptions
+	TransferCode string
+	UseOIDCFlow  bool
+
+	Capabilities         api.Capabilities
+	SubtokenCapabilities api.Capabilities
+	Restrictions         string
+
+	RestrictScopes        cli.StringSlice
+	RestrictAudiences     cli.StringSlice
+	RestrictExp           string
+	RestrictNbf           string
+	RestrictIP            cli.StringSlice
+	RestrictGeoIPAllow    cli.StringSlice
+	RestrictGeoIPDisallow cli.StringSlice
+	RestrictUsagesOther   int64
+	RestrictUsagesAT      int64
 }
 
-// Execute implements the flags.Commander interface
-func (mtc *mtCommand) Execute(args []string) error {
-	if len(mtc.Capabilities) > 0 && mtc.Capabilities[0] == "default" {
-		mtc.Capabilities = config.Get().DefaultTokenCapabilities.Returned
+func getMTCommonFlags() ([]cli.Flag, *commonMTOptions) {
+	ptFlags, ptOpts := getPTFlags()
+	opts := commonMTOptions{
+		PTOptions: ptOpts,
+	}
+	caps := make(cli.Choices)
+	for _, c := range api.AllCapabilities {
+		caps[c.Name] = c
+	}
+	flags := []cli.Flag{
+		&cli.StringFlag{
+			Name:        "TC",
+			Usage:       "Use the passed `TRANSFER_CODE` to exchange it into a mytoken",
+			EnvVars:     []string{"MYTOKEN_TC"},
+			Destination: &opts.TransferCode,
+		},
+		&cli.BoolFlag{
+			Name:             "oidc",
+			Usage:            "Use an OpenID Connect flow to create a mytoken",
+			Destination:      &opts.UseOIDCFlow,
+			HideDefaultValue: true,
+		},
+		// &cli.ChoiceFlag{
+		// 	Name:        "flow",
+		// 	Aliases:     []string{"oidc-flow"},
+		// 	Value:       "default",
+		// 	Choice:      cli.NewStringChoice("auth"),
+		// 	Usage:       "Use the passed OpenID Connect flow to create a mytoken",
+		// 	DefaultText: "from config file",
+		// 	Destination: &opts.OIDCFlow,
+		// 	Placeholder: "FLOW",
+		// },
+		&cli.ChoiceFlag{
+			Name:        "capability",
+			Aliases:     []string{"capabilities"},
+			Choice:      cli.NewChoice(caps),
+			Usage:       "Request the passed capabilities. Can be used multiple times",
+			DefaultText: "from config file",
+			Destination: &opts.Capabilities,
+			Placeholder: "CAPABILITY",
+		},
+		&cli.ChoiceFlag{
+			Name:        "subtoken-capability",
+			Aliases:     []string{"subtoken-capabilities"},
+			Choice:      cli.NewChoice(caps),
+			Usage:       "Request the passed subtoken capabilities. Can be used multiple times",
+			DefaultText: "from config file",
+			Destination: &opts.SubtokenCapabilities,
+			Placeholder: "CAPABILITY",
+		},
+		&cli.StringFlag{
+			Name:        "restrictions",
+			Aliases:     []string{"restriction"},
+			Usage:       "The restrictions that restrict the requested mytoken. Can be a json object or array, or a path to a json file.'",
+			EnvVars:     []string{"MYTOKEN_RESTRICTIONS", "MYTOKEN_RESTRICTION"},
+			Destination: &opts.Restrictions,
+			Placeholder: "RESTRICTIONS",
+		},
+		&cli.StringSliceFlag{
+			Name:        "scope",
+			Aliases:     []string{"s", "scopes"},
+			Usage:       "Restrict the mytoken so that it can only be used to request ATs with these SCOPES. Can be used multiple times. Overwritten by --restriction.",
+			Destination: &opts.RestrictScopes,
+			Placeholder: "SCOPE",
+		},
+		&cli.StringSliceFlag{
+			Name:        "aud",
+			Aliases:     []string{"audience", "audiences"},
+			Usage:       "Restrict the mytoken so that it can only be used to request ATs with these audiences. Can be used multiple times. Overwritten by --restriction.",
+			Destination: &opts.RestrictAudiences,
+			Placeholder: "AUD",
+		},
+		&cli.StringFlag{
+			Name:        "exp",
+			Aliases:     []string{"naf"},
+			Usage:       "Restrict the mytoken so that it cannot be used after `EXP`. The time can be given as an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'.",
+			Destination: &opts.RestrictExp,
+		},
+		&cli.StringFlag{
+			Name:        "nbf",
+			Usage:       "Restrict the mytoken so that it cannot be used before `NBF`. The time can be given as an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'.",
+			Destination: &opts.RestrictNbf,
+		},
+		&cli.StringSliceFlag{
+			Name:        "ip",
+			Aliases:     []string{"ips", "ip-allow"},
+			Usage:       "Restrict the mytoken so that it can only be used from these IPs. Can be a network address block or a single ip.",
+			Destination: &opts.RestrictIP,
+			Placeholder: "IP",
+		},
+		&cli.StringSliceFlag{
+			Name:        "geo-ip-allow",
+			Usage:       "Restrict the mytoken so that it can be only used from these COUNTRIES. Must be a short country code, e.g. 'us'.",
+			Destination: &opts.RestrictIP,
+			Placeholder: "COUNTRY",
+		},
+		&cli.StringSliceFlag{
+			Name:        "geo-ip-disallow",
+			Usage:       "Restrict the mytoken so that it cannot be used from these COUNTRIES. Must be a short country code, e.g. 'us'.",
+			Destination: &opts.RestrictIP,
+			Placeholder: "COUNTRY",
+		},
+		&cli.Int64Flag{
+			Name:        "usages-AT",
+			Aliases:     []string{"usages-at"},
+			Usage:       "Restrict how often the mytoken can be used for requesting an access token.",
+			DefaultText: "infinite",
+			Destination: &opts.RestrictUsagesAT,
+			Placeholder: "NUM",
+		},
+		&cli.Int64Flag{
+			Name:        "usages-other",
+			Usage:       "Restrict how often the mytoken can be used for actions other than requesting an access token.",
+			DefaultText: "infinite",
+			Destination: &opts.RestrictUsagesOther,
+			Placeholder: "NUM",
+		},
+	}
+	flags = append(ptFlags, flags...)
+	return flags, &opts
+}
+
+func init() {
+	mtFlags, opts := getMTCommonFlags()
+	mtCommand.commonMTOptions = opts
+	cmd :=
+		&cli.Command{
+			Name:   "MT",
+			Usage:  "Obtain a mytoken",
+			Action: obtainMTCmd,
+			Flags: append(mtFlags,
+				&cli.StringFlag{
+					Name:        "tag",
+					Usage:       "A name for the returned mytoken; used for finding the token in a list of mytokens.",
+					Destination: &mtCommand.Tag,
+					Placeholder: "NAME",
+				},
+				&cli.ChoiceFlag{
+					Name:        "token-type",
+					Usage:       "The type of the returned token. Can only be used if token is not stored.",
+					Value:       "token",
+					Choice:      cli.NewStringChoice("token", "short", "transfer"),
+					Destination: &mtCommand.TokenType,
+					Placeholder: "TYPE",
+				},
+				&cli.StringFlag{
+					Name:        "out",
+					Aliases:     []string{"o"},
+					Usage:       "The mytoken will be printed to this output",
+					Value:       "/dev/stdout",
+					Destination: &mtCommand.Out,
+					Placeholder: "FILE",
+				},
+			),
+		}
+	app.Commands = append(app.Commands, cmd)
+	initStore(cmd)
+}
+
+func initStore(cmd *cli.Command) {
+	mtFlags, opts := getMTCommonFlags()
+	mtStoreCommand.commonMTOptions = opts
+	cmd.Subcommands = append(cmd.Subcommands, &cli.Command{
+		Name:      "store",
+		Usage:     "Store the obtained mytoken encrypted instead of returning it. This way the mytoken can be easily used with mytoken.",
+		Action:    storeMTCmd,
+		ArgsUsage: "STORE_NAME",
+		Flags: append(mtFlags,
+			&cli.StringFlag{
+				Name:        "gpg-key",
+				Aliases:     []string{"k"},
+				Usage:       "Use `KEY` for encryption instead of the default key",
+				Destination: &mtStoreCommand.GPGKey,
+			},
+			&cli.BoolFlag{
+				Name:        "password",
+				Usage:       "Use a password for encrypting the token instead of a gpg key.",
+				Destination: &mtStoreCommand.Password,
+			},
+		),
+	})
+}
+
+func obtainMTCmd(context *cli.Context) error {
+	mtc := mtCommand
+	if len(mtc.Capabilities) == 0 {
+		mtc.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities.Returned)
 	}
 
-	st, err := obtainMT(mtc.CommonMTOptions, mtc.Tag, mtc.TokenType)
+	st, err := obtainMT(context, mtc.commonMTOptions, mtc.Tag, mtc.TokenType)
 	if err != nil {
 		return err
 	}
 	return ioutil.WriteFile(mtc.Out, append([]byte(st), '\n'), 0600)
 }
 
-func obtainMT(args *CommonMTOptions, name, responseType string) (string, error) {
+func obtainMT(context *cli.Context, args *commonMTOptions, name, responseType string) (string, error) {
 	mytoken := config.Get().Mytoken
 	if args.TransferCode != "" {
 		return mytoken.GetMytokenByTransferCode(args.TransferCode)
@@ -115,83 +280,88 @@ func obtainMT(args *CommonMTOptions, name, responseType string) (string, error) 
 		if err != nil {
 			return "", err
 		}
-		r = api.Restrictions{
-			api.Restriction{
-				NotBefore:     nbf,
-				ExpiresAt:     exp,
-				Scope:         strings.Join(args.RestrictScopes, " "),
-				Audiences:     args.RestrictAudiences,
-				IPs:           args.RestrictIP,
-				GeoIPAllow:    args.RestrictGeoIPAllow,
-				GeoIPDisallow: args.RestrictGeoIPDisallow,
-				UsagesAT:      args.RestrictUsagesAT,
-				UsagesOther:   args.RestrictUsagesOther,
+		rr := api.Restriction{
+			NotBefore:     nbf,
+			ExpiresAt:     exp,
+			Scope:         strings.Join(args.RestrictScopes.Value(), " "),
+			Audiences:     args.RestrictAudiences.Value(),
+			IPs:           args.RestrictIP.Value(),
+			GeoIPAllow:    args.RestrictGeoIPAllow.Value(),
+			GeoIPDisallow: args.RestrictGeoIPDisallow.Value(),
+		}
+		if context.IsSet("usages-AT") {
+			rr.UsagesAT = utils.NewInt64(args.RestrictUsagesAT)
+		}
+		if context.IsSet("usages-other") {
+			rr.UsagesOther = utils.NewInt64(args.RestrictUsagesOther)
+		}
+		r = api.Restrictions{rr}
+	}
+	if args.UseOIDCFlow /*|| args.OIDCFlow!=""*/ {
+		// if args.OIDCFlow == "" {
+		// 	args.OIDCFlow = config.Get().DefaultOIDCFlow
+		// }
+		// switch args.OIDCFlow {
+		// case "auth":
+		callbacks := mytokenlib.PollingCallbacks{
+			Init: func(authorizationURL string) error {
+				fmt.Fprintln(os.Stderr, "Using any device please visit the following url to continue:")
+				fmt.Fprintln(os.Stderr)
+				fmt.Fprintln(os.Stderr, authorizationURL)
+				fmt.Fprintln(os.Stderr)
+				return nil
+			},
+			Callback: func(interval int64, iteration int) {
+				if iteration == 0 {
+					fmt.Fprint(os.Stderr, "Starting polling ...")
+					return
+				}
+				if int64(iteration)%(15/interval) == 0 { // every 15s
+					fmt.Fprint(os.Stderr, ".")
+				}
+			},
+			End: func() {
+				fmt.Fprintln(os.Stderr)
+				fmt.Fprintln(os.Stderr, "success")
 			},
 		}
-	}
-	c := api.NewCapabilities(args.Capabilities)
-	sc := api.NewCapabilities(args.SubtokenCapabilities)
-	if args.OIDCFlow != "" {
-		if args.OIDCFlow == "default" {
-			args.OIDCFlow = config.Get().DefaultOIDCFlow
-		}
-		switch args.OIDCFlow {
-		case "auth":
-			callbacks := mytokenlib.PollingCallbacks{
-				Init: func(authorizationURL string) error {
-					fmt.Fprintln(os.Stderr, "Using any device please visit the following url to continue:")
-					fmt.Fprintln(os.Stderr)
-					fmt.Fprintln(os.Stderr, authorizationURL)
-					fmt.Fprintln(os.Stderr)
-					return nil
-				},
-				Callback: func(interval int64, iteration int) {
-					if iteration == 0 {
-						fmt.Fprint(os.Stderr, "Starting polling ...")
-						return
-					}
-					if int64(iteration)%(15/interval) == 0 { // every 15s
-						fmt.Fprint(os.Stderr, ".")
-					}
-				},
-				End: func() {
-					fmt.Fprintln(os.Stderr)
-					fmt.Fprintln(os.Stderr, "success")
-				},
-			}
-			return mytoken.GetMytokenByAuthorizationFlow(provider.Issuer, r, c, sc, responseType, tokenName, callbacks)
-		case "device":
-			return "", fmt.Errorf("Not yet implemented")
-		default:
-			return "", fmt.Errorf("Unknown oidc flow. Implementation error.")
-		}
+		return mytoken.GetMytokenByAuthorizationFlow(provider.Issuer, r, args.Capabilities, args.SubtokenCapabilities, responseType, tokenName, callbacks)
+		// case "device":
+		// 	return "", fmt.Errorf("Not yet implemented")
+		// default:
+		// 	return "", fmt.Errorf("Unknown oidc flow. Implementation error.")
+		// }
 	}
 	mtGrant, err := args.PTOptions.checkToken(provider.Issuer)
 	if err != nil {
 		return "", err
 	}
-	return mytoken.GetMytokenByMytoken(mtGrant, provider.Issuer, r, c, sc, responseType, tokenName)
+	return mytoken.GetMytokenByMytoken(mtGrant, provider.Issuer, r, args.Capabilities, args.SubtokenCapabilities, responseType, tokenName)
 }
 
-// Execute implements the flags.Commander interface
-func (smtc *mtStoreCommand) Execute(args []string) error {
-	if len(smtc.Capabilities) > 0 && smtc.Capabilities[0] == "default" {
-		smtc.Capabilities = config.Get().DefaultTokenCapabilities.Stored
+func storeMTCmd(context *cli.Context) error {
+	if context.Args().Len() == 0 {
+		return fmt.Errorf("Required argument STORE_NAME is missing.")
 	}
-	provider, err := smtc.CommonMTOptions.PTOptions.checkProvider(smtc.Name)
+	storeName := context.Args().Get(0)
+	smtc := mtStoreCommand
+	if len(smtc.Capabilities) == 0 {
+		smtc.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities.Stored)
+	}
+	provider, err := smtc.commonMTOptions.PTOptions.checkProvider(smtc.Name)
 	if err != nil {
 		return err
 	}
-	if config.Get().TokensFileContent.Has(smtc.Args.StoreName, provider.Issuer) {
+	if config.Get().TokensFileContent.Has(storeName, provider.Issuer) {
 		pStr := provider.Name
 		if pStr == "" {
 			pStr = provider.Issuer
 		}
-		if !prompter.YN(fmt.Sprintf("A token with the name '%s' is already stored for the provider '%s'. Do you want to overwrite it?", smtc.Args.StoreName, pStr), false) {
+		if !prompter.YN(fmt.Sprintf("A token with the name '%s' is already stored for the provider '%s'. Do you want to overwrite it?", storeName, pStr), false) {
 			os.Exit(1)
 		}
 	}
-	st, err := obtainMT(smtc.CommonMTOptions, smtc.Args.StoreName, api.ResponseTypeToken)
+	st, err := obtainMT(context, smtc.commonMTOptions, storeName, api.ResponseTypeToken)
 	if err != nil {
 		return err
 	}
@@ -210,10 +380,10 @@ func (smtc *mtStoreCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err = saveEncryptedToken(encryptedToken, provider.Issuer, smtc.Args.StoreName, gpgKey); err != nil {
+	if err = saveEncryptedToken(encryptedToken, provider.Issuer, storeName, gpgKey); err != nil {
 		return err
 	}
-	fmt.Printf("Saved mytoken '%s'\n", smtc.Args.StoreName)
+	fmt.Printf("Saved mytoken '%s'\n", storeName)
 	return nil
 }
 
