@@ -7,7 +7,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/oidc-mytoken/api v0.3.0
 	github.com/oidc-mytoken/lib v0.2.1
-	github.com/oidc-mytoken/server v0.3.0
+	github.com/oidc-mytoken/server v0.3.2
 	github.com/sirupsen/logrus v1.8.1
 	github.com/zachmann/cli/v2 v2.3.1-0.20210512144416-96dd678d93c7
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
