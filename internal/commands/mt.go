@@ -22,48 +22,32 @@ import (
 )
 
 var mtCommand = struct {
-	*commonMTOptions
-
 	Tag       string
 	TokenType string
 	Out       string
 }{}
 
 var mtStoreCommand = struct {
-	*commonMTOptions
 	GPGKey   string `short:"k" long:"gpg-key" value-name:"KEY" description:"Use KEY for encryption instead of the default key"`
 	Password bool   `long:"password" description:"Use a password for encrypting the token instead of a gpg key."`
 }{}
 
-type commonMTOptions struct {
-	*PTOptions
-	TransferCode string
-	UseOIDCFlow  bool
-
-	Capabilities         api.Capabilities
-	SubtokenCapabilities api.Capabilities
-	Restrictions         string
-
-	RestrictScopes        cli.StringSlice
-	RestrictAudiences     cli.StringSlice
-	RestrictExp           string
-	RestrictNbf           string
-	RestrictIP            cli.StringSlice
-	RestrictGeoIPAllow    cli.StringSlice
-	RestrictGeoIPDisallow cli.StringSlice
-	RestrictUsagesOther   int64
-	RestrictUsagesAT      int64
-}
-
-func getMTCommonFlags() ([]cli.Flag, *commonMTOptions) {
+func getMTCommonFlags(store bool) []cli.Flag {
 	ptFlags, ptOpts := getPTFlags()
-	opts := commonMTOptions{
-		PTOptions: ptOpts,
+	if store {
+		commonMTOptions.storeOpts.PTOptions = ptOpts
+	} else {
+		commonMTOptions.obtainOpts.PTOptions = ptOpts
 	}
 	caps := make(cli.Choices)
 	for _, c := range api.AllCapabilities {
 		caps[c.Name] = c
 	}
+	opts := &commonMTOptions.obtainOpts
+	if store {
+		opts = &commonMTOptions.storeOpts
+	}
+
 	flags := []cli.Flag{
 		&cli.StringFlag{
 			Name:        "TC",
@@ -77,16 +61,6 @@ func getMTCommonFlags() ([]cli.Flag, *commonMTOptions) {
 			Destination:      &opts.UseOIDCFlow,
 			HideDefaultValue: true,
 		},
-		// &cli.ChoiceFlag{
-		// 	Name:        "flow",
-		// 	Aliases:     []string{"oidc-flow"},
-		// 	Value:       "default",
-		// 	Choice:      cli.NewStringChoice("auth"),
-		// 	Usage:       "Use the passed OpenID Connect flow to create a mytoken",
-		// 	DefaultText: "from config file",
-		// 	Destination: &opts.OIDCFlow,
-		// 	Placeholder: "FLOW",
-		// },
 		&cli.ChoiceFlag{
 			Name:        "capability",
 			Aliases:     []string{"capabilities"},
@@ -174,18 +148,16 @@ func getMTCommonFlags() ([]cli.Flag, *commonMTOptions) {
 		},
 	}
 	flags = append(ptFlags, flags...)
-	return flags, &opts
+	return flags
 }
 
 func init() {
-	mtFlags, opts := getMTCommonFlags()
-	mtCommand.commonMTOptions = opts
 	cmd :=
 		&cli.Command{
 			Name:   "MT",
 			Usage:  "Obtain a mytoken",
 			Action: obtainMTCmd,
-			Flags: append(mtFlags,
+			Flags: append(getMTCommonFlags(false),
 				&cli.StringFlag{
 					Name:        "tag",
 					Usage:       "A name for the returned mytoken; used for finding the token in a list of mytokens.",
@@ -215,14 +187,12 @@ func init() {
 }
 
 func initStore(cmd *cli.Command) {
-	mtFlags, opts := getMTCommonFlags()
-	mtStoreCommand.commonMTOptions = opts
 	cmd.Subcommands = append(cmd.Subcommands, &cli.Command{
 		Name:      "store",
 		Usage:     "Store the obtained mytoken encrypted instead of returning it. This way the mytoken can be easily used with mytoken.",
 		Action:    storeMTCmd,
 		ArgsUsage: "STORE_NAME",
-		Flags: append(mtFlags,
+		Flags: append(getMTCommonFlags(true),
 			&cli.StringFlag{
 				Name:        "gpg-key",
 				Aliases:     []string{"k"},
@@ -239,24 +209,24 @@ func initStore(cmd *cli.Command) {
 }
 
 func obtainMTCmd(context *cli.Context) error {
-	mtc := mtCommand
-	if len(mtc.Capabilities) == 0 {
-		mtc.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities.Returned)
+	opts := commonMTOptions.Common(false)
+	if len(opts.Capabilities) == 0 {
+		opts.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities.Returned)
 	}
 
-	st, err := obtainMT(context, mtc.commonMTOptions, mtc.Tag, mtc.TokenType)
+	st, err := obtainMT(opts, context, mtCommand.Tag, mtCommand.TokenType)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(mtc.Out, append([]byte(st), '\n'), 0600)
+	return ioutil.WriteFile(mtCommand.Out, append([]byte(st), '\n'), 0600)
 }
 
-func obtainMT(context *cli.Context, args *commonMTOptions, name, responseType string) (string, error) {
+func obtainMT(opts commonMTOpts, context *cli.Context, name, responseType string) (string, error) {
 	mytoken := config.Get().Mytoken
-	if args.TransferCode != "" {
-		return mytoken.GetMytokenByTransferCode(args.TransferCode)
+	if opts.TransferCode != "" {
+		return mytoken.GetMytokenByTransferCode(opts.TransferCode)
 	}
-	provider, err := args.PTOptions.checkProvider(args.Name)
+	provider, err := opts.PTOptions.checkProvider(opts.Name)
 	if err != nil {
 		return "", err
 	}
@@ -266,43 +236,38 @@ func obtainMT(context *cli.Context, args *commonMTOptions, name, responseType st
 		tokenName = fmt.Sprintf("%s:%s", prefix, name)
 	}
 	var r api.Restrictions
-	if args.Restrictions != "" {
-		r, err = parseRestrictionOption(args.Restrictions)
+	if opts.Restrictions != "" {
+		r, err = parseRestrictionOption(opts.Restrictions)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		nbf, err := parseTime(args.RestrictNbf)
+		nbf, err := parseTime(opts.RestrictNbf)
 		if err != nil {
 			return "", err
 		}
-		exp, err := parseTime(args.RestrictExp)
+		exp, err := parseTime(opts.RestrictExp)
 		if err != nil {
 			return "", err
 		}
 		rr := api.Restriction{
 			NotBefore:     nbf,
 			ExpiresAt:     exp,
-			Scope:         strings.Join(args.RestrictScopes.Value(), " "),
-			Audiences:     args.RestrictAudiences.Value(),
-			IPs:           args.RestrictIP.Value(),
-			GeoIPAllow:    args.RestrictGeoIPAllow.Value(),
-			GeoIPDisallow: args.RestrictGeoIPDisallow.Value(),
+			Scope:         strings.Join(opts.RestrictScopes.Value(), " "),
+			Audiences:     opts.RestrictAudiences.Value(),
+			IPs:           opts.RestrictIP.Value(),
+			GeoIPAllow:    opts.RestrictGeoIPAllow.Value(),
+			GeoIPDisallow: opts.RestrictGeoIPDisallow.Value(),
 		}
-		if context.IsSet("usages-AT") {
-			rr.UsagesAT = utils.NewInt64(args.RestrictUsagesAT)
+		if context.IsSetDeep("usages-AT") {
+			rr.UsagesAT = utils.NewInt64(opts.RestrictUsagesAT)
 		}
-		if context.IsSet("usages-other") {
-			rr.UsagesOther = utils.NewInt64(args.RestrictUsagesOther)
+		if context.IsSetDeep("usages-other") {
+			rr.UsagesOther = utils.NewInt64(opts.RestrictUsagesOther)
 		}
 		r = api.Restrictions{rr}
 	}
-	if args.UseOIDCFlow /*|| args.OIDCFlow!=""*/ {
-		// if args.OIDCFlow == "" {
-		// 	args.OIDCFlow = config.Get().DefaultOIDCFlow
-		// }
-		// switch args.OIDCFlow {
-		// case "auth":
+	if opts.UseOIDCFlow {
 		callbacks := mytokenlib.PollingCallbacks{
 			Init: func(authorizationURL string) error {
 				fmt.Fprintln(os.Stderr, "Using any device please visit the following url to continue:")
@@ -325,30 +290,25 @@ func obtainMT(context *cli.Context, args *commonMTOptions, name, responseType st
 				fmt.Fprintln(os.Stderr, "success")
 			},
 		}
-		return mytoken.GetMytokenByAuthorizationFlow(provider.Issuer, r, args.Capabilities, args.SubtokenCapabilities, responseType, tokenName, callbacks)
-		// case "device":
-		// 	return "", fmt.Errorf("Not yet implemented")
-		// default:
-		// 	return "", fmt.Errorf("Unknown oidc flow. Implementation error.")
-		// }
+		return mytoken.GetMytokenByAuthorizationFlow(provider.Issuer, r, opts.Capabilities, opts.SubtokenCapabilities, responseType, tokenName, callbacks)
 	}
-	mtGrant, err := args.PTOptions.checkToken(provider.Issuer)
+	mtGrant, err := opts.PTOptions.checkToken(provider.Issuer)
 	if err != nil {
 		return "", err
 	}
-	return mytoken.GetMytokenByMytoken(mtGrant, provider.Issuer, r, args.Capabilities, args.SubtokenCapabilities, responseType, tokenName)
+	return mytoken.GetMytokenByMytoken(mtGrant, provider.Issuer, r, opts.Capabilities, opts.SubtokenCapabilities, responseType, tokenName)
 }
 
 func storeMTCmd(context *cli.Context) error {
-	if context.Args().Len() == 0 {
+	if !context.Args().Present() {
 		return fmt.Errorf("Required argument STORE_NAME is missing.")
 	}
 	storeName := context.Args().Get(0)
-	smtc := mtStoreCommand
-	if len(smtc.Capabilities) == 0 {
-		smtc.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities.Stored)
+	opts := commonMTOptions.Common(true)
+	if len(opts.Capabilities) == 0 {
+		opts.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities.Stored)
 	}
-	provider, err := smtc.commonMTOptions.PTOptions.checkProvider(smtc.Name)
+	provider, err := opts.PTOptions.checkProvider(opts.Name)
 	if err != nil {
 		return err
 	}
@@ -361,12 +321,12 @@ func storeMTCmd(context *cli.Context) error {
 			os.Exit(1)
 		}
 	}
-	st, err := obtainMT(context, smtc.commonMTOptions, storeName, api.ResponseTypeToken)
+	st, err := obtainMT(opts, context, storeName, api.ResponseTypeToken)
 	if err != nil {
 		return err
 	}
-	gpgKey := smtc.GPGKey
-	if smtc.Password {
+	gpgKey := mtStoreCommand.GPGKey
+	if mtStoreCommand.Password {
 		gpgKey = ""
 	} else if gpgKey == "" {
 		gpgKey = provider.GPGKey
