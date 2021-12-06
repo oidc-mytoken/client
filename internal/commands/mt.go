@@ -226,7 +226,7 @@ func obtainMT(opts commonMTOpts, context *cli.Context, name, responseType string
 	if opts.TransferCode != "" {
 		return mytoken.GetMytokenByTransferCode(opts.TransferCode)
 	}
-	provider, err := opts.PTOptions.checkProvider(opts.Name)
+	provider, err := opts.PTOptions.checkProvider()
 	if err != nil {
 		return "", err
 	}
@@ -308,7 +308,7 @@ func storeMTCmd(context *cli.Context) error {
 	if len(opts.Capabilities) == 0 {
 		opts.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities.Stored)
 	}
-	provider, err := opts.PTOptions.checkProvider(opts.Name)
+	provider, err := opts.PTOptions.checkProvider()
 	if err != nil {
 		return err
 	}

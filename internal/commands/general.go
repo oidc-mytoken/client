@@ -82,14 +82,14 @@ func (g *PTOptions) Check() (*model.Provider, string) {
 		if utils.IsJWT(token) {
 			g.Provider, _ = jwtutils.GetStringFromJWT(token, "oidc_iss")
 		}
-		p, _ := g.checkProvider("")
+		p, _ := g.checkProvider()
 		return p, token
 	}
-	p, err := g.checkProvider(g.Name)
+	p, err := g.checkProvider()
 	if err != nil {
 		log.Fatal(err)
 	}
-	token, err = config.Get().GetToken(p.Issuer, g.Name)
+	token, err = config.Get().GetToken(p.Issuer, &g.Name)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -124,37 +124,37 @@ func (g *PTOptions) checkToken(issuer string) (string, error) {
 	if err != nil || tok != "" {
 		return tok, err
 	}
-	return config.Get().GetToken(issuer, g.Name)
+	return config.Get().GetToken(issuer, &g.Name)
 }
 
-func (g *PTOptions) checkProvider(tokenName string) (p *model.Provider, err error) {
-	provider := g.Provider
-	if provider == "" {
-		issForToken, found := config.Get().TokensFileContent.TokenMapping[tokenName]
+func (g *PTOptions) checkProvider() (p *model.Provider, err error) {
+	if g.Provider == "" {
+		issForToken, found := config.Get().TokensFileContent.TokenMapping[g.Name]
 		if found && len(issForToken) > 0 {
 			if len(issForToken) > 1 {
 				err = fmt.Errorf("Provider not specified and token name exists for multiple providers.")
 				return
 			}
-			provider = issForToken[0]
+			g.Provider = issForToken[0]
 		} else {
-			provider = config.Get().DefaultProvider
+			g.Provider = config.Get().DefaultProvider
 		}
-		if provider == "" {
+		if g.Provider == "" {
 			if len(config.Get().TokensFileContent.Tokens) != 1 {
 				err = fmt.Errorf("Provider not specified and no default provider set")
 				return
 			}
-			for provider = range config.Get().TokensFileContent.Tokens {
+			for provider := range config.Get().TokensFileContent.Tokens {
 				// There's also one provider with an token, use that one
+				g.Provider = provider
 				break
 			}
 		}
 	}
-	isURL := strings.HasPrefix(provider, "https://")
-	pp, ok := config.Get().Providers.FindBy(provider, isURL)
+	isURL := strings.HasPrefix(g.Provider, "https://")
+	pp, ok := config.Get().Providers.FindBy(g.Provider, isURL)
 	if !ok && !isURL {
-		err = fmt.Errorf("Provider name '%s' not found in config file. Please provide a valid provider name or the provider url.", provider)
+		err = fmt.Errorf("Provider name '%s' not found in config file. Please provide a valid provider name or the provider url.", g.Provider)
 		return
 	}
 	return pp, nil

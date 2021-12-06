@@ -13,7 +13,7 @@ import (
 	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/fileutil"
 	log "github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 
 	"github.com/oidc-mytoken/client/internal/model"
 	"github.com/oidc-mytoken/client/internal/utils/cryptutils"
@@ -83,28 +83,67 @@ func (m *tokenNameMapping) add(t TokenEntry, iss string) {
 	(*m)[t.Name] = append((*m)[t.Name], iss)
 }
 
+func (f *TokenFileContent) Remove(name, iss string) {
+	f.Tokens.remove(name, iss)
+	f.TokenMapping.remove(name, iss)
+}
+func (e *tokenEntries) remove(name, iss string) {
+	entries := (*e)[iss]
+	if len(entries) == 1 {
+		if entries[0].Name != name {
+			return
+		}
+		delete(*e, iss)
+		return
+	}
+	for i, tt := range entries {
+		if tt.Name == name {
+			entries = append(entries[:i], entries[i+1:]...)
+			(*e)[iss] = entries
+			return
+		}
+	}
+}
+func (m *tokenNameMapping) remove(name, iss string) {
+	issuers := (*m)[name]
+	if !utils.StringInSlice(iss, issuers) {
+		return
+	}
+	if len(issuers) == 1 {
+		delete(*m, name)
+		return
+	}
+	for i, el := range issuers {
+		if el == iss {
+			issuers = append(issuers[:i], issuers[i+1:]...)
+			break
+		}
+	}
+	(*m)[name] = issuers
+}
+
 type TokenEntry struct {
 	Name   string `json:"name"`
 	GPGKey string `json:"gpg_key,omitempty"`
 	Token  string `json:"token"`
 }
 
-func (c *Config) GetToken(issuer, name string) (string, error) {
+func (c *Config) GetToken(issuer string, name *string) (string, error) {
 	tt, found := c.TokensFileContent.Tokens[issuer]
 	if !found {
 		return "", fmt.Errorf("No tokens found for provider '%s'", issuer)
 	}
-	if name == "" {
+	if *name == "" {
 		p, _ := c.Providers.FindBy(issuer, true)
-		name = p.DefaultToken
-		if name == "" {
+		*name = p.DefaultToken
+		if *name == "" {
 			if len(tt) == 1 {
-				name = tt[0].Name
+				*name = tt[0].Name
 			}
 		}
 	}
 	for _, t := range tt {
-		if t.Name == name {
+		if t.Name == *name {
 			var token string
 			var err error
 			if t.GPGKey != "" {
