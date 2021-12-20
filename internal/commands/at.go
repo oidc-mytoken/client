@@ -9,21 +9,19 @@ import (
 )
 
 var atCommand = struct {
-	*PTOptions
+	PTOptions
 	Scopes    cli.StringSlice
 	Audiences cli.StringSlice
 	Out       string
 }{}
 
 func init() {
-	ptFlags, opts := getPTFlags()
-	atCommand.PTOptions = opts
 	app.Commands = append(app.Commands, &cli.Command{
 		Name:    "AT",
 		Aliases: []string{"at", "access-token"},
 		Usage:   "Obtain an OIDC access token",
 		Action:  getAT,
-		Flags: append(ptFlags,
+		Flags: append(getPTFlags(),
 			&cli.StringSliceFlag{
 				Name:        "scope",
 				Aliases:     []string{"s"},

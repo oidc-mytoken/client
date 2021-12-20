@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	"github.com/Songmu/prompter"
+	"github.com/oidc-mytoken/api/v0"
 	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/jwtutils"
+	"github.com/oidc-mytoken/server/shared/utils/ternary"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
@@ -16,8 +18,7 @@ import (
 	"github.com/oidc-mytoken/client/internal/model"
 )
 
-// PTOptions holds command line options that can be used with all commands
-type PTOptions struct {
+type ptOptions struct {
 	Provider      string
 	Name          string
 	Mytoken       string
@@ -26,8 +27,98 @@ type PTOptions struct {
 	MytokenEnv    string
 }
 
-func getPTFlags() ([]cli.Flag, *PTOptions) {
-	opts := PTOptions{}
+var ptOpts = []*ptOptions{}
+
+type PTOptions struct{}
+
+func (pt PTOptions) SetProvider(provider string) {
+	if len(ptOpts) == 0 {
+		ptOpts = make([]*ptOptions, 1)
+	}
+	ptOpts[0].Provider = provider
+}
+func (pt PTOptions) SetName(name string) {
+	if len(ptOpts) == 0 {
+		ptOpts = make([]*ptOptions, 1)
+	}
+	ptOpts[0].Name = name
+}
+
+func (pt PTOptions) Provider() string {
+	if res := pt.search(
+		func(options *ptOptions) interface{} {
+			return ternary.If(options.Provider != "", options.Provider, nil)
+		}); res != nil {
+		return res.(string)
+	}
+	return ""
+}
+
+func (pt PTOptions) Name() string {
+	if res := pt.search(
+		func(options *ptOptions) interface{} {
+			return ternary.If(options.Name != "", options.Name, nil)
+		}); res != nil {
+		return res.(string)
+	}
+	return ""
+}
+
+func (pt PTOptions) Mytoken() string {
+	if res := pt.search(
+		func(options *ptOptions) interface{} {
+			return ternary.If(options.Mytoken != "", options.Mytoken, nil)
+		}); res != nil {
+		return res.(string)
+	}
+	return ""
+}
+
+func (pt PTOptions) MytokenPrompt() bool {
+	if res := pt.search(
+		func(options *ptOptions) interface{} {
+			return ternary.If(options.MytokenPrompt, true, nil)
+		}); res != nil {
+		return res.(bool)
+	}
+	return false
+}
+
+func (pt PTOptions) MytokenFile() string {
+	if res := pt.search(
+		func(options *ptOptions) interface{} {
+			return ternary.If(options.MytokenFile != "", options.MytokenFile, nil)
+		}); res != nil {
+		return res.(string)
+	}
+	return ""
+}
+
+func (pt PTOptions) MytokenEnv() string {
+	if res := pt.search(
+		func(options *ptOptions) interface{} {
+			return ternary.If(options.MytokenEnv != "", options.MytokenEnv, nil)
+		}); res != nil {
+		return res.(string)
+	}
+	return ""
+}
+
+func (pt PTOptions) search(callback func(options *ptOptions) interface{}) interface{} {
+	for _, opts := range ptOpts {
+		if res := callback(opts); res != nil {
+			return res
+		}
+	}
+	return nil
+}
+
+func getPTFlags() []cli.Flag {
+	opts := &ptOptions{}
+	fmt.Printf("%p\n", opts)
+	ptOpts = append([]*ptOptions{opts}, ptOpts...)
+	fmt.Println(ptOpts)
+	// ptOpts = append(ptOpts, opts)
 	flags := []cli.Flag{
 		&cli.StringFlag{
 			Name:        "provider",
@@ -67,50 +158,45 @@ func getPTFlags() ([]cli.Flag, *PTOptions) {
 			Destination: &opts.MytokenEnv,
 		},
 	}
-	return flags, &opts
+	return flags
 }
 
-func addPTFlags(cmd *cli.Command) *PTOptions {
-	flags, opts := getPTFlags()
-	cmd.Flags = append(cmd.Flags, flags...)
-	return opts
-}
-
-func (g *PTOptions) Check() (*model.Provider, string) {
-	token, _ := g.getToken()
+func (pt PTOptions) Check(capability ...api.Capability) (*model.Provider, string) {
+	token, _ := pt.getToken()
 	if token != "" {
 		if utils.IsJWT(token) {
-			g.Provider, _ = jwtutils.GetStringFromJWT(token, "oidc_iss")
+			p, _ := jwtutils.GetStringFromJWT(token, "oidc_iss")
+			pt.SetProvider(p)
 		}
-		p, _ := g.checkProvider()
+		p, _ := pt.checkProvider()
 		return p, token
 	}
-	p, err := g.checkProvider()
+	p, err := pt.checkProvider()
 	if err != nil {
 		log.Fatal(err)
 	}
-	token, err = config.Get().GetToken(p.Issuer, &g.Name)
+	token, err = config.Get().GetToken(p.Issuer, pt.Name(), pt.SetName, capability...)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return p, token
 }
 
-func (g *PTOptions) getToken() (string, error) {
-	if g.MytokenPrompt {
+func (pt *PTOptions) getToken() (string, error) {
+	if pt.MytokenPrompt() {
 		return prompter.Password("Enter mytoken"), nil
 	}
-	if g.Mytoken != "" {
-		return g.Mytoken, nil
+	if pt.Mytoken() != "" {
+		return pt.Mytoken(), nil
 	}
-	if g.MytokenEnv != "" {
-		tok, ok := os.LookupEnv(g.MytokenEnv)
+	if pt.MytokenEnv() != "" {
+		tok, ok := os.LookupEnv(pt.MytokenEnv())
 		if ok {
 			return tok, nil
 		}
 	}
-	if g.MytokenFile != "" {
-		content, err := ioutil.ReadFile(g.MytokenFile)
+	if pt.MytokenFile() != "" {
+		content, err := ioutil.ReadFile(pt.MytokenFile())
 		if err != nil {
 			return "", err
 		}
@@ -119,42 +205,42 @@ func (g *PTOptions) getToken() (string, error) {
 	return "", nil
 }
 
-func (g *PTOptions) checkToken(issuer string) (string, error) {
-	tok, err := g.getToken()
+func (pt *PTOptions) checkToken(issuer string) (string, error) {
+	tok, err := pt.getToken()
 	if err != nil || tok != "" {
 		return tok, err
 	}
-	return config.Get().GetToken(issuer, &g.Name)
+	return config.Get().GetToken(issuer, pt.Name(), pt.SetName)
 }
 
-func (g *PTOptions) checkProvider() (p *model.Provider, err error) {
-	if g.Provider == "" {
-		issForToken, found := config.Get().TokensFileContent.TokenMapping[g.Name]
+func (pt *PTOptions) checkProvider() (p *model.Provider, err error) {
+	if pt.Provider() == "" {
+		issForToken, found := config.Get().TokensFileContent.TokenMapping[pt.Name()]
 		if found && len(issForToken) > 0 {
 			if len(issForToken) > 1 {
 				err = fmt.Errorf("Provider not specified and token name exists for multiple providers.")
 				return
 			}
-			g.Provider = issForToken[0]
+			pt.SetProvider(issForToken[0])
 		} else {
-			g.Provider = config.Get().DefaultProvider
+			pt.SetProvider(config.Get().DefaultProvider)
 		}
-		if g.Provider == "" {
+		if pt.Provider() == "" {
 			if len(config.Get().TokensFileContent.Tokens) != 1 {
 				err = fmt.Errorf("Provider not specified and no default provider set")
 				return
 			}
 			for provider := range config.Get().TokensFileContent.Tokens {
 				// There's also one provider with an token, use that one
-				g.Provider = provider
+				pt.SetProvider(provider)
 				break
 			}
 		}
 	}
-	isURL := strings.HasPrefix(g.Provider, "https://")
-	pp, ok := config.Get().Providers.FindBy(g.Provider, isURL)
+	isURL := strings.HasPrefix(pt.Provider(), "https://")
+	pp, ok := config.Get().Providers.FindBy(pt.Provider(), isURL)
 	if !ok && !isURL {
-		err = fmt.Errorf("Provider name '%s' not found in config file. Please provide a valid provider name or the provider url.", g.Provider)
+		err = fmt.Errorf("Provider name '%s' not found in config file. Please provide a valid provider name or the provider url.", pt.Provider())
 		return
 	}
 	return pp, nil

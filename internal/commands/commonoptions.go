@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"encoding/json"
+	"io/ioutil"
+
 	"github.com/oidc-mytoken/api/v0"
 	"github.com/urfave/cli/v2"
 )
@@ -13,7 +16,7 @@ type commonMTOptsWrap struct {
 var commonMTOptions commonMTOptsWrap
 
 type commonMTOpts struct {
-	*PTOptions
+	PTOptions
 	TransferCode string
 	UseOIDCFlow  bool
 
@@ -41,13 +44,6 @@ func (opts commonMTOptsWrap) Common(store bool) commonMTOpts {
 	}
 	sOpts := opts.storeOpts
 	oOpts := opts.obtainOpts
-	sOpts.PTOptions = getCorrectOptsStruct(sOpts.PTOptions != nil, sOpts, oOpts).PTOptions
-	sOpts.PTOptions.Provider = getCorrectOptsStruct(sOpts.PTOptions.Provider != "", sOpts, oOpts).PTOptions.Provider
-	sOpts.PTOptions.Name = getCorrectOptsStruct(sOpts.PTOptions.Name != "", sOpts, oOpts).PTOptions.Name
-	sOpts.PTOptions.Mytoken = getCorrectOptsStruct(sOpts.PTOptions.Mytoken != "", sOpts, oOpts).PTOptions.Mytoken
-	sOpts.PTOptions.MytokenPrompt = getCorrectOptsStruct(sOpts.PTOptions.MytokenPrompt, sOpts, oOpts).PTOptions.MytokenPrompt
-	sOpts.PTOptions.MytokenFile = getCorrectOptsStruct(sOpts.PTOptions.MytokenFile != "", sOpts, oOpts).PTOptions.MytokenFile
-	sOpts.PTOptions.MytokenEnv = getCorrectOptsStruct(sOpts.PTOptions.MytokenEnv != "", sOpts, oOpts).PTOptions.MytokenEnv
 	sOpts.TransferCode = getCorrectOptsStruct(sOpts.TransferCode != "", sOpts, oOpts).TransferCode
 	sOpts.UseOIDCFlow = getCorrectOptsStruct(sOpts.UseOIDCFlow, sOpts, oOpts).UseOIDCFlow
 	sOpts.Capabilities = getCorrectOptsStruct(len(sOpts.Capabilities) > 0, sOpts, oOpts).Capabilities

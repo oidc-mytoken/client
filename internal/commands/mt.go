@@ -33,12 +33,6 @@ var mtStoreCommand = struct {
 }{}
 
 func getMTCommonFlags(store bool) []cli.Flag {
-	ptFlags, ptOpts := getPTFlags()
-	if store {
-		commonMTOptions.storeOpts.PTOptions = ptOpts
-	} else {
-		commonMTOptions.obtainOpts.PTOptions = ptOpts
-	}
 	caps := make(cli.Choices)
 	for _, c := range api.AllCapabilities {
 		caps[c.Name] = c
@@ -183,7 +177,7 @@ func getMTCommonFlags(store bool) []cli.Flag {
 			Placeholder: "LIFETIME",
 		},
 	}
-	flags = append(ptFlags, flags...)
+	flags = append(getPTFlags(), flags...)
 	return flags
 }
 

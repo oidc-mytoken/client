@@ -9,18 +9,16 @@ import (
 )
 
 var revokeCommand = struct {
-	*PTOptions
+	PTOptions
 	Recursive bool
 }{}
 
 func init() {
-	ptFlags, opts := getPTFlags()
-	revokeCommand.PTOptions = opts
 	app.Commands = append(app.Commands, &cli.Command{
 		Name:   "revoke",
 		Usage:  "Revokes a mytoken",
 		Action: revoke,
-		Flags: append(ptFlags,
+		Flags: append(getPTFlags(),
 			&cli.BoolFlag{
 				Name:             "recursive",
 				Aliases:          []string{"r"},
@@ -40,10 +38,10 @@ func revoke(_ *cli.Context) error {
 		return err
 	}
 	fmt.Println("Token revoked")
-	if revokeCommand.Name == "" || provider == nil {
+	if revokeCommand.Name() == "" || provider == nil {
 		return nil
 	}
-	config.Get().TokensFileContent.Remove(revokeCommand.Name, provider.Issuer)
+	config.Get().TokensFileContent.Remove(revokeCommand.Name(), provider.Issuer)
 	if err = config.Get().TokensFileContent.Save(); err != nil {
 		return err
 	}
