@@ -146,6 +146,42 @@ func getMTCommonFlags(store bool) []cli.Flag {
 			Destination: &opts.RestrictUsagesOther,
 			Placeholder: "NUM",
 		},
+		&cli.StringFlag{
+			Name:        "rotation",
+			Aliases:     []string{"rotate"},
+			Usage:       "The rotation policy for the requested mytoken. Can be a json object or a path to a json file.'",
+			EnvVars:     []string{"MYTOKEN_ROTATION"},
+			Destination: &opts.RotationStr,
+			Placeholder: "ROTATION",
+		},
+		&cli.BoolFlag{
+			Name:             "rotation-on-AT",
+			Aliases:          []string{"rotate-on-AT", "rotate-on-at", "rotation-on-at"},
+			Usage:            "Rotate this mytoken when it is used to obtain access tokens",
+			Destination:      &opts.RotationObj.OnAT,
+			HideDefaultValue: true,
+		},
+		&cli.BoolFlag{
+			Name:             "rotation-on-other",
+			Aliases:          []string{"rotate-on-other"},
+			Usage:            "Rotate this mytoken when it is used for actions other than obtaining access tokens",
+			Destination:      &opts.RotationObj.OnOther,
+			HideDefaultValue: true,
+		},
+		&cli.BoolFlag{
+			Name: "rotation-auto-revoke",
+			Usage: "If set, " +
+				"the mytoken and all it subtokens are automatically revoked when a potential abuse is detected",
+			Destination:      &opts.RotationObj.AutoRevoke,
+			HideDefaultValue: true,
+		},
+		&cli.Uint64Flag{
+			Name:        "rotation-lifetime",
+			Usage:       "Restrict the lifetime of a single rotated mytoken; given in seconds",
+			DefaultText: "infinite",
+			Destination: &opts.RotationObj.Lifetime,
+			Placeholder: "LIFETIME",
+		},
 	}
 	flags = append(ptFlags, flags...)
 	return flags
@@ -224,7 +260,7 @@ func obtainMTCmd(context *cli.Context) error {
 func obtainMT(opts commonMTOpts, context *cli.Context, name, responseType string) (string, error) {
 	mytoken := config.Get().Mytoken
 	if opts.TransferCode != "" {
-		return mytoken.GetMytokenByTransferCode(opts.TransferCode)
+		return mytoken.Mytoken.FromTransferCode(opts.TransferCode)
 	}
 	provider, err := opts.PTOptions.checkProvider()
 	if err != nil {
@@ -234,6 +270,9 @@ func obtainMT(opts commonMTOpts, context *cli.Context, name, responseType string
 	prefix := config.Get().TokenNamePrefix
 	if name != "" && prefix != "" {
 		tokenName = fmt.Sprintf("%s:%s", prefix, name)
+	}
+	if err = opts.parseRotationOption(); err != nil {
+		return "", err
 	}
 	var r api.Restrictions
 	if opts.Restrictions != "" {
@@ -290,13 +329,27 @@ func obtainMT(opts commonMTOpts, context *cli.Context, name, responseType string
 				fmt.Fprintln(os.Stderr, "success")
 			},
 		}
-		return mytoken.GetMytokenByAuthorizationFlow(provider.Issuer, r, opts.Capabilities, opts.SubtokenCapabilities, responseType, tokenName, callbacks)
+		return mytoken.Mytoken.FromAuthorizationFlow(provider.Issuer, r, opts.Capabilities,
+			opts.SubtokenCapabilities, opts.Rotation(), responseType,
+			tokenName, callbacks)
 	}
 	mtGrant, err := opts.PTOptions.checkToken(provider.Issuer)
 	if err != nil {
 		return "", err
 	}
-	return mytoken.GetMytokenByMytoken(mtGrant, provider.Issuer, r, opts.Capabilities, opts.SubtokenCapabilities, responseType, tokenName)
+	mtRes, err := mytoken.Mytoken.APIFromMytoken(mtGrant, provider.Issuer, r, opts.Capabilities,
+		opts.SubtokenCapabilities, opts.Rotation(),
+		responseType, tokenName)
+	if err != nil {
+		return "", err
+	}
+	if mtRes.TokenUpdate != nil {
+		config.Get().TokensFileContent.Update(opts.Name(), provider.Issuer, mtRes.TokenUpdate.Mytoken)
+		if err = config.Get().TokensFileContent.Save(); err != nil {
+			return mtRes.Mytoken, err
+		}
+	}
+	return mtRes.Mytoken, nil
 }
 
 func storeMTCmd(context *cli.Context) error {

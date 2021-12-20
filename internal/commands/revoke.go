@@ -35,7 +35,7 @@ func init() {
 func revoke(_ *cli.Context) error {
 	mytoken := config.Get().Mytoken
 	provider, mToken := revokeCommand.Check()
-	err := mytoken.Revoke(mToken, provider.Issuer, revokeCommand.Recursive)
+	err := mytoken.Revocation.Revoke(mToken, provider.Issuer, revokeCommand.Recursive)
 	if err != nil {
 		return err
 	}

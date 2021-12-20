@@ -32,7 +32,7 @@ func init() {
 	app.Commands = append(app.Commands, cmd)
 }
 
-func listTokens(ctx *cli.Context) error {
+func listTokens(_ *cli.Context) error {
 	for iss, tokens := range config.Get().TokensFileContent.Tokens {
 		provider, found := config.Get().Providers.FindBy(iss, true)
 		header := iss
@@ -54,9 +54,9 @@ func listTokens(ctx *cli.Context) error {
 	return nil
 }
 
-func listProviders(ctx *cli.Context) error {
+func listProviders(_ *cli.Context) error {
 	defaultProvider := config.Get().DefaultProvider
-	instanceProviders := config.Get().Mytoken.ProvidersSupported
+	instanceProviders := config.Get().Mytoken.ServerMetadata.ProvidersSupported
 	configProviders := config.Get().Providers
 	urlMaxLen := 0
 	for _, ip := range instanceProviders {

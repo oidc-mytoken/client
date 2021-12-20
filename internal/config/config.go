@@ -10,6 +10,7 @@ import (
 
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
+	"github.com/oidc-mytoken/server/shared/httpClient"
 	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/fileutil"
 	log "github.com/sirupsen/logrus"
@@ -20,8 +21,8 @@ import (
 )
 
 type Config struct {
-	URL     string                      `yaml:"instance"`
-	Mytoken *mytokenlib.MytokenProvider `yaml:"-"`
+	URL     string                    `yaml:"instance"`
+	Mytoken *mytokenlib.MytokenServer `yaml:"-"`
 
 	DefaultGPGKey            string `yaml:"default_gpg_key"`
 	DefaultProvider          string `yaml:"default_provider"`
@@ -62,13 +63,25 @@ func (e tokenEntries) Has(name, iss string) bool {
 }
 
 func (f *TokenFileContent) Add(t TokenEntry, iss string) {
-	f.Tokens.add(t, iss)
+	f.Tokens.add(t, iss, false)
 	f.TokenMapping.add(t, iss)
 }
-func (e *tokenEntries) add(t TokenEntry, iss string) {
+
+func (f *TokenFileContent) Update(name, iss, token string) {
+	t := TokenEntry{
+		Name:  name,
+		Token: token,
+	}
+	f.Tokens.add(t, iss, true)
+	f.TokenMapping.add(t, iss)
+}
+
+func (e *tokenEntries) add(t TokenEntry, iss string, update bool) {
 	for i, tt := range (*e)[iss] {
 		if tt.Name == t.Name {
-			tt.GPGKey = t.GPGKey
+			if t.GPGKey != "" || !update {
+				tt.GPGKey = t.GPGKey
+			}
 			tt.Token = t.Token
 			(*e)[iss][i] = tt
 			return
@@ -166,7 +179,7 @@ var defaultConfig = Config{
 		Stored   []string `yaml:"stored"`
 		Returned []string `yaml:"returned"`
 	}{
-		Stored:   api.Capabilities{api.CapabilityAT, api.CapabilityCreateMT, api.CapabilityTokeninfoHistory, api.CapabilityTokeninfoTree}.Strings(),
+		Stored:   api.Capabilities{api.CapabilityAT, api.CapabilityCreateMT, api.CapabilityTokeninfo}.Strings(),
 		Returned: api.Capabilities{api.CapabilityAT}.Strings(),
 	},
 	TokenNamePrefix: "<hostname>",
@@ -219,7 +232,8 @@ func load(name string, locations []string) {
 	if conf.URL == "" {
 		log.Fatal("Must provide url of the mytoken instance in the config file.")
 	}
-	mytoken, err := mytokenlib.NewMytokenProvider(conf.URL)
+	mytokenlib.SetClient(httpClient.Do().GetClient())
+	mytoken, err := mytokenlib.NewMytokenServer(conf.URL)
 	if err != nil {
 		log.Fatal(err)
 	}

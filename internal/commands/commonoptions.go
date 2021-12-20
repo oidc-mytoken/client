@@ -19,8 +19,8 @@ type commonMTOpts struct {
 
 	Capabilities         api.Capabilities
 	SubtokenCapabilities api.Capabilities
-	Restrictions         string
 
+	Restrictions          string
 	RestrictScopes        cli.StringSlice
 	RestrictAudiences     cli.StringSlice
 	RestrictExp           string
@@ -30,6 +30,9 @@ type commonMTOpts struct {
 	RestrictGeoIPDisallow cli.StringSlice
 	RestrictUsagesOther   int64
 	RestrictUsagesAT      int64
+
+	RotationStr string
+	RotationObj api.Rotation
 }
 
 func (opts commonMTOptsWrap) Common(store bool) commonMTOpts {
@@ -59,6 +62,11 @@ func (opts commonMTOptsWrap) Common(store bool) commonMTOpts {
 	sOpts.RestrictGeoIPDisallow = getCorrectOptsStruct(len(sOpts.RestrictGeoIPDisallow.Value()) > 0, sOpts, oOpts).RestrictGeoIPDisallow
 	sOpts.RestrictUsagesOther = getCorrectOptsStruct(sOpts.RestrictUsagesOther > 0, sOpts, oOpts).RestrictUsagesOther
 	sOpts.RestrictUsagesAT = getCorrectOptsStruct(sOpts.RestrictUsagesAT > 0, sOpts, oOpts).RestrictUsagesAT
+	sOpts.RotationStr = getCorrectOptsStruct(sOpts.RotationStr != "", sOpts, oOpts).RotationStr
+	sOpts.RotationObj.OnAT = getCorrectOptsStruct(sOpts.RotationObj.OnAT, sOpts, oOpts).RotationObj.OnAT
+	sOpts.RotationObj.OnOther = getCorrectOptsStruct(sOpts.RotationObj.OnOther, sOpts, oOpts).RotationObj.OnOther
+	sOpts.RotationObj.AutoRevoke = getCorrectOptsStruct(sOpts.RotationObj.AutoRevoke, sOpts, oOpts).RotationObj.AutoRevoke
+	sOpts.RotationObj.Lifetime = getCorrectOptsStruct(sOpts.RotationObj.Lifetime > 0, sOpts, oOpts).RotationObj.Lifetime
 	opts.storeOpts = sOpts
 	return opts.storeOpts
 }
@@ -68,4 +76,36 @@ func getCorrectOptsStruct(con bool, a, b commonMTOpts) commonMTOpts {
 		return a
 	}
 	return b
+}
+
+func (opts *commonMTOpts) parseRotationOption() error {
+	rotStr := opts.RotationStr
+	if rotStr == "" {
+		return nil
+	}
+	if rotStr[0] == '{' {
+		return json.Unmarshal([]byte(rotStr), &opts.RotationObj)
+	}
+	data, err := ioutil.ReadFile(rotStr)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, &opts.RotationObj)
+}
+
+func (opts commonMTOpts) Rotation() *api.Rotation {
+	rot := opts.RotationObj
+	if rot.OnAT {
+		return &rot
+	}
+	if rot.OnOther {
+		return &rot
+	}
+	if rot.AutoRevoke {
+		return &rot
+	}
+	if rot.Lifetime > 0 {
+		return &rot
+	}
+	return nil
 }

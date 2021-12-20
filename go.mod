@@ -5,8 +5,8 @@ go 1.14
 require (
 	github.com/Songmu/prompter v0.5.0
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/oidc-mytoken/api v0.3.0
-	github.com/oidc-mytoken/lib v0.2.1
+	github.com/oidc-mytoken/api v0.3.1-0.20211220153443-bf41385a02b3
+	github.com/oidc-mytoken/lib v0.2.2-0.20211220153819-5a690a28680c
 	github.com/oidc-mytoken/server v0.3.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli/v2 v2.3.1-0.20211205195634-e8d81738896c

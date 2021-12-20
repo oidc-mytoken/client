@@ -59,9 +59,17 @@ func getAT(context *cli.Context) error {
 	}
 	mytoken := config.Get().Mytoken
 	provider, mToken := atc.Check()
-	at, err := mytoken.GetAccessToken(mToken, provider.Issuer, atc.Scopes.Value(), atc.Audiences.Value(), comment)
+	atRes, err := mytoken.AccessToken.APIGet(mToken, provider.Issuer, atc.Scopes.Value(),
+		atc.Audiences.Value(),
+		comment)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(atc.Out, append([]byte(at), '\n'), 0600)
+	if atRes.TokenUpdate != nil {
+		config.Get().TokensFileContent.Update(atc.Name(), provider.Issuer, atRes.TokenUpdate.Mytoken)
+		if err = config.Get().TokensFileContent.Save(); err != nil {
+			return err
+		}
+	}
+	return ioutil.WriteFile(atc.Out, append([]byte(atRes.AccessToken), '\n'), 0600)
 }

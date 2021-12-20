@@ -75,7 +75,7 @@ func prettyPrintJSON(obj interface{}) error {
 	return nil
 }
 
-func info(ctx *cli.Context) error {
+func info(_ *cli.Context) error {
 	_, mToken := infoOptions.Check()
 	if !utils.IsJWT(mToken) {
 		return fmt.Errorf("The token is not a JWT.")
@@ -88,42 +88,60 @@ func info(ctx *cli.Context) error {
 	return prettyPrintJSON(decodedPayload)
 }
 
-func introspect(ctx *cli.Context) error {
+func introspect(_ *cli.Context) error {
 	mytoken := config.Get().Mytoken
 	_, mToken := infoOptions.Check()
-	res, err := mytoken.TokeninfoIntrospect(mToken)
+	res, err := mytoken.Tokeninfo.Introspect(mToken)
 	if err != nil {
 		return err
 	}
 	return prettyPrintJSON(res)
 }
 
-func history(ctx *cli.Context) error {
+func history(_ *cli.Context) error {
 	mytoken := config.Get().Mytoken
-	_, mToken := infoOptions.Check()
-	res, err := mytoken.TokeninfoHistory(mToken)
+	provider, mToken := infoOptions.Check()
+	res, err := mytoken.Tokeninfo.APIHistory(mToken)
 	if err != nil {
 		return err
 	}
-	return prettyPrintJSON(res)
+	if res.TokenUpdate != nil {
+		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer, res.TokenUpdate.Mytoken)
+		if err = config.Get().TokensFileContent.Save(); err != nil {
+			return err
+		}
+	}
+	return prettyPrintJSON(res.EventHistory)
 }
 
-func subTree(ctx *cli.Context) error {
+func subTree(_ *cli.Context) error {
 	mytoken := config.Get().Mytoken
-	_, mToken := infoOptions.Check()
-	res, err := mytoken.TokeninfoSubtokens(mToken)
+	provider, mToken := infoOptions.Check()
+	res, err := mytoken.Tokeninfo.APISubtokens(mToken)
 	if err != nil {
 		return err
 	}
-	return prettyPrintJSON(res)
+	if res.TokenUpdate != nil {
+		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer, res.TokenUpdate.Mytoken)
+		if err = config.Get().TokensFileContent.Save(); err != nil {
+			return err
+		}
+	}
+	return prettyPrintJSON(res.Tokens)
 }
 
-func listMytokens(ctx *cli.Context) error {
+func listMytokens(_ *cli.Context) error {
 	mytoken := config.Get().Mytoken
-	_, mToken := infoOptions.Check()
-	res, err := mytoken.TokeninfoListMytokens(mToken)
+	provider, mToken := infoOptions.Check()
+	res, err := mytoken.Tokeninfo.APIListMytokens(mToken)
 	if err != nil {
 		return err
 	}
-	return prettyPrintJSON(res)
+	if res.TokenUpdate != nil {
+		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer, res.TokenUpdate.Mytoken)
+		if err = config.Get().TokensFileContent.Save(); err != nil {
+			return err
+		}
+	}
+	return prettyPrintJSON(res.Tokens)
 }
