@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/urfave/cli/v2"
+
 	"github.com/oidc-mytoken/client/internal/config"
-	"github.com/zachmann/cli/v2"
 )
 
 func init() {

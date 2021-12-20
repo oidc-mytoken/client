@@ -14,7 +14,7 @@ import (
 	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/unixtime"
-	"github.com/zachmann/cli/v2"
+	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/utils/cryptutils"
@@ -259,10 +259,10 @@ func obtainMT(opts commonMTOpts, context *cli.Context, name, responseType string
 			GeoIPAllow:    opts.RestrictGeoIPAllow.Value(),
 			GeoIPDisallow: opts.RestrictGeoIPDisallow.Value(),
 		}
-		if context.IsSetDeep("usages-AT") {
+		if context.IsSet("usages-AT") {
 			rr.UsagesAT = utils.NewInt64(opts.RestrictUsagesAT)
 		}
-		if context.IsSetDeep("usages-other") {
+		if context.IsSet("usages-other") {
 			rr.UsagesOther = utils.NewInt64(opts.RestrictUsagesOther)
 		}
 		r = api.Restrictions{rr}

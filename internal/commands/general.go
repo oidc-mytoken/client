@@ -10,7 +10,7 @@ import (
 	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/jwtutils"
 	log "github.com/sirupsen/logrus"
-	"github.com/zachmann/cli/v2"
+	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/model"

@@ -454,8 +454,8 @@ github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/zachmann/cli/v2 v2.3.1-0.20210512144416-96dd678d93c7 h1:9Glvc2CvvmSJDS9SI0glTlEuNWyw0orKlnvjERE5Jl8=
 github.com/zachmann/cli/v2 v2.3.1-0.20210512144416-96dd678d93c7/go.mod h1:QDdR6j5y3j9f94QTmu5+uimav/s4PiVVF0SU5Ec18Qc=
-github.com/zachmann/cli/v2 v2.3.1-0.20211201100740-8e53ea1aa532 h1:dQJiZILYN7awWHobQUAtxJR+YI5jmGknHAz7yu3gRPs=
-github.com/zachmann/cli/v2 v2.3.1-0.20211201100740-8e53ea1aa532/go.mod h1:QDdR6j5y3j9f94QTmu5+uimav/s4PiVVF0SU5Ec18Qc=
+github.com/zachmann/cli/v2 v2.3.1-0.20211220102037-d619fd40a704 h1:dpR/K16zQgc/5xTQ66RevZikjkFzsCt6IeNDFyHltaM=
+github.com/zachmann/cli/v2 v2.3.1-0.20211220102037-d619fd40a704/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=

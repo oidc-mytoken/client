@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 
-	"github.com/zachmann/cli/v2"
+	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
 )

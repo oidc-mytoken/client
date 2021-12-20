@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/oidc-mytoken/api/v0"
-	"github.com/zachmann/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 type commonMTOptsWrap struct {

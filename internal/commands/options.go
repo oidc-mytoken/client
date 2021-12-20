@@ -5,7 +5,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/zachmann/cli/v2"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/term"
 
 	"github.com/oidc-mytoken/client/internal/config"
