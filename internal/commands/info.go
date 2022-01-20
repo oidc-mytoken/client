@@ -55,6 +55,14 @@ func init() {
 	app.Commands = append(app.Commands, cmd)
 }
 
+func prettyPrintJSONString(str string) error {
+	var data interface{}
+	if err := json.Unmarshal([]byte(str), &data); err != nil {
+		return fmt.Errorf("%s", str)
+	}
+	return prettyPrintJSON(data)
+}
+
 func prettyPrintJSON(obj interface{}) error {
 	var data []byte
 	switch v := obj.(type) {
@@ -89,6 +97,13 @@ func info(_ *cli.Context) error {
 }
 
 func introspect(_ *cli.Context) error {
+	if ssh := infoOptions.SSH(); ssh != "" {
+		res, err := doSSHReturnOutput(ssh, api.SSHRequestTokenInfoIntrospect, nil)
+		if err != nil {
+			return err
+		}
+		return prettyPrintJSONString(res)
+	}
 	mytoken := config.Get().Mytoken
 	_, mToken := infoOptions.Check()
 	res, err := mytoken.Tokeninfo.Introspect(mToken)
@@ -98,49 +113,112 @@ func introspect(_ *cli.Context) error {
 	return prettyPrintJSON(res)
 }
 
-func history(_ *cli.Context) error {
-	mytoken := config.Get().Mytoken
-	provider, mToken := infoOptions.Check()
-	res, err := mytoken.Tokeninfo.APIHistory(mToken)
-	if err != nil {
-		return err
-	}
-	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer, res.TokenUpdate.Mytoken)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
+func history(_ *cli.Context) (err error) {
+	var res api.TokeninfoHistoryResponse
+	if ssh := infoOptions.SSH(); ssh != "" {
+		var resStr string
+		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoHistory, nil)
+		if err != nil {
+			return
+		}
+		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
+			err = fmt.Errorf("%s", resStr)
+			return
+		}
+	} else { //no ssh
+		mytoken := config.Get().Mytoken
+		provider, mToken := infoOptions.Check()
+		res, err = mytoken.Tokeninfo.APIHistory(mToken)
+		if err != nil {
+			return
+		}
+		if res.TokenUpdate != nil {
+			config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
+				config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+			if err = config.Get().TokensFileContent.Save(); err != nil {
+				return err
+			}
 		}
 	}
-	return prettyPrintJSON(res.EventHistory)
+	outputData := make([]tablewriter.TableWriter, len(res.EventHistory))
+	for i, d := range res.EventHistory {
+		outputData[i] = tableEventEntry(d)
+	}
+	tablewriter.PrintTableData(outputData)
+	return nil
 }
 
-func subTree(_ *cli.Context) error {
-	mytoken := config.Get().Mytoken
-	provider, mToken := infoOptions.Check()
-	res, err := mytoken.Tokeninfo.APISubtokens(mToken)
-	if err != nil {
-		return err
+type tableEventEntry api.EventEntry
+
+func (e tableEventEntry) TableGetHeader() []string {
+	return []string{"Event", "Comment", "Time", "IP", "User Agent"}
+}
+func (e tableEventEntry) TableGetRow() []string {
+	const timeFmt = "2006-01-02 15:04:05"
+	return []string{
+		e.Event,
+		e.Comment,
+		time.Unix(e.Time, 0).Format(timeFmt),
+		e.IP,
+		e.UserAgent,
 	}
-	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer, res.TokenUpdate.Mytoken)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
+}
+
+func subTree(_ *cli.Context) (err error) {
+	var res api.TokeninfoTreeResponse
+	if ssh := infoOptions.SSH(); ssh != "" {
+		var resStr string
+		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoSubtokens, nil)
+		if err != nil {
+			return
+		}
+		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
+			err = fmt.Errorf("%s", resStr)
+			return
+		}
+	} else {
+		mytoken := config.Get().Mytoken
+		provider, mToken := infoOptions.Check()
+		res, err = mytoken.Tokeninfo.APISubtokens(mToken)
+		if err != nil {
 			return err
+		}
+		if res.TokenUpdate != nil {
+			config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
+				config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+			if err = config.Get().TokensFileContent.Save(); err != nil {
+				return err
+			}
 		}
 	}
 	return prettyPrintJSON(res.Tokens)
 }
 
-func listMytokens(_ *cli.Context) error {
-	mytoken := config.Get().Mytoken
-	provider, mToken := infoOptions.Check()
-	res, err := mytoken.Tokeninfo.APIListMytokens(mToken)
-	if err != nil {
-		return err
-	}
-	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer, res.TokenUpdate.Mytoken)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
+func listMytokens(_ *cli.Context) (err error) {
+	var res api.TokeninfoListResponse
+	if ssh := infoOptions.SSH(); ssh != "" {
+		var resStr string
+		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoListMytokens, nil)
+		if err != nil {
+			return
+		}
+		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
+			err = fmt.Errorf("%s", resStr)
+			return
+		}
+	} else {
+		mytoken := config.Get().Mytoken
+		provider, mToken := infoOptions.Check()
+		res, err = mytoken.Tokeninfo.APIListMytokens(mToken)
+		if err != nil {
 			return err
+		}
+		if res.TokenUpdate != nil {
+			config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
+				config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+			if err = config.Get().TokensFileContent.Save(); err != nil {
+				return err
+			}
 		}
 	}
 	return prettyPrintJSON(res.Tokens)

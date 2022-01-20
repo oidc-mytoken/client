@@ -82,6 +82,9 @@ func (e *tokenEntries) add(t TokenEntry, iss string, update bool) {
 			if t.GPGKey != "" || !update {
 				tt.GPGKey = t.GPGKey
 			}
+			if t.Capabilities != nil || !update {
+				tt.Capabilities = t.Capabilities
+			}
 			tt.Token = t.Token
 			(*e)[iss][i] = tt
 			return
@@ -141,36 +144,67 @@ type TokenEntry struct {
 	Token  string `json:"token"`
 }
 
-func (c *Config) GetToken(issuer string, name *string) (string, error) {
+func (c *Config) GetToken(issuer string, nameGet func() string, nameUpdater func(string),
+	requiredCapability ...api.Capability) (
+	string,
+	error) {
+	entry, err := c.GetTokenEntry(issuer, nameGet(), nameUpdater, requiredCapability...)
+	if err != nil {
+		return "", err
+	}
+	token, err := entry.Token.Plain(entry.GPGKey)
+	if err != nil {
+		err = fmt.Errorf("Failed to decrypt token named '%s' for '%s'", nameGet(), issuer)
+	}
+	return token, err
+}
+
+func (c *Config) GetTokenEntry(issuer string, name string, nameUpdater func(string), requiredCapability ...api.
+	Capability) (
+	t TokenEntry,
+	err error) {
 	tt, found := c.TokensFileContent.Tokens[issuer]
 	if !found {
-		return "", fmt.Errorf("No tokens found for provider '%s'", issuer)
+		err = fmt.Errorf("No tokens found for provider '%s'", issuer)
+		return
 	}
-	if *name == "" {
+	if name == "" {
 		p, _ := c.Providers.FindBy(issuer, true)
-		*name = p.DefaultToken
-		if *name == "" {
+		if len(requiredCapability) > 0 {
+			var tokenIndexWithCapability *int
+			for i, ttt := range tt {
+				if ttt.Capabilities.Has(requiredCapability[0]) {
+					if tokenIndexWithCapability == nil {
+						tokenIndexWithCapability = utils.NewInt(i)
+					} else { // We have more than one token with the correct capability,
+						// break because we don't know which one to use
+						tokenIndexWithCapability = nil
+						break
+					}
+				}
+			}
+			if tokenIndexWithCapability != nil {
+				nameUpdater(tt[*tokenIndexWithCapability].Name)
+				t = tt[*tokenIndexWithCapability]
+				return
+			}
+		}
+		nameUpdater(p.DefaultToken)
+		if name == "" {
 			if len(tt) == 1 {
-				*name = tt[0].Name
+				nameUpdater(tt[0].Name)
+				t = tt[0]
+				return
 			}
 		}
 	}
-	for _, t := range tt {
-		if t.Name == *name {
-			var token string
-			var err error
-			if t.GPGKey != "" {
-				token, err = cryptutils.DecryptGPG(t.Token, t.GPGKey)
-			} else {
-				token, err = cryptutils.DecryptPassword(t.Token)
-			}
-			if err != nil {
-				err = fmt.Errorf("Failed to decrypt token named '%s' for '%s'", name, issuer)
-			}
-			return token, err
+	for _, t = range tt {
+		if t.Name == name /*&& (len(requiredCapability) == 0 || t.Capabilities.Has(requiredCapability[0]))*/ {
+			return
 		}
 	}
-	return "", fmt.Errorf("Token name '%s' not found for '%s'", name, issuer)
+	err = fmt.Errorf("Token name '%s' not found for '%s'", name, issuer)
+	return
 }
 
 var defaultConfig = Config{

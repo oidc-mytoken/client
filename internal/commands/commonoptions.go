@@ -15,14 +15,7 @@ type commonMTOptsWrap struct {
 
 var commonMTOptions commonMTOptsWrap
 
-type commonMTOpts struct {
-	PTOptions
-	TransferCode string
-	UseOIDCFlow  bool
-
-	Capabilities         api.Capabilities
-	SubtokenCapabilities api.Capabilities
-
+type restrictionOpts struct {
 	Restrictions          string
 	RestrictScopes        cli.StringSlice
 	RestrictAudiences     cli.StringSlice
@@ -33,6 +26,17 @@ type commonMTOpts struct {
 	RestrictGeoIPDisallow cli.StringSlice
 	RestrictUsagesOther   int64
 	RestrictUsagesAT      int64
+}
+
+type commonMTOpts struct {
+	PTOptions
+	TransferCode string
+	UseOIDCFlow  bool
+
+	Capabilities         api.Capabilities
+	SubtokenCapabilities api.Capabilities
+
+	restrictionOpts
 
 	RotationStr string
 	RotationObj api.Rotation

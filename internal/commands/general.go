@@ -25,6 +25,7 @@ type ptOptions struct {
 	MytokenPrompt bool
 	MytokenFile   string
 	MytokenEnv    string
+	SSH           string
 }
 
 var ptOpts = []*ptOptions{}
@@ -104,6 +105,16 @@ func (pt PTOptions) MytokenEnv() string {
 	return ""
 }
 
+func (pt PTOptions) SSH() string {
+	if res := pt.search(
+		func(options *ptOptions) interface{} {
+			return ternary.If(options.SSH != "", options.SSH, nil)
+		}); res != nil {
+		return res.(string)
+	}
+	return ""
+}
+
 func (pt PTOptions) search(callback func(options *ptOptions) interface{}) interface{} {
 	for _, opts := range ptOpts {
 		if res := callback(opts); res != nil {
@@ -156,6 +167,14 @@ func getPTFlags() []cli.Flag {
 			Name:        "MT-env",
 			Usage:       "Read the mytoken that should be used from the passed environment variable `ENV`",
 			Destination: &opts.MytokenEnv,
+		},
+
+		&cli.StringFlag{
+			Name: "ssh",
+			Usage: "Use the ssh protocol instead of a mytoken. " +
+				"SSH will be passed as the first argument to the ssh client",
+			Placeholder: "SSH",
+			Destination: &opts.SSH,
 		},
 	}
 	return flags
