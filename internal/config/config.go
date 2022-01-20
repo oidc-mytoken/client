@@ -67,7 +67,7 @@ func (f *TokenFileContent) Add(t TokenEntry, iss string) {
 	f.TokenMapping.add(t, iss)
 }
 
-func (f *TokenFileContent) Update(name, iss, token string) {
+func (f *TokenFileContent) Update(name, iss string, token StoreToken) {
 	t := TokenEntry{
 		Name:  name,
 		Token: token,
@@ -139,9 +139,87 @@ func (m *tokenNameMapping) remove(name, iss string) {
 }
 
 type TokenEntry struct {
-	Name   string `json:"name"`
-	GPGKey string `json:"gpg_key,omitempty"`
-	Token  string `json:"token"`
+	Name         string           `json:"name"`
+	GPGKey       string           `json:"gpg_key,omitempty"`
+	Token        StoreToken       `json:"token"`
+	Capabilities api.Capabilities `json:"capabilities"`
+}
+
+func (e TokenEntry) MarshalJSON() ([]byte, error) {
+	type tokenEntry2 TokenEntry
+	if _, err := e.Token.Encrypted(e.GPGKey); err != nil {
+		return nil, err
+	}
+	return json.Marshal(tokenEntry2(e))
+}
+
+type StoreToken struct {
+	plain     string
+	crypt     string
+	cryptMode Crypter
+}
+
+type Crypter interface {
+	Encrypt(plain, secret string) (cipher string, err error)
+	Decrypt(cipher, secret string) (plain string, err error)
+}
+
+type GPGAndPasswordCombinedCrypter struct{}
+
+func (_ GPGAndPasswordCombinedCrypter) Encrypt(plain, gpgKey string) (cipher string, err error) {
+	if gpgKey != "" {
+		return cryptutils.EncryptGPG(plain, gpgKey)
+	}
+	return cryptutils.EncryptPassword(plain)
+}
+func (_ GPGAndPasswordCombinedCrypter) Decrypt(cipher, gpgKey string) (plain string, err error) {
+	if gpgKey != "" {
+		return cryptutils.DecryptGPG(cipher, gpgKey)
+	}
+	return cryptutils.DecryptPassword(cipher)
+}
+
+func (t *StoreToken) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return err
+	}
+	(*t).crypt = str
+	(*t).cryptMode = GPGAndPasswordCombinedCrypter{}
+	return nil
+}
+func (t StoreToken) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.crypt)
+}
+
+func (t *StoreToken) Plain(secret string) (string, error) {
+	var err error
+	if t.plain == "" {
+		t.plain, err = t.cryptMode.Decrypt(t.crypt, secret)
+	}
+	return t.plain, err
+}
+
+func (t *StoreToken) Encrypted(secret string) (string, error) {
+	var err error
+	if t.crypt == "" {
+		t.crypt, err = t.cryptMode.Encrypt(t.plain, secret)
+	}
+	return t.crypt, err
+}
+
+func NewPlainStoreToken(plain string) StoreToken {
+	return StoreToken{
+		plain:     plain,
+		cryptMode: GPGAndPasswordCombinedCrypter{},
+	}
+}
+
+func NewEncryptedStoreToken(encrypted string) StoreToken {
+	return StoreToken{
+		crypt:     encrypted,
+		cryptMode: GPGAndPasswordCombinedCrypter{},
+	}
 }
 
 func (c *Config) GetToken(issuer string, nameGet func() string, nameUpdater func(string),

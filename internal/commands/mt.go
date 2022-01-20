@@ -13,11 +13,12 @@ import (
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/server/shared/utils"
+	"github.com/oidc-mytoken/server/shared/utils/jwtutils"
 	"github.com/oidc-mytoken/server/shared/utils/unixtime"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
-	"github.com/oidc-mytoken/client/internal/utils/cryptutils"
 	"github.com/oidc-mytoken/client/internal/utils/duration"
 )
 
@@ -379,7 +380,8 @@ func obtainMT(opts commonMTOpts, context *cli.Context, name, responseType string
 		return "", err
 	}
 	if mtRes.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(opts.Name(), provider.Issuer, mtRes.TokenUpdate.Mytoken)
+		config.Get().TokensFileContent.Update(opts.Name(), provider.Issuer,
+			config.NewPlainStoreToken(mtRes.TokenUpdate.Mytoken))
 		if err = config.Get().TokensFileContent.Save(); err != nil {
 			return mtRes.Mytoken, err
 		}
@@ -409,7 +411,7 @@ func storeMTCmd(context *cli.Context) error {
 			os.Exit(1)
 		}
 	}
-	st, err := obtainMT(opts, context, storeName, api.ResponseTypeToken)
+	mt, err := obtainMT(opts, context, storeName, api.ResponseTypeToken)
 	if err != nil {
 		return err
 	}
@@ -419,29 +421,22 @@ func storeMTCmd(context *cli.Context) error {
 	} else if gpgKey == "" {
 		gpgKey = provider.GPGKey
 	}
-	var encryptedToken string
-	if gpgKey == "" {
-		encryptedToken, err = cryptutils.EncryptPassword(st)
-	} else {
-		encryptedToken, err = cryptutils.EncryptGPG(st, gpgKey)
+	capabilityInterfaceSlice := jwtutils.GetValueFromJWT(log.StandardLogger(), mt, "capabilities").([]interface{})
+	capabilities := api.Capabilities{}
+	for _, c := range capabilityInterfaceSlice {
+		capabilities = append(capabilities, api.NewCapability(c.(string)))
 	}
-	if err != nil {
-		return err
-	}
-	if err = saveEncryptedToken(encryptedToken, provider.Issuer, storeName, gpgKey); err != nil {
+	config.Get().TokensFileContent.Add(config.TokenEntry{
+		Token:        config.NewPlainStoreToken(mt),
+		Name:         storeName,
+		GPGKey:       gpgKey,
+		Capabilities: capabilities,
+	}, provider.Issuer)
+	if err = config.Get().TokensFileContent.Save(); err != nil {
 		return err
 	}
 	fmt.Printf("Saved mytoken '%s'\n", storeName)
 	return nil
-}
-
-func saveEncryptedToken(token, issuer, name, gpgKey string) error {
-	config.Get().TokensFileContent.Add(config.TokenEntry{
-		Token:  token,
-		Name:   name,
-		GPGKey: gpgKey,
-	}, issuer)
-	return config.Get().TokensFileContent.Save()
 }
 
 type pRestriction struct {

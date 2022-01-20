@@ -126,10 +126,7 @@ func (pt PTOptions) search(callback func(options *ptOptions) interface{}) interf
 
 func getPTFlags() []cli.Flag {
 	opts := &ptOptions{}
-	fmt.Printf("%p\n", opts)
 	ptOpts = append([]*ptOptions{opts}, ptOpts...)
-	fmt.Println(ptOpts)
-	// ptOpts = append(ptOpts, opts)
 	flags := []cli.Flag{
 		&cli.StringFlag{
 			Name:        "provider",
@@ -184,7 +181,7 @@ func (pt PTOptions) Check(capability ...api.Capability) (*model.Provider, string
 	token, _ := pt.getToken()
 	if token != "" {
 		if utils.IsJWT(token) {
-			p, _ := jwtutils.GetStringFromJWT(token, "oidc_iss")
+			p, _ := jwtutils.GetStringFromJWT(log.StandardLogger(), token, "oidc_iss")
 			pt.SetProvider(p)
 		}
 		p, _ := pt.checkProvider()
@@ -194,7 +191,7 @@ func (pt PTOptions) Check(capability ...api.Capability) (*model.Provider, string
 	if err != nil {
 		log.Fatal(err)
 	}
-	token, err = config.Get().GetToken(p.Issuer, pt.Name(), pt.SetName, capability...)
+	token, err = config.Get().GetToken(p.Issuer, pt.Name, pt.SetName, capability...)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -229,7 +226,7 @@ func (pt *PTOptions) checkToken(issuer string) (string, error) {
 	if err != nil || tok != "" {
 		return tok, err
 	}
-	return config.Get().GetToken(issuer, pt.Name(), pt.SetName)
+	return config.Get().GetToken(issuer, pt.Name, pt.SetName)
 }
 
 func (pt *PTOptions) checkProvider() (p *model.Provider, err error) {

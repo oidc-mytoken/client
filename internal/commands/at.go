@@ -76,7 +76,10 @@ func getAT(context *cli.Context) error {
 		return err
 	}
 	if atRes.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(atc.Name(), provider.Issuer, atRes.TokenUpdate.Mytoken)
+		config.Get().TokensFileContent.Update(
+			atc.Name(), provider.Issuer,
+			config.NewPlainStoreToken(atRes.TokenUpdate.Mytoken),
+		)
 		if err = config.Get().TokensFileContent.Save(); err != nil {
 			return err
 		}
