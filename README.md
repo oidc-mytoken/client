@@ -1,4 +1,4 @@
-![mytoken logo](https://git.scc.kit.edu/oidc/mytoken/-/raw/master/docs/img/mytoken.png)
+![mytoken logo](https://raw.githubusercontent.com/oidc-mytoken/server/master/mytoken.png)
 
 [![License](https://img.shields.io/github/license/oidc-mytoken/client.svg)](https://github.com/oidc-mytoken/client/blob/master/LICENSE)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/oidc-mytoken/client)
