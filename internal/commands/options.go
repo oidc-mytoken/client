@@ -21,7 +21,7 @@ var app = &cli.App{
 		Name:  "Gabriel Zachmann",
 		Email: "gabriel.zachmann@kit.edu",
 	}},
-	Copyright:              "Karlsruhe Institute of Technology 2020-2021",
+	Copyright:              "Karlsruhe Institute of Technology 2020-2022",
 	UseShortOptionHandling: true,
 }
 
