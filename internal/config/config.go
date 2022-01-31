@@ -166,13 +166,13 @@ type Crypter interface {
 
 type GPGAndPasswordCombinedCrypter struct{}
 
-func (_ GPGAndPasswordCombinedCrypter) Encrypt(plain, gpgKey string) (cipher string, err error) {
+func (GPGAndPasswordCombinedCrypter) Encrypt(plain, gpgKey string) (cipher string, err error) {
 	if gpgKey != "" {
 		return cryptutils.EncryptGPG(plain, gpgKey)
 	}
 	return cryptutils.EncryptPassword(plain)
 }
-func (_ GPGAndPasswordCombinedCrypter) Decrypt(cipher, gpgKey string) (plain string, err error) {
+func (GPGAndPasswordCombinedCrypter) Decrypt(cipher, gpgKey string) (plain string, err error) {
 	if gpgKey != "" {
 		return cryptutils.DecryptGPG(cipher, gpgKey)
 	}

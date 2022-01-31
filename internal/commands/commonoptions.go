@@ -42,7 +42,7 @@ type commonMTOpts struct {
 	RotationObj api.Rotation
 }
 
-func (opts commonMTOptsWrap) Common(store bool) commonMTOpts {
+func (opts *commonMTOptsWrap) Common(store bool) commonMTOpts {
 	if !store {
 		return opts.obtainOpts
 	}
