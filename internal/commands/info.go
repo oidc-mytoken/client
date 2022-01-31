@@ -153,7 +153,7 @@ func history(_ *cli.Context) (err error) {
 
 type tableEventEntry api.EventEntry
 
-func (e tableEventEntry) TableGetHeader() []string {
+func (tableEventEntry) TableGetHeader() []string {
 	return []string{"Event", "Comment", "Time", "IP", "User Agent"}
 }
 func (e tableEventEntry) TableGetRow() []string {

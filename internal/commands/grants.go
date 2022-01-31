@@ -69,7 +69,7 @@ func listGrants(_ *cli.Context) error {
 
 type tableGrantTypeInfo api.GrantTypeInfo
 
-func (i tableGrantTypeInfo) TableGetHeader() []string {
+func (tableGrantTypeInfo) TableGetHeader() []string {
 	return []string{"Grant Type", "Status"}
 }
 

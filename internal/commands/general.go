@@ -32,13 +32,13 @@ var ptOpts = []*ptOptions{}
 
 type PTOptions struct{}
 
-func (pt PTOptions) SetProvider(provider string) {
+func (PTOptions) SetProvider(provider string) {
 	if len(ptOpts) == 0 {
 		ptOpts = make([]*ptOptions, 1)
 	}
 	ptOpts[0].Provider = provider
 }
-func (pt PTOptions) SetName(name string) {
+func (PTOptions) SetName(name string) {
 	if len(ptOpts) == 0 {
 		ptOpts = make([]*ptOptions, 1)
 	}
@@ -115,7 +115,7 @@ func (pt PTOptions) SSH() string {
 	return ""
 }
 
-func (pt PTOptions) search(callback func(options *ptOptions) interface{}) interface{} {
+func (PTOptions) search(callback func(options *ptOptions) interface{}) interface{} {
 	for _, opts := range ptOpts {
 		if res := callback(opts); res != nil {
 			return res

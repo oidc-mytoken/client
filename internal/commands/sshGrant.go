@@ -109,7 +109,7 @@ func listSSH(_ *cli.Context) error {
 
 type tableSSHKeyInfo api.SSHKeyInfo
 
-func (i tableSSHKeyInfo) TableGetHeader() []string {
+func (tableSSHKeyInfo) TableGetHeader() []string {
 	return []string{"Name", "SSH Key Fingerprint", "Created", "Last Used"}
 }
 
