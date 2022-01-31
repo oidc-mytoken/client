@@ -6,53 +6,67 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/oidc-mytoken/api/v0"
 	"github.com/oidc-mytoken/server/shared/utils"
-	"github.com/zachmann/cli/v2"
+	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
+	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
 )
 
-var infoOptions *PTOptions
+var infoOptions PTOptions
 
 func init() {
-	var flags []cli.Flag
-	flags, infoOptions = getPTFlags()
+	cmdFlags := getPTFlags()
+	subCmdFlags := getPTFlags()
 	cmd :=
 		&cli.Command{
 			Name:   "info",
 			Usage:  "Get information about a mytoken",
 			Action: info,
-			Flags:  flags,
+			Flags:  cmdFlags,
 			Subcommands: []*cli.Command{
 				{
 					Name:   "history",
 					Usage:  "List the event history for this token",
 					Action: history,
-					Flags:  flags,
+					Flags:  subCmdFlags,
 				},
 				{
-					Name:    "subtokens",
-					Aliases: []string{"token-tree", "tree"},
-					Usage:   "List the tree of subtokens for this token",
-					Action:  subTree,
-					Flags:   flags,
+					Name: "subtokens",
+					Aliases: []string{
+						"token-tree",
+						"tree",
+					},
+					Usage:  "List the tree of subtokens for this token",
+					Action: subTree,
+					Flags:  subCmdFlags,
 				},
 				{
 					Name:   "introspect",
 					Usage:  "Gives basic information about the token and its usages",
 					Action: introspect,
-					Flags:  flags,
+					Flags:  subCmdFlags,
 				},
 				{
 					Name:   "list-mytokens",
 					Usage:  "List all mytokens",
 					Action: listMytokens,
-					Flags:  flags,
+					Flags:  subCmdFlags,
 				},
 			},
 		}
 	app.Commands = append(app.Commands, cmd)
+}
+
+func prettyPrintJSONString(str string) error {
+	var data interface{}
+	if err := json.Unmarshal([]byte(str), &data); err != nil {
+		return fmt.Errorf("%s", str)
+	}
+	return prettyPrintJSON(data)
 }
 
 func prettyPrintJSON(obj interface{}) error {
@@ -75,7 +89,7 @@ func prettyPrintJSON(obj interface{}) error {
 	return nil
 }
 
-func info(ctx *cli.Context) error {
+func info(_ *cli.Context) error {
 	_, mToken := infoOptions.Check()
 	if !utils.IsJWT(mToken) {
 		return fmt.Errorf("The token is not a JWT.")
@@ -88,42 +102,142 @@ func info(ctx *cli.Context) error {
 	return prettyPrintJSON(decodedPayload)
 }
 
-func introspect(ctx *cli.Context) error {
+func introspect(_ *cli.Context) error {
+	if ssh := infoOptions.SSH(); ssh != "" {
+		res, err := doSSHReturnOutput(ssh, api.SSHRequestTokenInfoIntrospect, nil)
+		if err != nil {
+			return err
+		}
+		return prettyPrintJSONString(res)
+	}
 	mytoken := config.Get().Mytoken
 	_, mToken := infoOptions.Check()
-	res, err := mytoken.TokeninfoIntrospect(mToken)
+	res, err := mytoken.Tokeninfo.Introspect(mToken)
 	if err != nil {
 		return err
 	}
 	return prettyPrintJSON(res)
 }
 
-func history(ctx *cli.Context) error {
-	mytoken := config.Get().Mytoken
-	_, mToken := infoOptions.Check()
-	res, err := mytoken.TokeninfoHistory(mToken)
-	if err != nil {
-		return err
+func history(_ *cli.Context) (err error) {
+	var res api.TokeninfoHistoryResponse
+	if ssh := infoOptions.SSH(); ssh != "" {
+		var resStr string
+		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoHistory, nil)
+		if err != nil {
+			return
+		}
+		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
+			err = fmt.Errorf("%s", resStr)
+			return
+		}
+	} else { // no ssh
+		mytoken := config.Get().Mytoken
+		provider, mToken := infoOptions.Check()
+		res, err = mytoken.Tokeninfo.APIHistory(mToken)
+		if err != nil {
+			return
+		}
+		if res.TokenUpdate != nil {
+			config.Get().TokensFileContent.Update(
+				infoOptions.Name(), provider.Issuer,
+				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+			)
+			if err = config.Get().TokensFileContent.Save(); err != nil {
+				return err
+			}
+		}
 	}
-	return prettyPrintJSON(res)
+	outputData := make([]tablewriter.TableWriter, len(res.EventHistory))
+	for i, d := range res.EventHistory {
+		outputData[i] = tableEventEntry(d)
+	}
+	tablewriter.PrintTableData(outputData)
+	return nil
 }
 
-func subTree(ctx *cli.Context) error {
-	mytoken := config.Get().Mytoken
-	_, mToken := infoOptions.Check()
-	res, err := mytoken.TokeninfoSubtokens(mToken)
-	if err != nil {
-		return err
+type tableEventEntry api.EventEntry
+
+func (tableEventEntry) TableGetHeader() []string {
+	return []string{
+		"Event",
+		"Comment",
+		"Time",
+		"IP",
+		"User Agent",
 	}
-	return prettyPrintJSON(res)
+}
+func (e tableEventEntry) TableGetRow() []string {
+	const timeFmt = "2006-01-02 15:04:05"
+	return []string{
+		e.Event,
+		e.Comment,
+		time.Unix(e.Time, 0).Format(timeFmt),
+		e.IP,
+		e.UserAgent,
+	}
 }
 
-func listMytokens(ctx *cli.Context) error {
-	mytoken := config.Get().Mytoken
-	_, mToken := infoOptions.Check()
-	res, err := mytoken.TokeninfoListMytokens(mToken)
-	if err != nil {
-		return err
+func subTree(_ *cli.Context) (err error) {
+	var res api.TokeninfoTreeResponse
+	if ssh := infoOptions.SSH(); ssh != "" {
+		var resStr string
+		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoSubtokens, nil)
+		if err != nil {
+			return
+		}
+		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
+			err = fmt.Errorf("%s", resStr)
+			return
+		}
+	} else {
+		mytoken := config.Get().Mytoken
+		provider, mToken := infoOptions.Check()
+		res, err = mytoken.Tokeninfo.APISubtokens(mToken)
+		if err != nil {
+			return err
+		}
+		if res.TokenUpdate != nil {
+			config.Get().TokensFileContent.Update(
+				infoOptions.Name(), provider.Issuer,
+				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+			)
+			if err = config.Get().TokensFileContent.Save(); err != nil {
+				return err
+			}
+		}
 	}
-	return prettyPrintJSON(res)
+	return prettyPrintJSON(res.Tokens)
+}
+
+func listMytokens(_ *cli.Context) (err error) {
+	var res api.TokeninfoListResponse
+	if ssh := infoOptions.SSH(); ssh != "" {
+		var resStr string
+		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoListMytokens, nil)
+		if err != nil {
+			return
+		}
+		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
+			err = fmt.Errorf("%s", resStr)
+			return
+		}
+	} else {
+		mytoken := config.Get().Mytoken
+		provider, mToken := infoOptions.Check()
+		res, err = mytoken.Tokeninfo.APIListMytokens(mToken)
+		if err != nil {
+			return err
+		}
+		if res.TokenUpdate != nil {
+			config.Get().TokensFileContent.Update(
+				infoOptions.Name(), provider.Issuer,
+				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+			)
+			if err = config.Get().TokensFileContent.Save(); err != nil {
+				return err
+			}
+		}
+	}
+	return prettyPrintJSON(res.Tokens)
 }

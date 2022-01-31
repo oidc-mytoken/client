@@ -10,18 +10,19 @@ import (
 
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
+	"github.com/oidc-mytoken/server/shared/httpClient"
 	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/fileutil"
 	log "github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 
 	"github.com/oidc-mytoken/client/internal/model"
 	"github.com/oidc-mytoken/client/internal/utils/cryptutils"
 )
 
 type Config struct {
-	URL     string                      `yaml:"instance"`
-	Mytoken *mytokenlib.MytokenProvider `yaml:"-"`
+	URL     string                    `yaml:"instance"`
+	Mytoken *mytokenlib.MytokenServer `yaml:"-"`
 
 	DefaultGPGKey            string `yaml:"default_gpg_key"`
 	DefaultProvider          string `yaml:"default_provider"`
@@ -62,13 +63,28 @@ func (e tokenEntries) Has(name, iss string) bool {
 }
 
 func (f *TokenFileContent) Add(t TokenEntry, iss string) {
-	f.Tokens.add(t, iss)
+	f.Tokens.add(t, iss, false)
 	f.TokenMapping.add(t, iss)
 }
-func (e *tokenEntries) add(t TokenEntry, iss string) {
+
+func (f *TokenFileContent) Update(name, iss string, token StoreToken) {
+	t := TokenEntry{
+		Name:  name,
+		Token: token,
+	}
+	f.Tokens.add(t, iss, true)
+	f.TokenMapping.add(t, iss)
+}
+
+func (e *tokenEntries) add(t TokenEntry, iss string, update bool) {
 	for i, tt := range (*e)[iss] {
 		if tt.Name == t.Name {
-			tt.GPGKey = t.GPGKey
+			if t.GPGKey != "" || !update {
+				tt.GPGKey = t.GPGKey
+			}
+			if t.Capabilities != nil || !update {
+				tt.Capabilities = t.Capabilities
+			}
 			tt.Token = t.Token
 			(*e)[iss][i] = tt
 			return
@@ -83,42 +99,196 @@ func (m *tokenNameMapping) add(t TokenEntry, iss string) {
 	(*m)[t.Name] = append((*m)[t.Name], iss)
 }
 
-type TokenEntry struct {
-	Name   string `json:"name"`
-	GPGKey string `json:"gpg_key,omitempty"`
-	Token  string `json:"token"`
+func (f *TokenFileContent) Remove(name, iss string) {
+	f.Tokens.remove(name, iss)
+	f.TokenMapping.remove(name, iss)
+}
+func (e *tokenEntries) remove(name, iss string) {
+	entries := (*e)[iss]
+	if len(entries) == 1 {
+		if entries[0].Name != name {
+			return
+		}
+		delete(*e, iss)
+		return
+	}
+	for i, tt := range entries {
+		if tt.Name == name {
+			entries = append(entries[:i], entries[i+1:]...)
+			(*e)[iss] = entries
+			return
+		}
+	}
+}
+func (m *tokenNameMapping) remove(name, iss string) {
+	issuers := (*m)[name]
+	if !utils.StringInSlice(iss, issuers) {
+		return
+	}
+	if len(issuers) == 1 {
+		delete(*m, name)
+		return
+	}
+	for i, el := range issuers {
+		if el == iss {
+			issuers = append(issuers[:i], issuers[i+1:]...)
+			break
+		}
+	}
+	(*m)[name] = issuers
 }
 
-func (c *Config) GetToken(issuer, name string) (string, error) {
+type TokenEntry struct {
+	Name         string           `json:"name"`
+	GPGKey       string           `json:"gpg_key,omitempty"`
+	Token        StoreToken       `json:"token"`
+	Capabilities api.Capabilities `json:"capabilities"`
+}
+
+func (e TokenEntry) MarshalJSON() ([]byte, error) {
+	type tokenEntry2 TokenEntry
+	if _, err := e.Token.Encrypted(e.GPGKey); err != nil {
+		return nil, err
+	}
+	return json.Marshal(tokenEntry2(e))
+}
+
+type StoreToken struct {
+	plain     string
+	crypt     string
+	cryptMode Crypter
+}
+
+type Crypter interface {
+	Encrypt(plain, secret string) (cipher string, err error)
+	Decrypt(cipher, secret string) (plain string, err error)
+}
+
+type GPGAndPasswordCombinedCrypter struct{}
+
+func (GPGAndPasswordCombinedCrypter) Encrypt(plain, gpgKey string) (cipher string, err error) {
+	if gpgKey != "" {
+		return cryptutils.EncryptGPG(plain, gpgKey)
+	}
+	return cryptutils.EncryptPassword(plain)
+}
+func (GPGAndPasswordCombinedCrypter) Decrypt(cipher, gpgKey string) (plain string, err error) {
+	if gpgKey != "" {
+		return cryptutils.DecryptGPG(cipher, gpgKey)
+	}
+	return cryptutils.DecryptPassword(cipher)
+}
+
+func (t *StoreToken) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return err
+	}
+	(*t).crypt = str
+	(*t).cryptMode = GPGAndPasswordCombinedCrypter{}
+	return nil
+}
+func (t StoreToken) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.crypt)
+}
+
+func (t *StoreToken) Plain(secret string) (string, error) {
+	var err error
+	if t.plain == "" {
+		t.plain, err = t.cryptMode.Decrypt(t.crypt, secret)
+	}
+	return t.plain, err
+}
+
+func (t *StoreToken) Encrypted(secret string) (string, error) {
+	var err error
+	if t.crypt == "" {
+		t.crypt, err = t.cryptMode.Encrypt(t.plain, secret)
+	}
+	return t.crypt, err
+}
+
+func NewPlainStoreToken(plain string) StoreToken {
+	return StoreToken{
+		plain:     plain,
+		cryptMode: GPGAndPasswordCombinedCrypter{},
+	}
+}
+
+func NewEncryptedStoreToken(encrypted string) StoreToken {
+	return StoreToken{
+		crypt:     encrypted,
+		cryptMode: GPGAndPasswordCombinedCrypter{},
+	}
+}
+
+func (c *Config) GetToken(
+	issuer string, nameGet func() string, nameUpdater func(string),
+	requiredCapability ...api.Capability,
+) (
+	string,
+	error,
+) {
+	entry, err := c.GetTokenEntry(issuer, nameGet(), nameUpdater, requiredCapability...)
+	if err != nil {
+		return "", err
+	}
+	token, err := entry.Token.Plain(entry.GPGKey)
+	if err != nil {
+		err = fmt.Errorf("Failed to decrypt token named '%s' for '%s'", nameGet(), issuer)
+	}
+	return token, err
+}
+
+func (c *Config) GetTokenEntry(
+	issuer string, name string, nameUpdater func(string), requiredCapability ...api.
+		Capability,
+) (
+	t TokenEntry,
+	err error,
+) {
 	tt, found := c.TokensFileContent.Tokens[issuer]
 	if !found {
-		return "", fmt.Errorf("No tokens found for provider '%s'", issuer)
+		err = fmt.Errorf("No tokens found for provider '%s'", issuer)
+		return
 	}
 	if name == "" {
 		p, _ := c.Providers.FindBy(issuer, true)
-		name = p.DefaultToken
+		if len(requiredCapability) > 0 {
+			var tokenIndexWithCapability *int
+			for i, ttt := range tt {
+				if ttt.Capabilities.Has(requiredCapability[0]) {
+					if tokenIndexWithCapability == nil {
+						tokenIndexWithCapability = utils.NewInt(i)
+					} else { // We have more than one token with the correct capability,
+						// break because we don't know which one to use
+						tokenIndexWithCapability = nil
+						break
+					}
+				}
+			}
+			if tokenIndexWithCapability != nil {
+				nameUpdater(tt[*tokenIndexWithCapability].Name)
+				t = tt[*tokenIndexWithCapability]
+				return
+			}
+		}
+		nameUpdater(p.DefaultToken)
 		if name == "" {
 			if len(tt) == 1 {
-				name = tt[0].Name
+				nameUpdater(tt[0].Name)
+				t = tt[0]
+				return
 			}
 		}
 	}
-	for _, t := range tt {
-		if t.Name == name {
-			var token string
-			var err error
-			if t.GPGKey != "" {
-				token, err = cryptutils.DecryptGPG(t.Token, t.GPGKey)
-			} else {
-				token, err = cryptutils.DecryptPassword(t.Token)
-			}
-			if err != nil {
-				err = fmt.Errorf("Failed to decrypt token named '%s' for '%s'", name, issuer)
-			}
-			return token, err
+	for _, t = range tt {
+		if t.Name == name /*&& (len(requiredCapability) == 0 || t.Capabilities.Has(requiredCapability[0]))*/ {
+			return
 		}
 	}
-	return "", fmt.Errorf("Token name '%s' not found for '%s'", name, issuer)
+	err = fmt.Errorf("Token name '%s' not found for '%s'", name, issuer)
+	return
 }
 
 var defaultConfig = Config{
@@ -127,7 +297,11 @@ var defaultConfig = Config{
 		Stored   []string `yaml:"stored"`
 		Returned []string `yaml:"returned"`
 	}{
-		Stored:   api.Capabilities{api.CapabilityAT, api.CapabilityCreateMT, api.CapabilityTokeninfoHistory, api.CapabilityTokeninfoTree}.Strings(),
+		Stored: api.Capabilities{
+			api.CapabilityAT,
+			api.CapabilityCreateMT,
+			api.CapabilityTokeninfo,
+		}.Strings(),
 		Returned: api.Capabilities{api.CapabilityAT}.Strings(),
 	},
 	TokenNamePrefix: "<hostname>",
@@ -180,7 +354,8 @@ func load(name string, locations []string) {
 	if conf.URL == "" {
 		log.Fatal("Must provide url of the mytoken instance in the config file.")
 	}
-	mytoken, err := mytokenlib.NewMytokenProvider(conf.URL)
+	mytokenlib.SetClient(httpClient.Do().GetClient())
+	mytoken, err := mytokenlib.NewMytokenServer(conf.URL)
 	if err != nil {
 		log.Fatal(err)
 	}

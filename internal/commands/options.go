@@ -5,7 +5,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/zachmann/cli/v2"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/term"
 
 	"github.com/oidc-mytoken/client/internal/config"
@@ -17,11 +17,13 @@ var app = &cli.App{
 	Usage:    "Command line client for the mytoken server",
 	Version:  version.VERSION(),
 	Compiled: time.Time{},
-	Authors: []*cli.Author{{
-		Name:  "Gabriel Zachmann",
-		Email: "gabriel.zachmann@kit.edu",
-	}},
-	Copyright:              "Karlsruhe Institute of Technology 2020-2021",
+	Authors: []*cli.Author{
+		{
+			Name:  "Gabriel Zachmann",
+			Email: "gabriel.zachmann@kit.edu",
+		},
+	},
+	Copyright:              "Karlsruhe Institute of Technology 2020-2022",
 	UseShortOptionHandling: true,
 }
 
@@ -61,14 +63,19 @@ CONTACT:
 		cli.HelpWrapAt = termWidth
 	}
 
-	app.Flags = append(app.Flags, &cli.StringFlag{
-		Name:        "config",
-		Usage:       "Load configuration from `FILE`",
-		EnvVars:     []string{"MYTOKEN_CONFIG", "MYTOKEN_CONF"},
-		TakesFile:   true,
-		DefaultText: "",
-		Destination: &configFile,
-	})
+	app.Flags = append(
+		app.Flags, &cli.StringFlag{
+			Name:  "config",
+			Usage: "Load configuration from `FILE`",
+			EnvVars: []string{
+				"MYTOKEN_CONFIG",
+				"MYTOKEN_CONF",
+			},
+			TakesFile:   true,
+			DefaultText: "",
+			Destination: &configFile,
+		},
+	)
 	app.Before = func(context *cli.Context) error {
 		if context.IsSet("config") {
 			config.Load(configFile)
