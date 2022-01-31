@@ -49,7 +49,8 @@ func (pt PTOptions) Provider() string {
 	if res := pt.search(
 		func(options *ptOptions) interface{} {
 			return ternary.If(options.Provider != "", options.Provider, nil)
-		}); res != nil {
+		},
+	); res != nil {
 		return res.(string)
 	}
 	return ""
@@ -59,7 +60,8 @@ func (pt PTOptions) Name() string {
 	if res := pt.search(
 		func(options *ptOptions) interface{} {
 			return ternary.If(options.Name != "", options.Name, nil)
-		}); res != nil {
+		},
+	); res != nil {
 		return res.(string)
 	}
 	return ""
@@ -69,7 +71,8 @@ func (pt PTOptions) Mytoken() string {
 	if res := pt.search(
 		func(options *ptOptions) interface{} {
 			return ternary.If(options.Mytoken != "", options.Mytoken, nil)
-		}); res != nil {
+		},
+	); res != nil {
 		return res.(string)
 	}
 	return ""
@@ -79,7 +82,8 @@ func (pt PTOptions) MytokenPrompt() bool {
 	if res := pt.search(
 		func(options *ptOptions) interface{} {
 			return ternary.If(options.MytokenPrompt, true, nil)
-		}); res != nil {
+		},
+	); res != nil {
 		return res.(bool)
 	}
 	return false
@@ -89,7 +93,8 @@ func (pt PTOptions) MytokenFile() string {
 	if res := pt.search(
 		func(options *ptOptions) interface{} {
 			return ternary.If(options.MytokenFile != "", options.MytokenFile, nil)
-		}); res != nil {
+		},
+	); res != nil {
 		return res.(string)
 	}
 	return ""
@@ -99,7 +104,8 @@ func (pt PTOptions) MytokenEnv() string {
 	if res := pt.search(
 		func(options *ptOptions) interface{} {
 			return ternary.If(options.MytokenEnv != "", options.MytokenEnv, nil)
-		}); res != nil {
+		},
+	); res != nil {
 		return res.(string)
 	}
 	return ""
@@ -109,7 +115,8 @@ func (pt PTOptions) SSH() string {
 	if res := pt.search(
 		func(options *ptOptions) interface{} {
 			return ternary.If(options.SSH != "", options.SSH, nil)
-		}); res != nil {
+		},
+	); res != nil {
 		return res.(string)
 	}
 	return ""
@@ -129,16 +136,22 @@ func getPTFlags() []cli.Flag {
 	ptOpts = append([]*ptOptions{opts}, ptOpts...)
 	flags := []cli.Flag{
 		&cli.StringFlag{
-			Name:        "provider",
-			Aliases:     []string{"i", "issuer"},
+			Name: "provider",
+			Aliases: []string{
+				"i",
+				"issuer",
+			},
 			Usage:       "The name or issuer url of the OpenID provider that should be used",
 			EnvVars:     []string{"MYTOKEN_PROVIDER"},
 			Destination: &opts.Provider,
 			Placeholder: "PROVIDER",
 		},
 		&cli.StringFlag{
-			Name:        "name",
-			Aliases:     []string{"t", "n"},
+			Name: "name",
+			Aliases: []string{
+				"t",
+				"n",
+			},
 			Usage:       "The `NAME` of the mytoken that should be used",
 			EnvVars:     []string{"MYTOKEN_NAME"},
 			Destination: &opts.Name,
@@ -256,7 +269,10 @@ func (pt *PTOptions) checkProvider() (p *model.Provider, err error) {
 	isURL := strings.HasPrefix(pt.Provider(), "https://")
 	pp, ok := config.Get().Providers.FindBy(pt.Provider(), isURL)
 	if !ok && !isURL {
-		err = fmt.Errorf("Provider name '%s' not found in config file. Please provide a valid provider name or the provider url.", pt.Provider())
+		err = fmt.Errorf(
+			"Provider name '%s' not found in config file. Please provide a valid provider name or the provider url.",
+			pt.Provider(),
+		)
 		return
 	}
 	return pp, nil

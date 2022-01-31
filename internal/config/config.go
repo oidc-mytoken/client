@@ -222,10 +222,13 @@ func NewEncryptedStoreToken(encrypted string) StoreToken {
 	}
 }
 
-func (c *Config) GetToken(issuer string, nameGet func() string, nameUpdater func(string),
-	requiredCapability ...api.Capability) (
+func (c *Config) GetToken(
+	issuer string, nameGet func() string, nameUpdater func(string),
+	requiredCapability ...api.Capability,
+) (
 	string,
-	error) {
+	error,
+) {
 	entry, err := c.GetTokenEntry(issuer, nameGet(), nameUpdater, requiredCapability...)
 	if err != nil {
 		return "", err
@@ -237,10 +240,13 @@ func (c *Config) GetToken(issuer string, nameGet func() string, nameUpdater func
 	return token, err
 }
 
-func (c *Config) GetTokenEntry(issuer string, name string, nameUpdater func(string), requiredCapability ...api.
-	Capability) (
+func (c *Config) GetTokenEntry(
+	issuer string, name string, nameUpdater func(string), requiredCapability ...api.
+		Capability,
+) (
 	t TokenEntry,
-	err error) {
+	err error,
+) {
 	tt, found := c.TokensFileContent.Tokens[issuer]
 	if !found {
 		err = fmt.Errorf("No tokens found for provider '%s'", issuer)
@@ -291,7 +297,11 @@ var defaultConfig = Config{
 		Stored   []string `yaml:"stored"`
 		Returned []string `yaml:"returned"`
 	}{
-		Stored:   api.Capabilities{api.CapabilityAT, api.CapabilityCreateMT, api.CapabilityTokeninfo}.Strings(),
+		Stored: api.Capabilities{
+			api.CapabilityAT,
+			api.CapabilityCreateMT,
+			api.CapabilityTokeninfo,
+		}.Strings(),
 		Returned: api.Capabilities{api.CapabilityAT}.Strings(),
 	},
 	TokenNamePrefix: "<hostname>",

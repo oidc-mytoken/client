@@ -16,10 +16,13 @@ func init() {
 			Usage: "List different information",
 			Subcommands: []*cli.Command{
 				{
-					Name:    "tokens",
-					Aliases: []string{"MT", "mytokens"},
-					Usage:   "List the stored mytokens",
-					Action:  listTokens,
+					Name: "tokens",
+					Aliases: []string{
+						"MT",
+						"mytokens",
+					},
+					Usage:  "List the stored mytokens",
+					Action: listTokens,
 				},
 				{
 					Name:    "providers",

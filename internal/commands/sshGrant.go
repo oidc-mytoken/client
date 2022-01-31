@@ -48,7 +48,8 @@ func initSSHGrant(parent *cli.Command) {
 					"or a filepath to the public key (recommended)",
 				Action: addSSHKey,
 				Flags: append(
-					append(getRestrFlags(&optRestrictions),
+					append(
+						getRestrFlags(&optRestrictions),
 						getCapabilityFlag(&optCapabilities),
 						getSubtokenCapabilityFlag(&optSubtokenCapabilities),
 						&cli.StringFlag{
@@ -88,8 +89,10 @@ func listSSH(_ *cli.Context) error {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+		config.Get().TokensFileContent.Update(
+			infoOptions.Name(), provider.Issuer,
+			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+		)
 		if err = config.Get().TokensFileContent.Save(); err != nil {
 			return err
 		}
@@ -110,7 +113,12 @@ func listSSH(_ *cli.Context) error {
 type tableSSHKeyInfo api.SSHKeyInfo
 
 func (tableSSHKeyInfo) TableGetHeader() []string {
-	return []string{"Name", "SSH Key Fingerprint", "Created", "Last Used"}
+	return []string{
+		"Name",
+		"SSH Key Fingerprint",
+		"Created",
+		"Last Used",
+	}
 }
 
 func (i tableSSHKeyInfo) TableGetRow() []string {
@@ -166,11 +174,15 @@ func addSSHKey(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	res, tokenUpdate, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIAdd(mytoken, key, optName, restrictions,
-		optCapabilities, optSubtokenCapabilities, callbacks)
+	res, tokenUpdate, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIAdd(
+		mytoken, key, optName, restrictions,
+		optCapabilities, optSubtokenCapabilities, callbacks,
+	)
 	if tokenUpdate != nil {
-		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(tokenUpdate.Mytoken))
+		config.Get().TokensFileContent.Update(
+			infoOptions.Name(), provider.Issuer,
+			config.NewPlainStoreToken(tokenUpdate.Mytoken),
+		)
 		if err = config.Get().TokensFileContent.Save(); err != nil {
 			return err
 		}
@@ -182,14 +194,18 @@ func addSSHKey(ctx *cli.Context) error {
 	fmt.Printf("Please use the following username for ssh: '%s'\n", res.SSHUser)
 	if res.SSHHostConfig != "" {
 		if noWriteHostEntry {
-			fmt.Printf("You might want to add the following host entry to your ssh config file:\n\n%s\n", res.SSHHostConfig)
+			fmt.Printf(
+				"You might want to add the following host entry to your ssh config file:\n\n%s\n", res.SSHHostConfig,
+			)
 		} else {
 			const sshConfigFile = "~/.ssh/config"
 			if err = fileutil.Append(sshConfigFile, "\n"+res.SSHHostConfig+"\n"); err != nil {
 				return errors.Wrap(err, "error while writing ssh config")
 			}
-			fmt.Printf("We added a host entry to your '%s' file. You can check and adapt it if necessary.\n",
-				sshConfigFile)
+			fmt.Printf(
+				"We added a host entry to your '%s' file. You can check and adapt it if necessary.\n",
+				sshConfigFile,
+			)
 		}
 	}
 	return nil
@@ -220,8 +236,10 @@ func deleteSSHKey(ctx *cli.Context) error {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+		config.Get().TokensFileContent.Update(
+			infoOptions.Name(), provider.Issuer,
+			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+		)
 		if err = config.Get().TokensFileContent.Save(); err != nil {
 			return err
 		}

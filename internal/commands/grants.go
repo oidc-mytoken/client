@@ -53,8 +53,10 @@ func listGrants(_ *cli.Context) error {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+		config.Get().TokensFileContent.Update(
+			infoOptions.Name(), provider.Issuer,
+			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+		)
 		if err = config.Get().TokensFileContent.Save(); err != nil {
 			return err
 		}
@@ -70,7 +72,10 @@ func listGrants(_ *cli.Context) error {
 type tableGrantTypeInfo api.GrantTypeInfo
 
 func (tableGrantTypeInfo) TableGetHeader() []string {
-	return []string{"Grant Type", "Status"}
+	return []string{
+		"Grant Type",
+		"Status",
+	}
 }
 
 func (i tableGrantTypeInfo) TableGetRow() []string {
@@ -97,8 +102,10 @@ func enableGrant(ctx *cli.Context) error {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+		config.Get().TokensFileContent.Update(
+			infoOptions.Name(), provider.Issuer,
+			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+		)
 		if err = config.Get().TokensFileContent.Save(); err != nil {
 			return err
 		}
@@ -118,8 +125,10 @@ func disableGrant(ctx *cli.Context) error {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+		config.Get().TokensFileContent.Update(
+			infoOptions.Name(), provider.Issuer,
+			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+		)
 		if err = config.Get().TokensFileContent.Save(); err != nil {
 			return err
 		}

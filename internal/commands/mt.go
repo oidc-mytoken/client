@@ -68,23 +68,32 @@ func getSubtokenCapabilityFlag(c *api.Capabilities) cli.Flag {
 func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name:        "restrictions",
-			Aliases:     []string{"restriction"},
-			Usage:       "The restrictions that restrict the requested mytoken. Can be a json object or array, or a path to a json file.'",
-			EnvVars:     []string{"MYTOKEN_RESTRICTIONS", "MYTOKEN_RESTRICTION"},
+			Name:    "restrictions",
+			Aliases: []string{"restriction"},
+			Usage:   "The restrictions that restrict the requested mytoken. Can be a json object or array, or a path to a json file.'",
+			EnvVars: []string{
+				"MYTOKEN_RESTRICTIONS",
+				"MYTOKEN_RESTRICTION",
+			},
 			Destination: &opts.Restrictions,
 			Placeholder: "RESTRICTIONS",
 		},
 		&cli.StringSliceFlag{
-			Name:        "scope",
-			Aliases:     []string{"s", "scopes"},
+			Name: "scope",
+			Aliases: []string{
+				"s",
+				"scopes",
+			},
 			Usage:       "Restrict the mytoken so that it can only be used to request ATs with these SCOPES. Can be used multiple times. Overwritten by --restriction.",
 			Destination: &opts.RestrictScopes,
 			Placeholder: "SCOPE",
 		},
 		&cli.StringSliceFlag{
-			Name:        "aud",
-			Aliases:     []string{"audience", "audiences"},
+			Name: "aud",
+			Aliases: []string{
+				"audience",
+				"audiences",
+			},
 			Usage:       "Restrict the mytoken so that it can only be used to request ATs with these audiences. Can be used multiple times. Overwritten by --restriction.",
 			Destination: &opts.RestrictAudiences,
 			Placeholder: "AUD",
@@ -101,8 +110,11 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Destination: &opts.RestrictNbf,
 		},
 		&cli.StringSliceFlag{
-			Name:        "ip",
-			Aliases:     []string{"ips", "ip-allow"},
+			Name: "ip",
+			Aliases: []string{
+				"ips",
+				"ip-allow",
+			},
 			Usage:       "Restrict the mytoken so that it can only be used from these IPs. Can be a network address block or a single ip.",
 			Destination: &opts.RestrictIP,
 			Placeholder: "IP",
@@ -143,7 +155,8 @@ func getMTCommonFlags(store bool) []cli.Flag {
 		opts = &commonMTOptions.storeOpts
 	}
 
-	flags := append(getRestrFlags(&opts.restrictionOpts),
+	flags := append(
+		getRestrFlags(&opts.restrictionOpts),
 		&cli.StringFlag{
 			Name:        "TC",
 			Usage:       "Use the passed `TRANSFER_CODE` to exchange it into a mytoken",
@@ -167,8 +180,12 @@ func getMTCommonFlags(store bool) []cli.Flag {
 			Placeholder: "ROTATION",
 		},
 		&cli.BoolFlag{
-			Name:             "rotation-on-AT",
-			Aliases:          []string{"rotate-on-AT", "rotate-on-at", "rotation-on-at"},
+			Name: "rotation-on-AT",
+			Aliases: []string{
+				"rotate-on-AT",
+				"rotate-on-at",
+				"rotation-on-at",
+			},
 			Usage:            "Rotate this mytoken when it is used to obtain access tokens",
 			Destination:      &opts.RotationObj.OnAT,
 			HideDefaultValue: true,
@@ -205,7 +222,8 @@ func init() {
 			Name:   "MT",
 			Usage:  "Obtain a mytoken",
 			Action: obtainMTCmd,
-			Flags: append(getMTCommonFlags(false),
+			Flags: append(
+				getMTCommonFlags(false),
 				&cli.StringFlag{
 					Name:        "tag",
 					Usage:       "A name for the returned mytoken; used for finding the token in a list of mytokens.",
@@ -235,25 +253,28 @@ func init() {
 }
 
 func initStore(cmd *cli.Command) {
-	cmd.Subcommands = append(cmd.Subcommands, &cli.Command{
-		Name:      "store",
-		Usage:     "Store the obtained mytoken encrypted instead of returning it. This way the mytoken can be easily used with mytoken.",
-		Action:    storeMTCmd,
-		ArgsUsage: "STORE_NAME",
-		Flags: append(getMTCommonFlags(true),
-			&cli.StringFlag{
-				Name:        "gpg-key",
-				Aliases:     []string{"k"},
-				Usage:       "Use `KEY` for encryption instead of the default key",
-				Destination: &mtStoreCommand.GPGKey,
-			},
-			&cli.BoolFlag{
-				Name:        "password",
-				Usage:       "Use a password for encrypting the token instead of a gpg key.",
-				Destination: &mtStoreCommand.Password,
-			},
-		),
-	})
+	cmd.Subcommands = append(
+		cmd.Subcommands, &cli.Command{
+			Name:      "store",
+			Usage:     "Store the obtained mytoken encrypted instead of returning it. This way the mytoken can be easily used with mytoken.",
+			Action:    storeMTCmd,
+			ArgsUsage: "STORE_NAME",
+			Flags: append(
+				getMTCommonFlags(true),
+				&cli.StringFlag{
+					Name:        "gpg-key",
+					Aliases:     []string{"k"},
+					Usage:       "Use `KEY` for encryption instead of the default key",
+					Destination: &mtStoreCommand.GPGKey,
+				},
+				&cli.BoolFlag{
+					Name:        "password",
+					Usage:       "Use a password for encrypting the token instead of a gpg key.",
+					Destination: &mtStoreCommand.Password,
+				},
+			),
+		},
+	)
 }
 
 func obtainMTCmd(context *cli.Context) error {
@@ -365,23 +386,29 @@ func obtainMT(opts commonMTOpts, context *cli.Context, name, responseType string
 				fmt.Fprintln(os.Stderr, "success")
 			},
 		}
-		return mytoken.Mytoken.FromAuthorizationFlow(provider.Issuer, r, opts.Capabilities,
+		return mytoken.Mytoken.FromAuthorizationFlow(
+			provider.Issuer, r, opts.Capabilities,
 			opts.SubtokenCapabilities, opts.Rotation(), responseType,
-			tokenName, callbacks)
+			tokenName, callbacks,
+		)
 	}
 	mtGrant, err := opts.PTOptions.checkToken(provider.Issuer)
 	if err != nil {
 		return "", err
 	}
-	mtRes, err := mytoken.Mytoken.APIFromMytoken(mtGrant, provider.Issuer, r, opts.Capabilities,
+	mtRes, err := mytoken.Mytoken.APIFromMytoken(
+		mtGrant, provider.Issuer, r, opts.Capabilities,
 		opts.SubtokenCapabilities, opts.Rotation(),
-		responseType, tokenName)
+		responseType, tokenName,
+	)
 	if err != nil {
 		return "", err
 	}
 	if mtRes.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(opts.Name(), provider.Issuer,
-			config.NewPlainStoreToken(mtRes.TokenUpdate.Mytoken))
+		config.Get().TokensFileContent.Update(
+			opts.Name(), provider.Issuer,
+			config.NewPlainStoreToken(mtRes.TokenUpdate.Mytoken),
+		)
 		if err = config.Get().TokensFileContent.Save(); err != nil {
 			return mtRes.Mytoken, err
 		}
@@ -407,7 +434,12 @@ func storeMTCmd(context *cli.Context) error {
 		if pStr == "" {
 			pStr = provider.Issuer
 		}
-		if !prompter.YN(fmt.Sprintf("A token with the name '%s' is already stored for the provider '%s'. Do you want to overwrite it?", storeName, pStr), false) {
+		if !prompter.YN(
+			fmt.Sprintf(
+				"A token with the name '%s' is already stored for the provider '%s'. Do you want to overwrite it?",
+				storeName, pStr,
+			), false,
+		) {
 			os.Exit(1)
 		}
 	}
@@ -426,12 +458,14 @@ func storeMTCmd(context *cli.Context) error {
 	for _, c := range capabilityInterfaceSlice {
 		capabilities = append(capabilities, api.NewCapability(c.(string)))
 	}
-	config.Get().TokensFileContent.Add(config.TokenEntry{
-		Token:        config.NewPlainStoreToken(mt),
-		Name:         storeName,
-		GPGKey:       gpgKey,
-		Capabilities: capabilities,
-	}, provider.Issuer)
+	config.Get().TokensFileContent.Add(
+		config.TokenEntry{
+			Token:        config.NewPlainStoreToken(mt),
+			Name:         storeName,
+			GPGKey:       gpgKey,
+			Capabilities: capabilities,
+		}, provider.Issuer,
+	)
 	if err = config.Get().TokensFileContent.Save(); err != nil {
 		return err
 	}

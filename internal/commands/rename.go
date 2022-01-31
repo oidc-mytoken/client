@@ -13,22 +13,27 @@ var renameCommand = struct {
 }{}
 
 func init() {
-	app.Commands = append(app.Commands, &cli.Command{
-		Name:      "rename",
-		Usage:     "Renames a stored mytoken",
-		Action:    rename,
-		ArgsUsage: "OLD_NAME NEW_NAME",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "provider",
-				Aliases:     []string{"i", "issuer"},
-				Usage:       "The name or issuer url of the OpenID provider for which a mytoken should be renamed",
-				EnvVars:     []string{"MYTOKEN_PROVIDER"},
-				Destination: &renameCommand.Provider,
-				Placeholder: "PROVIDER",
+	app.Commands = append(
+		app.Commands, &cli.Command{
+			Name:      "rename",
+			Usage:     "Renames a stored mytoken",
+			Action:    rename,
+			ArgsUsage: "OLD_NAME NEW_NAME",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name: "provider",
+					Aliases: []string{
+						"i",
+						"issuer",
+					},
+					Usage:       "The name or issuer url of the OpenID provider for which a mytoken should be renamed",
+					EnvVars:     []string{"MYTOKEN_PROVIDER"},
+					Destination: &renameCommand.Provider,
+					Placeholder: "PROVIDER",
+				},
 			},
 		},
-	})
+	)
 }
 
 func rename(context *cli.Context) error {

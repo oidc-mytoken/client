@@ -35,11 +35,14 @@ func init() {
 					Flags:  subCmdFlags,
 				},
 				{
-					Name:    "subtokens",
-					Aliases: []string{"token-tree", "tree"},
-					Usage:   "List the tree of subtokens for this token",
-					Action:  subTree,
-					Flags:   subCmdFlags,
+					Name: "subtokens",
+					Aliases: []string{
+						"token-tree",
+						"tree",
+					},
+					Usage:  "List the tree of subtokens for this token",
+					Action: subTree,
+					Flags:  subCmdFlags,
 				},
 				{
 					Name:   "introspect",
@@ -128,7 +131,7 @@ func history(_ *cli.Context) (err error) {
 			err = fmt.Errorf("%s", resStr)
 			return
 		}
-	} else { //no ssh
+	} else { // no ssh
 		mytoken := config.Get().Mytoken
 		provider, mToken := infoOptions.Check()
 		res, err = mytoken.Tokeninfo.APIHistory(mToken)
@@ -136,8 +139,10 @@ func history(_ *cli.Context) (err error) {
 			return
 		}
 		if res.TokenUpdate != nil {
-			config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
-				config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+			config.Get().TokensFileContent.Update(
+				infoOptions.Name(), provider.Issuer,
+				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+			)
 			if err = config.Get().TokensFileContent.Save(); err != nil {
 				return err
 			}
@@ -154,7 +159,13 @@ func history(_ *cli.Context) (err error) {
 type tableEventEntry api.EventEntry
 
 func (tableEventEntry) TableGetHeader() []string {
-	return []string{"Event", "Comment", "Time", "IP", "User Agent"}
+	return []string{
+		"Event",
+		"Comment",
+		"Time",
+		"IP",
+		"User Agent",
+	}
 }
 func (e tableEventEntry) TableGetRow() []string {
 	const timeFmt = "2006-01-02 15:04:05"
@@ -187,8 +198,10 @@ func subTree(_ *cli.Context) (err error) {
 			return err
 		}
 		if res.TokenUpdate != nil {
-			config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
-				config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+			config.Get().TokensFileContent.Update(
+				infoOptions.Name(), provider.Issuer,
+				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+			)
 			if err = config.Get().TokensFileContent.Save(); err != nil {
 				return err
 			}
@@ -217,8 +230,10 @@ func listMytokens(_ *cli.Context) (err error) {
 			return err
 		}
 		if res.TokenUpdate != nil {
-			config.Get().TokensFileContent.Update(infoOptions.Name(), provider.Issuer,
-				config.NewPlainStoreToken(res.TokenUpdate.Mytoken))
+			config.Get().TokensFileContent.Update(
+				infoOptions.Name(), provider.Issuer,
+				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
+			)
 			if err = config.Get().TokensFileContent.Save(); err != nil {
 				return err
 			}
