@@ -14,14 +14,18 @@ builds:
       - darwin
 archives:
   - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
+      darwin: macOS
+      386: 32-bit
+      amd64: 64-bit
+    format_overrides:
+      - goos: windows
+        format: zip
 nfpms:
   - id: client-pkg
     package_name: mytoken
+    replacements:
+      386: i386
+    file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Arch }}"
     builds:
       - client
     homepage: https://mytoken-doc.data.kit.edu/
@@ -29,7 +33,6 @@ nfpms:
     description: Mytoken is a command line client for the central web service mytoken. It can be used to easily obtain OpenID Connect access tokens across devices.
     license: MIT
     formats:
-#      - apk
       - deb
       - rpm
     release: 1
@@ -38,6 +41,11 @@ nfpms:
       - src: config/example-config.yaml
         dst: /etc/mytoken/example-config.yaml
         type: config
+    overrides:
+      rpm:
+        replacements:
+          amd64: x86_64
+        file_name_template: "{{ .PackageName }}-{{ .Version }}.{{ .Arch }}"
 checksum:
   name_template: 'checksums.txt'
 release:
