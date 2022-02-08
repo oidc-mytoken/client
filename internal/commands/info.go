@@ -179,7 +179,7 @@ func (e tableEventEntry) TableGetRow() []string {
 }
 
 func subTree(_ *cli.Context) (err error) {
-	var res api.TokeninfoTreeResponse
+	var res api.TokeninfoSubtokensResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
 		var resStr string
 		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoSubtokens, nil)
