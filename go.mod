@@ -7,7 +7,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.3
 	github.com/oidc-mytoken/api v0.5.1
 	github.com/oidc-mytoken/lib v0.3.3
-	github.com/oidc-mytoken/server v0.4.1
+	github.com/oidc-mytoken/server v0.4.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
