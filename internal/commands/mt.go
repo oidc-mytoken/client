@@ -5,21 +5,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/Songmu/prompter"
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/jwtutils"
-	"github.com/oidc-mytoken/server/shared/utils/unixtime"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
-	"github.com/oidc-mytoken/client/internal/utils/duration"
+	cutils "github.com/oidc-mytoken/client/internal/utils"
 )
 
 var mtCommand = struct {
@@ -298,11 +295,11 @@ func parseRestrictionOpts(opts *restrictionOpts, ctx *cli.Context) (r api.Restri
 		}
 		return
 	}
-	nbf, err := parseTime(opts.RestrictNbf)
+	nbf, err := cutils.ParseTime(opts.RestrictNbf)
 	if err != nil {
 		return
 	}
-	exp, err := parseTime(opts.RestrictExp)
+	exp, err := cutils.ParseTime(opts.RestrictExp)
 	if err != nil {
 		return
 	}
@@ -366,24 +363,24 @@ func obtainMT(opts commonMTOpts, context *cli.Context, name, responseType string
 	if opts.UseOIDCFlow {
 		callbacks := mytokenlib.PollingCallbacks{
 			Init: func(authorizationURL string) error {
-				fmt.Fprintln(os.Stderr, "Using any device please visit the following url to continue:")
-				fmt.Fprintln(os.Stderr)
-				fmt.Fprintln(os.Stderr, authorizationURL)
-				fmt.Fprintln(os.Stderr)
+				_, _ = fmt.Fprintln(os.Stderr, "Using any device please visit the following url to continue:")
+				_, _ = fmt.Fprintln(os.Stderr)
+				_, _ = fmt.Fprintln(os.Stderr, authorizationURL)
+				_, _ = fmt.Fprintln(os.Stderr)
 				return nil
 			},
 			Callback: func(interval int64, iteration int) {
 				if iteration == 0 {
-					fmt.Fprint(os.Stderr, "Starting polling ...")
+					_, _ = fmt.Fprint(os.Stderr, "Starting polling ...")
 					return
 				}
 				if int64(iteration)%(15/interval) == 0 { // every 15s
-					fmt.Fprint(os.Stderr, ".")
+					_, _ = fmt.Fprint(os.Stderr, ".")
 				}
 			},
 			End: func() {
-				fmt.Fprintln(os.Stderr)
-				fmt.Fprintln(os.Stderr, "success")
+				_, _ = fmt.Fprintln(os.Stderr)
+				_, _ = fmt.Fprintln(os.Stderr, "success")
 			},
 		}
 		return mytoken.Mytoken.FromAuthorizationFlow(
@@ -473,14 +470,6 @@ func storeMTCmd(context *cli.Context) error {
 	return nil
 }
 
-type pRestriction struct {
-	api.Restriction
-	NotBefore string `json:"nbf,omitempty"`
-	ExpiresAt string `json:"exp,omitempty"`
-}
-
-type restriction api.Restriction
-
 func parseRestrictionOption(arg string) (api.Restrictions, error) {
 	if arg == "" {
 		return nil, nil
@@ -499,7 +488,7 @@ func parseRestrictions(str string) (api.Restrictions, error) {
 	str = strings.TrimSpace(str)
 	switch str[0] {
 	case '[': // multiple restrictions
-		var rs []restriction
+		var rs []cutils.APIRestriction
 		err := json.Unmarshal([]byte(str), &rs)
 		r := api.Restrictions{}
 		for _, rr := range rs {
@@ -507,48 +496,10 @@ func parseRestrictions(str string) (api.Restrictions, error) {
 		}
 		return r, err
 	case '{': // single restriction
-		var r restriction
+		var r cutils.APIRestriction
 		err := json.Unmarshal([]byte(str), &r)
 		return api.Restrictions{api.Restriction(r)}, err
 	default:
 		return nil, fmt.Errorf("malformed restriction")
 	}
-}
-
-func (r *restriction) UnmarshalJSON(data []byte) error {
-	rr := pRestriction{}
-	if err := json.Unmarshal(data, &rr); err != nil {
-		return err
-	}
-	t, err := parseTime(rr.ExpiresAt)
-	if err != nil {
-		return err
-	}
-	rr.Restriction.ExpiresAt = t
-	t, err = parseTime(rr.NotBefore)
-	if err != nil {
-		return err
-	}
-	rr.Restriction.NotBefore = t
-	*r = restriction(rr.Restriction)
-	return nil
-}
-
-func parseTime(t string) (int64, error) {
-	if t == "" {
-		return 0, nil
-	}
-	i, err := strconv.ParseInt(t, 10, 64)
-	if err == nil {
-		if t[0] == '+' {
-			return int64(unixtime.InSeconds(i)), nil
-		}
-		return i, nil
-	}
-	if t[0] == '+' {
-		d, err := duration.ParseDuration(t[1:])
-		return int64(unixtime.New(time.Now().Add(d))), err
-	}
-	tt, err := time.ParseInLocation("2006-01-02 15:04", t, time.Local)
-	return int64(unixtime.New(tt)), err
 }
