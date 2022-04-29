@@ -6,9 +6,12 @@ import (
 
 	"github.com/oidc-mytoken/api/v0"
 	"github.com/oidc-mytoken/server/shared/utils"
+	"github.com/pkg/errors"
+
+	"github.com/oidc-mytoken/client/internal/utils/jsonutils"
 )
 
-func parseCapabilityTemplate(content string) (api.Capabilities, error) {
+func parseCapabilityTemplate(content []byte) (api.Capabilities, error) {
 	capStrings, err := _parseCapabilityTemplate(content)
 	capStrings = utils.UniqueSlice(capStrings)
 	var caps api.Capabilities = nil
@@ -19,24 +22,24 @@ func parseCapabilityTemplate(content string) (api.Capabilities, error) {
 }
 
 func _parseCapabilityTemplateByName(name string) ([]string, error) {
-	templateContent, err := readCapabilityTemplate(name)
+	content, err := templateReader.readCapabilityTemplate(normalizeTemplateName(name))
 	if err != nil {
 		return nil, err
 	}
-	return _parseCapabilityTemplate(templateContent)
+	return _parseCapabilityTemplate(content)
 }
 
-func _parseCapabilityTemplate(content string) (capStrings []string, err error) {
-	if content == "" {
+func _parseCapabilityTemplate(content []byte) (capStrings []string, err error) {
+	if len(content) == 0 {
 		return nil, nil
 	}
 	var tmpCapStrings []string
-	if isJSONArray(content) {
-		if err = json.Unmarshal([]byte(content), &tmpCapStrings); err != nil {
+	if jsonutils.IsJSONArray(content) {
+		if err = errors.WithStack(json.Unmarshal(content, &tmpCapStrings)); err != nil {
 			return
 		}
 	} else {
-		tmpCapStrings = strings.Split(content, " ")
+		tmpCapStrings = strings.Split(string(content), " ")
 	}
 	for _, c := range tmpCapStrings {
 		if !strings.HasPrefix(c, "!") {

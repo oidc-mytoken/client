@@ -2,74 +2,49 @@ package profile
 
 import (
 	"encoding/json"
+	"reflect"
 
-	"github.com/imdario/mergo"
 	"github.com/oidc-mytoken/api/v0"
+	"github.com/pkg/errors"
 
 	"github.com/oidc-mytoken/client/internal/utils"
+	"github.com/oidc-mytoken/client/internal/utils/jsonutils"
 )
 
 func parseRestrictionsTemplateByName(name string) (api.Restrictions, error) {
-	templateContent, err := readRestrictionsTemplate(normalizeTemplateName(name))
+	content, err := templateReader.readRestrictionsTemplate(normalizeTemplateName(name))
 	if err != nil {
-		return api.Restrictions{}, err
+		return nil, err
 	}
-	return parseRestrictionsTemplate(templateContent)
+	return parseRestrictionsTemplate(content)
 }
 
-type restrictionTemplateMarshal struct {
-	utils.APIRestriction
-	includes
-}
-
-type includes struct {
-	IncludeTemplates []string `json:"include"`
-}
-
-func (r *restrictionTemplateMarshal) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, &r.APIRestriction); err != nil {
-		return err
-	}
-	if err := json.Unmarshal(data, &r.includes); err != nil {
-		return err
-	}
-	return nil
-}
-
-func parseRestrictionsTemplate(content string) (api.Restrictions, error) {
-	if content == "" {
+func parseRestrictionsTemplate(content []byte) (api.Restrictions, error) {
+	if len(content) == 0 {
 		return nil, nil
 	}
-	restrs := make([]restrictionTemplateMarshal, 0)
-	if isJSONObject(content) {
-		content = "[" + content + "]"
+	if jsonutils.IsJSONObject(content) {
+		content = jsonutils.Arrayify(content)
 	}
-	if !isJSONArray(content) {
+	if !jsonutils.IsJSONArray(content) {
 		// single template name
-		return parseRestrictionsTemplateByName(content)
+		return parseRestrictionsTemplateByName(string(content))
 	}
-	if err := json.Unmarshal([]byte(content), &restrs); err != nil {
+
+	var err error
+	var restr []utils.APIRestriction
+	content, err = createFinalTemplate(content, templateReader.readRestrictionsTemplate)
+	if err != nil {
+		return nil, err
+	}
+	if err = errors.WithStack(json.Unmarshal(content, &restr)); err != nil {
 		return nil, err
 	}
 	finalRestrs := make([]api.Restriction, 0)
-	for _, r := range restrs {
-		templateRestrs := make([]api.Restriction, 0)
-		for _, t := range r.IncludeTemplates {
-			templateRestrictions, err := parseRestrictionsTemplateByName(t)
-			if err != nil {
-				return nil, err
-			}
-			if len(templateRestrictions) > 0 {
-				if err = mergo.Merge(&r.APIRestriction, utils.APIRestriction(templateRestrictions[0])); err != nil {
-					return nil, err
-				}
-			}
-			if len(templateRestrictions) > 1 {
-				templateRestrs = append(templateRestrs, templateRestrictions[1:]...)
-			}
+	for _, r := range restr {
+		if !reflect.DeepEqual(r, utils.APIRestriction{}) {
+			finalRestrs = append(finalRestrs, api.Restriction(r))
 		}
-		finalRestrs = append(finalRestrs, api.Restriction(r.APIRestriction))
-		finalRestrs = append(finalRestrs, templateRestrs...)
 	}
 	return finalRestrs, nil
 }
