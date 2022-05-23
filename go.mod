@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/Songmu/prompter v0.5.0
 	github.com/gliderlabs/ssh v0.3.3
-	github.com/oidc-mytoken/api v0.5.1
+	github.com/oidc-mytoken/api v0.6.0
 	github.com/oidc-mytoken/lib v0.3.3
 	github.com/oidc-mytoken/server v0.4.1
 	github.com/olekukonko/tablewriter v0.0.5
