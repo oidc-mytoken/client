@@ -10,7 +10,7 @@ require (
 	github.com/oidc-mytoken/server v0.4.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.0
 	github.com/urfave/cli/v2 v2.3.1-0.20211205195634-e8d81738896c
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
