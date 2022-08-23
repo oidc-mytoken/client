@@ -306,7 +306,7 @@ func parseRestrictionOpts(opts *restrictionOpts, ctx *cli.Context) (r api.Restri
 	if err != nil {
 		return
 	}
-	rr := api.Restriction{
+	rr := &api.Restriction{
 		NotBefore:     nbf,
 		ExpiresAt:     exp,
 		Scope:         strings.Join(opts.RestrictScopes.Value(), " "),
@@ -503,13 +503,15 @@ func parseRestrictions(str string) (api.Restrictions, error) {
 		err := json.Unmarshal([]byte(str), &rs)
 		r := api.Restrictions{}
 		for _, rr := range rs {
-			r = append(r, api.Restriction(rr))
+			tmp := api.Restriction(rr)
+			r = append(r, &tmp)
 		}
 		return r, err
 	case '{': // single restriction
 		var r restriction
 		err := json.Unmarshal([]byte(str), &r)
-		return api.Restrictions{api.Restriction(r)}, err
+		tmp := api.Restriction(r)
+		return api.Restrictions{&tmp}, err
 	default:
 		return nil, fmt.Errorf("malformed restriction")
 	}
