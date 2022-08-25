@@ -3,7 +3,6 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -280,11 +279,11 @@ func obtainMTCmd(context *cli.Context) error {
 		opts.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities.Returned)
 	}
 
-	st, err := obtainMT(opts, context, mtCommand.Tag, mtCommand.TokenType)
+	st, err := obtainMT(&opts, context, mtCommand.Tag, mtCommand.TokenType)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(mtCommand.Out, append([]byte(st), '\n'), 0600)
+	return os.WriteFile(mtCommand.Out, append([]byte(st), '\n'), 0600)
 }
 
 func parseRestrictionOpts(opts *restrictionOpts, ctx *cli.Context) (r api.Restrictions, err error) {
@@ -303,7 +302,7 @@ func parseRestrictionOpts(opts *restrictionOpts, ctx *cli.Context) (r api.Restri
 	if err != nil {
 		return
 	}
-	rr := api.Restriction{
+	rr := &api.Restriction{
 		NotBefore:     nbf,
 		ExpiresAt:     exp,
 		Scope:         strings.Join(opts.RestrictScopes.Value(), " "),
@@ -322,7 +321,7 @@ func parseRestrictionOpts(opts *restrictionOpts, ctx *cli.Context) (r api.Restri
 	return
 }
 
-func obtainMT(opts commonMTOpts, context *cli.Context, name, responseType string) (string, error) {
+func obtainMT(opts *commonMTOpts, context *cli.Context, name, responseType string) (string, error) {
 	mytoken := config.Get().Mytoken
 	if opts.TransferCode != "" {
 		return mytoken.Mytoken.FromTransferCode(opts.TransferCode)
@@ -440,7 +439,7 @@ func storeMTCmd(context *cli.Context) error {
 			os.Exit(1)
 		}
 	}
-	mt, err := obtainMT(opts, context, storeName, api.ResponseTypeToken)
+	mt, err := obtainMT(&opts, context, storeName, api.ResponseTypeToken)
 	if err != nil {
 		return err
 	}
@@ -477,7 +476,7 @@ func parseRestrictionOption(arg string) (api.Restrictions, error) {
 	if arg[0] == '[' || arg[0] == '{' {
 		return parseRestrictions(arg)
 	}
-	data, err := ioutil.ReadFile(arg)
+	data, err := os.ReadFile(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -492,13 +491,15 @@ func parseRestrictions(str string) (api.Restrictions, error) {
 		err := json.Unmarshal([]byte(str), &rs)
 		r := api.Restrictions{}
 		for _, rr := range rs {
-			r = append(r, api.Restriction(rr))
+			tmp := api.Restriction(rr)
+			r = append(r, &tmp)
 		}
 		return r, err
 	case '{': // single restriction
 		var r cutils.APIRestriction
 		err := json.Unmarshal([]byte(str), &r)
-		return api.Restrictions{api.Restriction(r)}, err
+		tmp := api.Restriction(r)
+		return api.Restrictions{&tmp}, err
 	default:
 		return nil, fmt.Errorf("malformed restriction")
 	}
