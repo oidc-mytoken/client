@@ -47,19 +47,13 @@ func initGrants(parent *cli.Command) {
 }
 
 func listGrants(_ *cli.Context) error {
-	provider, mytoken := settingsOptions.Check(api.CapabilityGrantsRead)
+	_, mytoken := settingsOptions.Check()
 	res, err := config.Get().Mytoken.UserSettings.Grants.APIGet(mytoken)
 	if err != nil {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
-		}
+		updateMytoken(res.TokenUpdate.Mytoken)
 	}
 	outputData := make([]tablewriter.TableWriter, len(res.GrantTypes))
 	for i, d := range res.GrantTypes {
@@ -96,19 +90,13 @@ func enableGrant(ctx *cli.Context) error {
 		return fmt.Errorf("Must provide exactly one grant to enable")
 	}
 	grant := ctx.Args().Get(0)
-	provider, mytoken := settingsOptions.Check(api.CapabilityGrants)
+	_, mytoken := settingsOptions.Check()
 	res, err := config.Get().Mytoken.UserSettings.Grants.APIEnableGrant(mytoken, grant)
 	if err != nil {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
-		}
+		updateMytoken(res.TokenUpdate.Mytoken)
 	}
 	fmt.Printf("Grant '%s' enabled\n", grant)
 	return nil
@@ -119,19 +107,13 @@ func disableGrant(ctx *cli.Context) error {
 		return fmt.Errorf("Must provide exactly one grant to disable")
 	}
 	grant := ctx.Args().Get(0)
-	provider, mytoken := settingsOptions.Check(api.CapabilityGrants)
+	_, mytoken := settingsOptions.Check()
 	res, err := config.Get().Mytoken.UserSettings.Grants.APIDisableGrant(mytoken, grant)
 	if err != nil {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
-		}
+		updateMytoken(res.TokenUpdate.Mytoken)
 	}
 	fmt.Printf("Grant '%s' disabled\n", grant)
 	return nil

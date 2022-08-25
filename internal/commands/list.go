@@ -16,15 +16,6 @@ func init() {
 			Usage: "List different information",
 			Subcommands: []*cli.Command{
 				{
-					Name: "tokens",
-					Aliases: []string{
-						"MT",
-						"mytokens",
-					},
-					Usage:  "List the stored mytokens",
-					Action: listTokens,
-				},
-				{
 					Name:    "providers",
 					Aliases: []string{"issuers"},
 					Usage:   "List the available providers",
@@ -35,32 +26,9 @@ func init() {
 	app.Commands = append(app.Commands, cmd)
 }
 
-func listTokens(_ *cli.Context) error {
-	for iss, tokens := range config.Get().TokensFileContent.Tokens {
-		provider, found := config.Get().Providers.FindBy(iss, true)
-		header := iss
-		defaultToken := ""
-		if found {
-			header = provider.Name
-			defaultToken = provider.DefaultToken
-		}
-		fmt.Printf("The following mytokens are stored for provider '%s':\n", header)
-		for _, t := range tokens {
-			defaultMark := ""
-			if t.Name == defaultToken {
-				defaultMark = " (default)"
-			}
-			fmt.Printf("%s%s\n", t.Name, defaultMark)
-		}
-		fmt.Println()
-	}
-	return nil
-}
-
 func listProviders(_ *cli.Context) error {
 	defaultProvider := config.Get().DefaultProvider
 	instanceProviders := config.Get().Mytoken.ServerMetadata.ProvidersSupported
-	configProviders := config.Get().Providers
 	urlMaxLen := 0
 	for _, ip := range instanceProviders {
 		length := len(ip.Issuer)
@@ -68,15 +36,19 @@ func listProviders(_ *cli.Context) error {
 			urlMaxLen = length
 		}
 	}
+	pNamesForIssuer := make(map[string]string)
+	for n, i := range config.Get().Providers {
+		pNamesForIssuer[i] = n
+	}
 	fmt.Println("The connected mytoken instance supports the following providers:")
 	for _, ip := range instanceProviders {
 		url := ip.Issuer
-		p, found := configProviders.FindBy(url, true)
+		p, found := pNamesForIssuer[url]
 		if !found {
 			fmt.Println(url)
 			continue
 		}
-		configName := p.Name
+		configName := p
 		defaultMark := ""
 		if configName == defaultProvider {
 			defaultMark = " (default)"

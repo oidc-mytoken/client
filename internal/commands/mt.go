@@ -6,12 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Songmu/prompter"
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/server/shared/utils"
-	"github.com/oidc-mytoken/server/shared/utils/jwtutils"
-	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
@@ -22,11 +19,6 @@ var mtCommand = struct {
 	Tag       string
 	TokenType string
 	Out       string
-}{}
-
-var mtStoreCommand = struct {
-	GPGKey   string `short:"k" long:"gpg-key" value-name:"KEY" description:"Use KEY for encryption instead of the default key"`
-	Password bool   `long:"password" description:"Use a password for encrypting the token instead of a gpg key."`
 }{}
 
 func getCapabilityFlag(c *api.Capabilities) cli.Flag {
@@ -145,7 +137,7 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 	}
 }
 
-func getMTCommonFlags(store bool) []cli.Flag {
+func getMTFlags(store bool) []cli.Flag {
 	opts := &commonMTOptions.obtainOpts
 	if store {
 		opts = &commonMTOptions.storeOpts
@@ -219,7 +211,7 @@ func init() {
 			Usage:  "Obtain a mytoken",
 			Action: obtainMTCmd,
 			Flags: append(
-				getMTCommonFlags(false),
+				getMTFlags(false),
 				&cli.StringFlag{
 					Name:        "tag",
 					Usage:       "A name for the returned mytoken; used for finding the token in a list of mytokens.",
@@ -245,38 +237,12 @@ func init() {
 			),
 		}
 	app.Commands = append(app.Commands, cmd)
-	initStore(cmd)
-}
-
-func initStore(cmd *cli.Command) {
-	cmd.Subcommands = append(
-		cmd.Subcommands, &cli.Command{
-			Name:      "store",
-			Usage:     "Store the obtained mytoken encrypted instead of returning it. This way the mytoken can be easily used with mytoken.",
-			Action:    storeMTCmd,
-			ArgsUsage: "STORE_NAME",
-			Flags: append(
-				getMTCommonFlags(true),
-				&cli.StringFlag{
-					Name:        "gpg-key",
-					Aliases:     []string{"k"},
-					Usage:       "Use `KEY` for encryption instead of the default key",
-					Destination: &mtStoreCommand.GPGKey,
-				},
-				&cli.BoolFlag{
-					Name:        "password",
-					Usage:       "Use a password for encrypting the token instead of a gpg key.",
-					Destination: &mtStoreCommand.Password,
-				},
-			),
-		},
-	)
 }
 
 func obtainMTCmd(context *cli.Context) error {
 	opts := commonMTOptions.Common(false)
 	if len(opts.Capabilities) == 0 {
-		opts.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities.Returned)
+		opts.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities)
 	}
 
 	st, err := obtainMT(&opts, context, mtCommand.Tag, mtCommand.TokenType)
@@ -355,7 +321,7 @@ func obtainMT(opts *commonMTOpts, context *cli.Context, name, responseType strin
 		}
 		return mt, err
 	}
-	provider, err := opts.PTOptions.checkProvider()
+	provider, err := opts.PTOptions.getProvider()
 	if err != nil {
 		return "", err
 	}
@@ -383,17 +349,17 @@ func obtainMT(opts *commonMTOpts, context *cli.Context, name, responseType strin
 			},
 		}
 		return mytoken.Mytoken.FromAuthorizationFlow(
-			provider.Issuer, r, opts.Capabilities,
+			provider, r, opts.Capabilities,
 			opts.SubtokenCapabilities, opts.Rotation(), responseType,
 			tokenName, callbacks,
 		)
 	}
-	mtGrant, err := opts.PTOptions.checkToken(provider.Issuer)
+	mtGrant, err := opts.PTOptions.getToken()
 	if err != nil {
 		return "", err
 	}
 	mtRes, err := mytoken.Mytoken.APIFromMytoken(
-		mtGrant, provider.Issuer, r, opts.Capabilities,
+		mtGrant, provider, r, opts.Capabilities,
 		opts.SubtokenCapabilities, opts.Rotation(),
 		responseType, tokenName,
 	)
@@ -401,72 +367,9 @@ func obtainMT(opts *commonMTOpts, context *cli.Context, name, responseType strin
 		return "", err
 	}
 	if mtRes.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			opts.Name(), provider.Issuer,
-			config.NewPlainStoreToken(mtRes.TokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return mtRes.Mytoken, err
-		}
+		updateMytoken(mtRes.TokenUpdate.Mytoken)
 	}
 	return mtRes.Mytoken, nil
-}
-
-func storeMTCmd(context *cli.Context) error {
-	if !context.Args().Present() {
-		return fmt.Errorf("Required argument STORE_NAME is missing.")
-	}
-	storeName := context.Args().Get(0)
-	opts := commonMTOptions.Common(true)
-	if len(opts.Capabilities) == 0 {
-		opts.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities.Stored)
-	}
-	provider, err := opts.PTOptions.checkProvider()
-	if err != nil {
-		return err
-	}
-	if config.Get().TokensFileContent.Has(storeName, provider.Issuer) {
-		pStr := provider.Name
-		if pStr == "" {
-			pStr = provider.Issuer
-		}
-		if !prompter.YN(
-			fmt.Sprintf(
-				"A token with the name '%s' is already stored for the provider '%s'. Do you want to overwrite it?",
-				storeName, pStr,
-			), false,
-		) {
-			os.Exit(1)
-		}
-	}
-	mt, err := obtainMT(&opts, context, storeName, api.ResponseTypeToken)
-	if err != nil {
-		return err
-	}
-	gpgKey := mtStoreCommand.GPGKey
-	if mtStoreCommand.Password {
-		gpgKey = ""
-	} else if gpgKey == "" {
-		gpgKey = provider.GPGKey
-	}
-	capabilityInterfaceSlice := jwtutils.GetValueFromJWT(log.StandardLogger(), mt, "capabilities").([]interface{})
-	capabilities := api.Capabilities{}
-	for _, c := range capabilityInterfaceSlice {
-		capabilities = append(capabilities, api.NewCapability(c.(string)))
-	}
-	config.Get().TokensFileContent.Add(
-		config.TokenEntry{
-			Token:        config.NewPlainStoreToken(mt),
-			Name:         storeName,
-			GPGKey:       gpgKey,
-			Capabilities: capabilities,
-		}, provider.Issuer,
-	)
-	if err = config.Get().TokensFileContent.Save(); err != nil {
-		return err
-	}
-	fmt.Printf("Saved mytoken '%s'\n", storeName)
-	return nil
 }
 
 func parseRestrictionOption(arg string) (api.Restrictions, error) {

@@ -133,19 +133,13 @@ func history(_ *cli.Context) (err error) {
 		}
 	} else { // no ssh
 		mytoken := config.Get().Mytoken
-		provider, mToken := infoOptions.Check()
+		_, mToken := infoOptions.Check()
 		res, err = mytoken.Tokeninfo.APIHistory(mToken)
 		if err != nil {
 			return
 		}
 		if res.TokenUpdate != nil {
-			config.Get().TokensFileContent.Update(
-				infoOptions.Name(), provider.Issuer,
-				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-			)
-			if err = config.Get().TokensFileContent.Save(); err != nil {
-				return err
-			}
+			updateMytoken(res.TokenUpdate.Mytoken)
 		}
 	}
 	outputData := make([]tablewriter.TableWriter, len(res.EventHistory))
@@ -192,19 +186,13 @@ func subTree(_ *cli.Context) (err error) {
 		}
 	} else {
 		mytoken := config.Get().Mytoken
-		provider, mToken := infoOptions.Check()
+		_, mToken := infoOptions.Check()
 		res, err = mytoken.Tokeninfo.APISubtokens(mToken)
 		if err != nil {
 			return err
 		}
 		if res.TokenUpdate != nil {
-			config.Get().TokensFileContent.Update(
-				infoOptions.Name(), provider.Issuer,
-				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-			)
-			if err = config.Get().TokensFileContent.Save(); err != nil {
-				return err
-			}
+			updateMytoken(res.TokenUpdate.Mytoken)
 		}
 	}
 	return prettyPrintJSON(res.Tokens)
@@ -224,19 +212,13 @@ func listMytokens(_ *cli.Context) (err error) {
 		}
 	} else {
 		mytoken := config.Get().Mytoken
-		provider, mToken := infoOptions.Check()
+		_, mToken := infoOptions.Check()
 		res, err = mytoken.Tokeninfo.APIListMytokens(mToken)
 		if err != nil {
 			return err
 		}
 		if res.TokenUpdate != nil {
-			config.Get().TokensFileContent.Update(
-				infoOptions.Name(), provider.Issuer,
-				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-			)
-			if err = config.Get().TokensFileContent.Save(); err != nil {
-				return err
-			}
+			updateMytoken(res.TokenUpdate.Mytoken)
 		}
 	}
 	return prettyPrintJSON(res.Tokens)

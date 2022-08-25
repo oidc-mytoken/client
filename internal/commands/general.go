@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/Songmu/prompter"
-	"github.com/oidc-mytoken/api/v0"
 	"github.com/oidc-mytoken/server/shared/utils"
 	"github.com/oidc-mytoken/server/shared/utils/jwtutils"
 	"github.com/oidc-mytoken/server/shared/utils/ternary"
@@ -15,12 +14,10 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
-	"github.com/oidc-mytoken/client/internal/model"
 )
 
 type ptOptions struct {
 	Provider      string
-	Name          string
 	Mytoken       string
 	MytokenPrompt bool
 	MytokenFile   string
@@ -38,28 +35,11 @@ func (PTOptions) SetProvider(provider string) {
 	}
 	ptOpts[0].Provider = provider
 }
-func (PTOptions) SetName(name string) {
-	if len(ptOpts) == 0 {
-		ptOpts = make([]*ptOptions, 1)
-	}
-	ptOpts[0].Name = name
-}
 
 func (pt PTOptions) Provider() string {
 	if res := pt.search(
 		func(options *ptOptions) interface{} {
 			return ternary.If(options.Provider != "", options.Provider, nil)
-		},
-	); res != nil {
-		return res.(string)
-	}
-	return ""
-}
-
-func (pt PTOptions) Name() string {
-	if res := pt.search(
-		func(options *ptOptions) interface{} {
-			return ternary.If(options.Name != "", options.Name, nil)
 		},
 	); res != nil {
 		return res.(string)
@@ -147,16 +127,6 @@ func getPTFlags() []cli.Flag {
 			Placeholder: "PROVIDER",
 		},
 		&cli.StringFlag{
-			Name: "name",
-			Aliases: []string{
-				"t",
-				"n",
-			},
-			Usage:       "The `NAME` of the mytoken that should be used",
-			EnvVars:     []string{"MYTOKEN_NAME"},
-			Destination: &opts.Name,
-		},
-		&cli.StringFlag{
 			Name:        "MT",
 			Usage:       "The passed `MYTOKEN` is used instead of a stored one. If you want to use this, please check if one of the more secure options --MT-prompt, --MT-file or --MT-env can be used",
 			Destination: &opts.Mytoken,
@@ -190,28 +160,22 @@ func getPTFlags() []cli.Flag {
 	return flags
 }
 
-func (pt PTOptions) Check(capability ...api.Capability) (*model.Provider, string) {
-	token, _ := pt.getToken()
-	if token != "" {
-		if utils.IsJWT(token) {
-			p, _ := jwtutils.GetStringFromJWT(log.StandardLogger(), token, "oidc_iss")
-			pt.SetProvider(p)
-		}
-		p, _ := pt.checkProvider()
-		return p, token
-	}
-	p, err := pt.checkProvider()
+func (pt PTOptions) Check() (string, string) {
+	token, err := pt.getToken()
 	if err != nil {
 		log.Fatal(err)
 	}
-	token, err = config.Get().GetToken(p.Issuer, pt.Name, pt.SetName, capability...)
-	if err != nil {
-		log.Fatal(err)
+	if utils.IsJWT(token) {
+		p, _ := jwtutils.GetStringFromJWT(log.StandardLogger(), token, "oidc_iss")
+		pt.SetProvider(p)
+		config.Get().URL, _ = jwtutils.GetStringFromJWT(log.StandardLogger(), token, "iss")
 	}
+	p, _ := pt.getProvider()
 	return p, token
+
 }
 
-func (pt *PTOptions) getToken() (string, error) {
+func (pt PTOptions) getToken() (string, error) {
 	if pt.MytokenPrompt() {
 		return prompter.Password("Enter mytoken"), nil
 	}
@@ -234,46 +198,42 @@ func (pt *PTOptions) getToken() (string, error) {
 	return "", nil
 }
 
-func (pt *PTOptions) checkToken(issuer string) (string, error) {
-	tok, err := pt.getToken()
-	if err != nil || tok != "" {
-		return tok, err
-	}
-	return config.Get().GetToken(issuer, pt.Name, pt.SetName)
-}
-
-func (pt *PTOptions) checkProvider() (p *model.Provider, err error) {
+func (pt PTOptions) getProvider() (string, error) {
 	if pt.Provider() == "" {
-		issForToken, found := config.Get().TokensFileContent.TokenMapping[pt.Name()]
-		if found && len(issForToken) > 0 {
-			if len(issForToken) > 1 {
-				err = fmt.Errorf("Provider not specified and token name exists for multiple providers.")
-				return
-			}
-			pt.SetProvider(issForToken[0])
-		} else {
-			pt.SetProvider(config.Get().DefaultProvider)
-		}
+		pt.SetProvider(config.Get().DefaultProvider)
 		if pt.Provider() == "" {
-			if len(config.Get().TokensFileContent.Tokens) != 1 {
-				err = fmt.Errorf("Provider not specified and no default provider set")
-				return
-			}
-			for provider := range config.Get().TokensFileContent.Tokens {
-				// There's also one provider with an token, use that one
-				pt.SetProvider(provider)
-				break
-			}
+			return "", fmt.Errorf("Provider not specified and no default provider set")
 		}
 	}
-	isURL := strings.HasPrefix(pt.Provider(), "https://")
-	pp, ok := config.Get().Providers.FindBy(pt.Provider(), isURL)
-	if !ok && !isURL {
-		err = fmt.Errorf(
+	if isURL := strings.HasPrefix(pt.Provider(), "https://"); isURL {
+		return pt.Provider(), nil
+	}
+	pp, ok := config.Get().Providers[pt.Provider()]
+	if !ok {
+		return "", fmt.Errorf(
 			"Provider name '%s' not found in config file. Please provide a valid provider name or the provider url.",
 			pt.Provider(),
 		)
-		return
 	}
 	return pp, nil
+}
+
+func updateMytoken(updatedToken string) {
+	f := PTOptions{}.MytokenFile()
+	if f == "" {
+		_, err := fmt.Fprintf(
+			os.Stderr, "The used mytoken changed ("+
+				"this indicates that token rotation is enabled for it), "+
+				"but the updated mytoken cannot be stored back, because it was not passed in a file. "+
+				"This is the updated mytoken:\n%s\n", updatedToken,
+		)
+		if err != nil {
+			log.Error(err)
+		}
+		return
+	}
+	err := os.WriteFile(f, []byte(updatedToken), 0600)
+	if err != nil {
+		log.Error(err)
+	}
 }

@@ -83,19 +83,13 @@ func initSSHGrant(parent *cli.Command) {
 }
 
 func listSSH(_ *cli.Context) error {
-	provider, mytoken := settingsOptions.Check(api.CapabilitySSHGrantRead)
+	_, mytoken := settingsOptions.Check()
 	res, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIGet(mytoken)
 	if err != nil {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
-		}
+		updateMytoken(res.TokenUpdate.Mytoken)
 	}
 	if res.GrantEnabled {
 		fmt.Println("SSH Grant Type is enabled.")
@@ -143,7 +137,7 @@ func addSSHKey(ctx *cli.Context) error {
 		return fmt.Errorf("Required argument SSH_KEY missing")
 	}
 	keyArg := ctx.Args().Get(0)
-	provider, mytoken := settingsOptions.Check(api.CapabilitySSHGrant)
+	_, mytoken := settingsOptions.Check()
 	key, err := detectKey(keyArg)
 	if err != nil {
 		return err
@@ -179,13 +173,7 @@ func addSSHKey(ctx *cli.Context) error {
 		optCapabilities, optSubtokenCapabilities, callbacks,
 	)
 	if tokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(tokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
-		}
+		updateMytoken(tokenUpdate.Mytoken)
 	}
 	if err != nil {
 		return err
@@ -219,7 +207,7 @@ func deleteSSHKey(ctx *cli.Context) error {
 		return fmt.Errorf("Required argument SSH_KEY missing")
 	}
 	keyArg := ctx.Args().Get(0)
-	provider, mytoken := settingsOptions.Check(api.CapabilitySSHGrant)
+	_, mytoken := settingsOptions.Check()
 	var keyFP string
 	var key string
 	if isKeyFP(keyArg) {
@@ -236,13 +224,7 @@ func deleteSSHKey(ctx *cli.Context) error {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
-		}
+		updateMytoken(res.TokenUpdate.Mytoken)
 	}
 	fmt.Println("Successfully removed ssh key")
 	return nil

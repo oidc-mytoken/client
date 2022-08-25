@@ -36,18 +36,9 @@ func init() {
 func revoke(_ *cli.Context) error {
 	mytoken := config.Get().Mytoken
 	provider, mToken := revokeCommand.Check()
-	err := mytoken.Revocation.Revoke(mToken, provider.Issuer, revokeCommand.Recursive)
-	if err != nil {
-		return err
+	err := mytoken.Revocation.Revoke(mToken, provider, revokeCommand.Recursive)
+	if err == nil {
+		fmt.Println("Token revoked")
 	}
-	fmt.Println("Token revoked")
-	if revokeCommand.Name() == "" || provider == nil {
-		return nil
-	}
-	config.Get().TokensFileContent.Remove(revokeCommand.Name(), provider.Issuer)
-	if err = config.Get().TokensFileContent.Save(); err != nil {
-		return err
-	}
-	fmt.Println("Token deleted")
-	return nil
+	return err
 }
