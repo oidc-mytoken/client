@@ -13,6 +13,11 @@ default_token_capabilities:
 # The default provider to use
 default_provider:
 
+# Determines if WLCG Bearer Token Discovery
+# (https://github.com/WLCG-AuthZ-WG/bearer-token-discovery/blob/master/specification.md) should be used or not
+# (mytokens passed more directly, i.e. through command line options take precedence)
+use_wlcg_token_discovery: true
+
 # Here you can assign names to providers
 providers:
   egi: "https://aai.egi.eu/auth/realms/egi"

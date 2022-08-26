@@ -17,12 +17,11 @@ type Config struct {
 	URL     string                    `yaml:"instance"`
 	Mytoken *mytokenlib.MytokenServer `yaml:"-"`
 
-	DefaultProvider          string   `yaml:"default_provider"`
-	DefaultTokenCapabilities []string `yaml:"default_token_capabilities"`
-
-	TokenNamePrefix string `yaml:"token_name_prefix"`
-
-	Providers map[string]string `yaml:"providers"`
+	DefaultProvider          string            `yaml:"default_provider"`
+	DefaultTokenCapabilities []string          `yaml:"default_token_capabilities"`
+	TokenNamePrefix          string            `yaml:"token_name_prefix"`
+	UseWLCGTokenDiscovery    bool              `yaml:"use_wlcg_token_discovery"`
+	Providers                map[string]string `yaml:"providers"`
 
 	usedConfigDir string
 }
@@ -32,8 +31,9 @@ var defaultConfig = Config{
 		api.CapabilityAT,
 		api.CapabilityTokeninfo,
 	}.Strings(),
-	TokenNamePrefix: "<hostname>",
-	URL:             "https://mytoken.data.kit.edu",
+	TokenNamePrefix:       "<hostname>",
+	UseWLCGTokenDiscovery: true,
+	URL:                   "https://mytoken.data.kit.edu",
 }
 
 var conf *Config

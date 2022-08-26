@@ -14,6 +14,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
+	"github.com/oidc-mytoken/client/internal/utils/wlcgtokendiscovery"
 )
 
 type mtOptions struct {
@@ -59,6 +60,13 @@ func (mt MTOptions) MytokenFile() string {
 		return res.(string)
 	}
 	return ""
+}
+
+func (MTOptions) SetMytokenFile(f string) {
+	if len(theMTOpts) == 0 {
+		theMTOpts = make([]*mtOptions, 1)
+	}
+	theMTOpts[0].MytokenFile = f
 }
 
 func (mt MTOptions) MytokenEnv() string {
@@ -180,6 +188,11 @@ func (mt MTOptions) _getToken() string {
 			log.Fatal(err)
 		}
 		return strings.SplitN(string(content), "\n", 2)[0]
+	}
+	if config.Get().UseWLCGTokenDiscovery {
+		t, f := wlcgtokendiscovery.FindToken()
+		mt.SetMytokenFile(f)
+		return t
 	}
 	return ""
 }

@@ -32,6 +32,7 @@ type restrictionOpts struct {
 type mtOpts struct {
 	MTOptions
 	TransferCode string
+	UseOIDCFlow  bool
 	Provider     string
 
 	Capabilities         api.Capabilities
@@ -269,6 +270,12 @@ func init() {
 			EnvVars:     []string{"MYTOKEN_TC"},
 			Destination: &mtCommand.TransferCode,
 		},
+		&cli.BoolFlag{
+			Name:             "oidc",
+			Usage:            "Use an OpenID Connect flow to create a mytoken",
+			Destination:      &mtCommand.UseOIDCFlow,
+			HideDefaultValue: true,
+		},
 		&cli.StringFlag{
 			Name: "provider",
 			Aliases: []string{
@@ -407,7 +414,7 @@ func obtainMT(context *cli.Context) (string, error) {
 		return mt, err
 	}
 	mtGrant := mtCommand.GetToken(&mtCommand.Provider)
-	if mtGrant != "" {
+	if mtGrant != "" && !mtCommand.UseOIDCFlow {
 		mtRes, err := mytoken.Mytoken.APIFromMytoken(
 			mtGrant, mtCommand.Provider, r, mtCommand.Capabilities,
 			mtCommand.SubtokenCapabilities, mtCommand.Rotation(),
