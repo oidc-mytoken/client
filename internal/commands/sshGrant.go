@@ -25,8 +25,8 @@ var optSubtokenCapabilities api.Capabilities
 var optRestrictions restrictionOpts
 
 func initSSHGrant(parent *cli.Command) {
-	cmdFlags := getPTFlags()
-	subCmdFlags := getPTFlags()
+	cmdFlags := getMTFlags()
+	subCmdFlags := getMTFlags()
 	cmd := &cli.Command{
 		Name:    "ssh",
 		Aliases: []string{"SSH"},
@@ -83,7 +83,7 @@ func initSSHGrant(parent *cli.Command) {
 }
 
 func listSSH(_ *cli.Context) error {
-	_, mytoken := settingsOptions.Check()
+	mytoken := settingsOptions.MustGetToken()
 	res, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIGet(mytoken)
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func addSSHKey(ctx *cli.Context) error {
 		return fmt.Errorf("Required argument SSH_KEY missing")
 	}
 	keyArg := ctx.Args().Get(0)
-	_, mytoken := settingsOptions.Check()
+	mytoken := settingsOptions.MustGetToken()
 	key, err := detectKey(keyArg)
 	if err != nil {
 		return err
@@ -207,7 +207,7 @@ func deleteSSHKey(ctx *cli.Context) error {
 		return fmt.Errorf("Required argument SSH_KEY missing")
 	}
 	keyArg := ctx.Args().Get(0)
-	_, mytoken := settingsOptions.Check()
+	mytoken := settingsOptions.MustGetToken()
 	var keyFP string
 	var key string
 	if isKeyFP(keyArg) {

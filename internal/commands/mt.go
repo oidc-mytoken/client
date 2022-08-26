@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -15,11 +16,89 @@ import (
 	cutils "github.com/oidc-mytoken/client/internal/utils"
 )
 
-var mtCommand = struct {
-	Tag       string
+type restrictionOpts struct {
+	Restrictions          string
+	RestrictScopes        cli.StringSlice
+	RestrictAudiences     cli.StringSlice
+	RestrictExp           string
+	RestrictNbf           string
+	RestrictIP            cli.StringSlice
+	RestrictGeoIPAllow    cli.StringSlice
+	RestrictGeoIPDisallow cli.StringSlice
+	RestrictUsagesOther   int64
+	RestrictUsagesAT      int64
+}
+
+type mtOpts struct {
+	MTOptions
+	TransferCode string
+	Provider     string
+
+	Capabilities         api.Capabilities
+	SubtokenCapabilities api.Capabilities
+
+	restrictionOpts
+
+	RotationStr string
+	RotationObj api.Rotation
+
+	Name      string
 	TokenType string
 	Out       string
-}{}
+}
+
+var mtCommand mtOpts
+
+func (opts mtOpts) getProvider() (string, error) {
+	if opts.Provider == "" {
+		opts.Provider = config.Get().DefaultProvider
+		if opts.Provider == "" {
+			return "", fmt.Errorf("Provider not specified and no default provider set")
+		}
+	}
+	if isURL := strings.HasPrefix(opts.Provider, "https://"); isURL {
+		return opts.Provider, nil
+	}
+	pp, ok := config.Get().Providers[opts.Provider]
+	if !ok {
+		return "", fmt.Errorf(
+			"Provider name '%s' not found in config file. Please provide a valid provider name or the provider url.",
+			opts.Provider,
+		)
+	}
+	return pp, nil
+}
+func (opts *mtOpts) parseRotationOption() error {
+	rotStr := opts.RotationStr
+	if rotStr == "" {
+		return nil
+	}
+	if rotStr[0] == '{' {
+		return json.Unmarshal([]byte(rotStr), &opts.RotationObj)
+	}
+	data, err := ioutil.ReadFile(rotStr)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, &opts.RotationObj)
+}
+
+func (opts mtOpts) Rotation() *api.Rotation {
+	rot := opts.RotationObj
+	if rot.OnAT {
+		return &rot
+	}
+	if rot.OnOther {
+		return &rot
+	}
+	if rot.AutoRevoke {
+		return &rot
+	}
+	if rot.Lifetime > 0 {
+		return &rot
+	}
+	return nil
+}
 
 func getCapabilityFlag(c *api.Capabilities) cli.Flag {
 	caps := make(cli.Choices)
@@ -136,35 +215,14 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 		},
 	}
 }
-
-func getMTFlags(store bool) []cli.Flag {
-	opts := &commonMTOptions.obtainOpts
-	if store {
-		opts = &commonMTOptions.storeOpts
-	}
-
-	flags := append(
-		getRestrFlags(&opts.restrictionOpts),
-		&cli.StringFlag{
-			Name:        "TC",
-			Usage:       "Use the passed `TRANSFER_CODE` to exchange it into a mytoken",
-			EnvVars:     []string{"MYTOKEN_TC"},
-			Destination: &opts.TransferCode,
-		},
-		&cli.BoolFlag{
-			Name:             "oidc",
-			Usage:            "Use an OpenID Connect flow to create a mytoken",
-			Destination:      &opts.UseOIDCFlow,
-			HideDefaultValue: true,
-		},
-		getCapabilityFlag(&opts.Capabilities),
-		getSubtokenCapabilityFlag(&opts.SubtokenCapabilities),
+func getRotationFlags(rotStr *string, rot *api.Rotation) []cli.Flag {
+	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        "rotation",
 			Aliases:     []string{"rotate"},
 			Usage:       "The rotation policy for the requested mytoken. Can be a json object or a path to a json file.'",
 			EnvVars:     []string{"MYTOKEN_ROTATION"},
-			Destination: &opts.RotationStr,
+			Destination: rotStr,
 			Placeholder: "ROTATION",
 		},
 		&cli.BoolFlag{
@@ -175,81 +233,108 @@ func getMTFlags(store bool) []cli.Flag {
 				"rotation-on-at",
 			},
 			Usage:            "Rotate this mytoken when it is used to obtain access tokens",
-			Destination:      &opts.RotationObj.OnAT,
+			Destination:      &rot.OnAT,
 			HideDefaultValue: true,
 		},
 		&cli.BoolFlag{
 			Name:             "rotation-on-other",
 			Aliases:          []string{"rotate-on-other"},
 			Usage:            "Rotate this mytoken when it is used for actions other than obtaining access tokens",
-			Destination:      &opts.RotationObj.OnOther,
+			Destination:      &rot.OnOther,
 			HideDefaultValue: true,
 		},
 		&cli.BoolFlag{
 			Name: "rotation-auto-revoke",
 			Usage: "If set, " +
 				"the mytoken and all it subtokens are automatically revoked when a potential abuse is detected",
-			Destination:      &opts.RotationObj.AutoRevoke,
+			Destination:      &rot.AutoRevoke,
 			HideDefaultValue: true,
 		},
 		&cli.Uint64Flag{
 			Name:        "rotation-lifetime",
 			Usage:       "Restrict the lifetime of a single rotated mytoken; given in seconds",
 			DefaultText: "infinite",
-			Destination: &opts.RotationObj.Lifetime,
+			Destination: &rot.Lifetime,
 			Placeholder: "LIFETIME",
 		},
-	)
-	flags = append(getPTFlags(), flags...)
-	return flags
+	}
 }
 
 func init() {
-	cmd :=
-		&cli.Command{
-			Name:   "MT",
+	flags := append(
+		getRestrFlags(&mtCommand.restrictionOpts),
+		&cli.StringFlag{
+			Name:        "TC",
+			Usage:       "Use the passed `TRANSFER_CODE` to exchange it into a mytoken",
+			EnvVars:     []string{"MYTOKEN_TC"},
+			Destination: &mtCommand.TransferCode,
+		},
+		&cli.StringFlag{
+			Name: "provider",
+			Aliases: []string{
+				"i",
+				"issuer",
+			},
+			Usage: "The name or issuer url of the OpenID provider that should be used; only needed if mytoken is" +
+				" obtained through OIDC",
+			EnvVars:     []string{"MYTOKEN_PROVIDER"},
+			Destination: &mtCommand.Provider,
+			Placeholder: "PROVIDER",
+		},
+		getCapabilityFlag(&mtCommand.Capabilities),
+		getSubtokenCapabilityFlag(&mtCommand.SubtokenCapabilities),
+	)
+	flags = append(flags, getRotationFlags(&mtCommand.RotationStr, &mtCommand.RotationObj)...)
+	flags = append(
+		flags,
+		&cli.StringFlag{
+			Name:        "name",
+			Aliases:     []string{"n"},
+			Usage:       "A name for the returned mytoken; used for finding the token in a list of mytokens.",
+			Destination: &mtCommand.Name,
+			Placeholder: "NAME",
+		},
+		&cli.ChoiceFlag{
+			Name:        "token-type",
+			Usage:       "The type of the returned token.",
+			Value:       "token",
+			Choice:      cli.NewStringChoice("token", "short", "transfer"),
+			Destination: &mtCommand.TokenType,
+			Placeholder: "TYPE",
+		},
+		&cli.StringFlag{
+			Name:        "out",
+			Aliases:     []string{"o"},
+			Usage:       "The mytoken will be printed to this output",
+			Value:       "/dev/stdout",
+			Destination: &mtCommand.Out,
+			Placeholder: "FILE",
+		},
+	)
+	app.Commands = append(
+		app.Commands, &cli.Command{
+			Name: "MT",
+			Aliases: []string{
+				"mt",
+				"mytoken",
+			},
 			Usage:  "Obtain a mytoken",
 			Action: obtainMTCmd,
-			Flags: append(
-				getMTFlags(false),
-				&cli.StringFlag{
-					Name:        "tag",
-					Usage:       "A name for the returned mytoken; used for finding the token in a list of mytokens.",
-					Destination: &mtCommand.Tag,
-					Placeholder: "NAME",
-				},
-				&cli.ChoiceFlag{
-					Name:        "token-type",
-					Usage:       "The type of the returned token. Can only be used if token is not stored.",
-					Value:       "token",
-					Choice:      cli.NewStringChoice("token", "short", "transfer"),
-					Destination: &mtCommand.TokenType,
-					Placeholder: "TYPE",
-				},
-				&cli.StringFlag{
-					Name:        "out",
-					Aliases:     []string{"o"},
-					Usage:       "The mytoken will be printed to this output",
-					Value:       "/dev/stdout",
-					Destination: &mtCommand.Out,
-					Placeholder: "FILE",
-				},
-			),
-		}
-	app.Commands = append(app.Commands, cmd)
+			Flags:  appendMTFlags(flags...),
+		},
+	)
 }
 
 func obtainMTCmd(context *cli.Context) error {
-	opts := commonMTOptions.Common(false)
-	if len(opts.Capabilities) == 0 {
-		opts.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities)
+	if len(mtCommand.Capabilities) == 0 {
+		mtCommand.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities)
 	}
 
-	st, err := obtainMT(&opts, context, mtCommand.Tag, mtCommand.TokenType)
+	mt, err := obtainMT(context)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(mtCommand.Out, append([]byte(st), '\n'), 0600)
+	return os.WriteFile(mtCommand.Out, append([]byte(mt), '\n'), 0600)
 }
 
 func parseRestrictionOpts(opts *restrictionOpts, ctx *cli.Context) (r api.Restrictions, err error) {
@@ -287,33 +372,33 @@ func parseRestrictionOpts(opts *restrictionOpts, ctx *cli.Context) (r api.Restri
 	return
 }
 
-func obtainMT(opts *commonMTOpts, context *cli.Context, name, responseType string) (string, error) {
+func obtainMT(context *cli.Context) (string, error) {
 	mytoken := config.Get().Mytoken
-	if opts.TransferCode != "" {
-		return mytoken.Mytoken.FromTransferCode(opts.TransferCode)
+	if mtCommand.TransferCode != "" {
+		return mytoken.Mytoken.FromTransferCode(mtCommand.TransferCode)
 	}
 
-	tokenName := name
+	tokenName := mtCommand.Name
 	prefix := config.Get().TokenNamePrefix
-	if name != "" && prefix != "" {
-		tokenName = fmt.Sprintf("%s:%s", prefix, name)
+	if tokenName != "" && prefix != "" {
+		tokenName = fmt.Sprintf("%s:%s", prefix, tokenName)
 	}
-	if err := opts.parseRotationOption(); err != nil {
+	if err := mtCommand.parseRotationOption(); err != nil {
 		return "", err
 	}
-	r, err := parseRestrictionOpts(&opts.restrictionOpts, context)
+	r, err := parseRestrictionOpts(&mtCommand.restrictionOpts, context)
 	if err != nil {
 		return "", err
 	}
-	if ssh := opts.SSH(); ssh != "" {
+	if ssh := mtCommand.SSH(); ssh != "" {
 		req := api.GeneralMytokenRequest{
 			GrantType:            api.GrantTypeSSH,
 			Restrictions:         r,
-			Capabilities:         opts.Capabilities,
-			SubtokenCapabilities: opts.SubtokenCapabilities,
+			Capabilities:         mtCommand.Capabilities,
+			SubtokenCapabilities: mtCommand.SubtokenCapabilities,
 			Name:                 tokenName,
-			ResponseType:         responseType,
-			Rotation:             opts.Rotation(),
+			ResponseType:         mtCommand.TokenType,
+			Rotation:             mtCommand.Rotation(),
 		}
 		mt, err := doSSHReturnOutput(ssh, api.SSHRequestMytoken, req)
 		if mt != "" && mt[len(mt)-1] == '\n' {
@@ -321,55 +406,54 @@ func obtainMT(opts *commonMTOpts, context *cli.Context, name, responseType strin
 		}
 		return mt, err
 	}
-	provider, err := opts.PTOptions.getProvider()
-	if err != nil {
-		return "", err
-	}
-	if opts.UseOIDCFlow {
-		callbacks := mytokenlib.PollingCallbacks{
-			Init: func(authorizationURL string) error {
-				_, _ = fmt.Fprintln(os.Stderr, "Using any device please visit the following url to continue:")
-				_, _ = fmt.Fprintln(os.Stderr)
-				_, _ = fmt.Fprintln(os.Stderr, authorizationURL)
-				_, _ = fmt.Fprintln(os.Stderr)
-				return nil
-			},
-			Callback: func(interval int64, iteration int) {
-				if iteration == 0 {
-					_, _ = fmt.Fprint(os.Stderr, "Starting polling ...")
-					return
-				}
-				if int64(iteration)%(15/interval) == 0 { // every 15s
-					_, _ = fmt.Fprint(os.Stderr, ".")
-				}
-			},
-			End: func() {
-				_, _ = fmt.Fprintln(os.Stderr)
-				_, _ = fmt.Fprintln(os.Stderr, "success")
-			},
-		}
-		return mytoken.Mytoken.FromAuthorizationFlow(
-			provider, r, opts.Capabilities,
-			opts.SubtokenCapabilities, opts.Rotation(), responseType,
-			tokenName, callbacks,
+	mtGrant := mtCommand.GetToken(&mtCommand.Provider)
+	if mtGrant != "" {
+		mtRes, err := mytoken.Mytoken.APIFromMytoken(
+			mtGrant, mtCommand.Provider, r, mtCommand.Capabilities,
+			mtCommand.SubtokenCapabilities, mtCommand.Rotation(),
+			mtCommand.TokenType, tokenName,
 		)
+		if err != nil {
+			return "", err
+		}
+		if mtRes.TokenUpdate != nil {
+			updateMytoken(mtRes.TokenUpdate.Mytoken)
+		}
+		return mtRes.Mytoken, nil
 	}
-	mtGrant, err := opts.PTOptions.getToken()
+
+	// OIDC
+	provider, err := mtCommand.getProvider()
 	if err != nil {
 		return "", err
 	}
-	mtRes, err := mytoken.Mytoken.APIFromMytoken(
-		mtGrant, provider, r, opts.Capabilities,
-		opts.SubtokenCapabilities, opts.Rotation(),
-		responseType, tokenName,
+	callbacks := mytokenlib.PollingCallbacks{
+		Init: func(authorizationURL string) error {
+			_, _ = fmt.Fprintln(os.Stderr, "Using any device please visit the following url to continue:")
+			_, _ = fmt.Fprintln(os.Stderr)
+			_, _ = fmt.Fprintln(os.Stderr, authorizationURL)
+			_, _ = fmt.Fprintln(os.Stderr)
+			return nil
+		},
+		Callback: func(interval int64, iteration int) {
+			if iteration == 0 {
+				_, _ = fmt.Fprint(os.Stderr, "Starting polling ...")
+				return
+			}
+			if int64(iteration)%(15/interval) == 0 { // every 15s
+				_, _ = fmt.Fprint(os.Stderr, ".")
+			}
+		},
+		End: func() {
+			_, _ = fmt.Fprintln(os.Stderr)
+			_, _ = fmt.Fprintln(os.Stderr, "success")
+		},
+	}
+	return mytoken.Mytoken.FromAuthorizationFlow(
+		provider, r, mtCommand.Capabilities,
+		mtCommand.SubtokenCapabilities, mtCommand.Rotation(), mtCommand.TokenType,
+		tokenName, callbacks,
 	)
-	if err != nil {
-		return "", err
-	}
-	if mtRes.TokenUpdate != nil {
-		updateMytoken(mtRes.TokenUpdate.Mytoken)
-	}
-	return mtRes.Mytoken, nil
 }
 
 func parseRestrictionOption(arg string) (api.Restrictions, error) {

@@ -15,7 +15,7 @@ default_provider:
 
 # Here you can assign names to providers
 providers:
-  - egi: "https://aai.egi.eu/auth/realms/egi"
-  - egi-dev: "https://aai-dev.egi.eu/auth/realms/egi"
-  - wlcg: "https://wlcg.cloud.cnaf.infn.it/"
+  egi: "https://aai.egi.eu/auth/realms/egi"
+  egi-dev: "https://aai-dev.egi.eu/auth/realms/egi"
+  wlcg: "https://wlcg.cloud.cnaf.infn.it/"
 

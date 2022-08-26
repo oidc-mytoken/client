@@ -16,8 +16,7 @@ import (
 	"github.com/oidc-mytoken/client/internal/config"
 )
 
-type ptOptions struct {
-	Provider      string
+type mtOptions struct {
 	Mytoken       string
 	MytokenPrompt bool
 	MytokenFile   string
@@ -25,31 +24,13 @@ type ptOptions struct {
 	SSH           string
 }
 
-var ptOpts = []*ptOptions{}
+var theMTOpts = []*mtOptions{}
 
-type PTOptions struct{}
+type MTOptions struct{}
 
-func (PTOptions) SetProvider(provider string) {
-	if len(ptOpts) == 0 {
-		ptOpts = make([]*ptOptions, 1)
-	}
-	ptOpts[0].Provider = provider
-}
-
-func (pt PTOptions) Provider() string {
-	if res := pt.search(
-		func(options *ptOptions) interface{} {
-			return ternary.If(options.Provider != "", options.Provider, nil)
-		},
-	); res != nil {
-		return res.(string)
-	}
-	return ""
-}
-
-func (pt PTOptions) Mytoken() string {
-	if res := pt.search(
-		func(options *ptOptions) interface{} {
+func (mt MTOptions) Mytoken() string {
+	if res := mt.search(
+		func(options *mtOptions) interface{} {
 			return ternary.If(options.Mytoken != "", options.Mytoken, nil)
 		},
 	); res != nil {
@@ -58,9 +39,9 @@ func (pt PTOptions) Mytoken() string {
 	return ""
 }
 
-func (pt PTOptions) MytokenPrompt() bool {
-	if res := pt.search(
-		func(options *ptOptions) interface{} {
+func (mt MTOptions) MytokenPrompt() bool {
+	if res := mt.search(
+		func(options *mtOptions) interface{} {
 			return ternary.If(options.MytokenPrompt, true, nil)
 		},
 	); res != nil {
@@ -69,9 +50,9 @@ func (pt PTOptions) MytokenPrompt() bool {
 	return false
 }
 
-func (pt PTOptions) MytokenFile() string {
-	if res := pt.search(
-		func(options *ptOptions) interface{} {
+func (mt MTOptions) MytokenFile() string {
+	if res := mt.search(
+		func(options *mtOptions) interface{} {
 			return ternary.If(options.MytokenFile != "", options.MytokenFile, nil)
 		},
 	); res != nil {
@@ -80,9 +61,9 @@ func (pt PTOptions) MytokenFile() string {
 	return ""
 }
 
-func (pt PTOptions) MytokenEnv() string {
-	if res := pt.search(
-		func(options *ptOptions) interface{} {
+func (mt MTOptions) MytokenEnv() string {
+	if res := mt.search(
+		func(options *mtOptions) interface{} {
 			return ternary.If(options.MytokenEnv != "", options.MytokenEnv, nil)
 		},
 	); res != nil {
@@ -91,9 +72,9 @@ func (pt PTOptions) MytokenEnv() string {
 	return ""
 }
 
-func (pt PTOptions) SSH() string {
-	if res := pt.search(
-		func(options *ptOptions) interface{} {
+func (mt MTOptions) SSH() string {
+	if res := mt.search(
+		func(options *mtOptions) interface{} {
 			return ternary.If(options.SSH != "", options.SSH, nil)
 		},
 	); res != nil {
@@ -102,8 +83,8 @@ func (pt PTOptions) SSH() string {
 	return ""
 }
 
-func (PTOptions) search(callback func(options *ptOptions) interface{}) interface{} {
-	for _, opts := range ptOpts {
+func (MTOptions) search(callback func(options *mtOptions) interface{}) interface{} {
+	for _, opts := range theMTOpts {
 		if res := callback(opts); res != nil {
 			return res
 		}
@@ -111,24 +92,14 @@ func (PTOptions) search(callback func(options *ptOptions) interface{}) interface
 	return nil
 }
 
-func getPTFlags() []cli.Flag {
-	opts := &ptOptions{}
-	ptOpts = append([]*ptOptions{opts}, ptOpts...)
+func getMTFlags() []cli.Flag {
+	opts := &mtOptions{}
+	theMTOpts = append([]*mtOptions{opts}, theMTOpts...)
 	flags := []cli.Flag{
 		&cli.StringFlag{
-			Name: "provider",
-			Aliases: []string{
-				"i",
-				"issuer",
-			},
-			Usage:       "The name or issuer url of the OpenID provider that should be used",
-			EnvVars:     []string{"MYTOKEN_PROVIDER"},
-			Destination: &opts.Provider,
-			Placeholder: "PROVIDER",
-		},
-		&cli.StringFlag{
-			Name:        "MT",
-			Usage:       "The passed `MYTOKEN` is used instead of a stored one. If you want to use this, please check if one of the more secure options --MT-prompt, --MT-file or --MT-env can be used",
+			Name: "MT",
+			Usage: "Uses the passed `MYTOKEN`; Please note that other options to pass the mytoken are more" +
+				" secure, e.g. --MT-prompt, --MT-file or --MT-env can be used",
 			Destination: &opts.Mytoken,
 		},
 		&cli.BoolFlag{
@@ -160,72 +131,67 @@ func getPTFlags() []cli.Flag {
 	return flags
 }
 
-func (pt PTOptions) Check() (string, string) {
-	token, err := pt.getToken()
-	if err != nil {
-		log.Fatal(err)
-	}
+func appendMTFlags(flags ...cli.Flag) []cli.Flag {
+	return append(flags, getMTFlags()...)
+}
+
+func updateIssuersFromJWT(token string, provider ...*string) {
 	if utils.IsJWT(token) {
-		p, _ := jwtutils.GetStringFromJWT(log.StandardLogger(), token, "oidc_iss")
-		pt.SetProvider(p)
-		config.Get().URL, _ = jwtutils.GetStringFromJWT(log.StandardLogger(), token, "iss")
-	}
-	p, _ := pt.getProvider()
-	return p, token
-
-}
-
-func (pt PTOptions) getToken() (string, error) {
-	if pt.MytokenPrompt() {
-		return prompter.Password("Enter mytoken"), nil
-	}
-	if pt.Mytoken() != "" {
-		return pt.Mytoken(), nil
-	}
-	if pt.MytokenEnv() != "" {
-		tok, ok := os.LookupEnv(pt.MytokenEnv())
+		p, ok := jwtutils.GetStringFromJWT(log.StandardLogger(), token, "oidc_iss")
+		if ok && len(provider) > 0 {
+			*(provider[0]) = p
+		}
+		iss, ok := jwtutils.GetStringFromJWT(log.StandardLogger(), token, "iss")
 		if ok {
-			return tok, nil
+			config.Get().URL = iss
 		}
 	}
-	if pt.MytokenFile() != "" {
-		content, err := ioutil.ReadFile(pt.MytokenFile())
-		if err != nil {
-			return "", err
-		}
-		return strings.SplitN(string(content), "\n", 2)[0], nil
+}
+func (mt MTOptions) GetToken(provider ...*string) string {
+	token := mt._getToken()
+	updateIssuersFromJWT(token, provider...)
+	return token
+}
+func (mt MTOptions) MustGetToken(provider ...*string) string {
+	token := mt._getToken()
+	if token == "" {
+		log.Fatal("No mytoken provided.")
 	}
-	return "", nil
+	updateIssuersFromJWT(token, provider...)
+	return token
 }
 
-func (pt PTOptions) getProvider() (string, error) {
-	if pt.Provider() == "" {
-		pt.SetProvider(config.Get().DefaultProvider)
-		if pt.Provider() == "" {
-			return "", fmt.Errorf("Provider not specified and no default provider set")
+func (mt MTOptions) _getToken() string {
+	if mt.MytokenPrompt() {
+		return prompter.Password("Enter mytoken")
+	}
+	if mt.Mytoken() != "" {
+		return mt.Mytoken()
+	}
+	if mt.MytokenEnv() != "" {
+		tok, ok := os.LookupEnv(mt.MytokenEnv())
+		if ok {
+			return tok
 		}
 	}
-	if isURL := strings.HasPrefix(pt.Provider(), "https://"); isURL {
-		return pt.Provider(), nil
+	if mt.MytokenFile() != "" {
+		content, err := ioutil.ReadFile(mt.MytokenFile())
+		if err != nil {
+			log.Fatal(err)
+		}
+		return strings.SplitN(string(content), "\n", 2)[0]
 	}
-	pp, ok := config.Get().Providers[pt.Provider()]
-	if !ok {
-		return "", fmt.Errorf(
-			"Provider name '%s' not found in config file. Please provide a valid provider name or the provider url.",
-			pt.Provider(),
-		)
-	}
-	return pp, nil
+	return ""
 }
 
 func updateMytoken(updatedToken string) {
-	f := PTOptions{}.MytokenFile()
+	f := MTOptions{}.MytokenFile()
 	if f == "" {
 		_, err := fmt.Fprintf(
 			os.Stderr, "The used mytoken changed ("+
 				"this indicates that token rotation is enabled for it), "+
 				"but the updated mytoken cannot be stored back, because it was not passed in a file. "+
-				"This is the updated mytoken:\n%s\n", updatedToken,
+				"This is the updated mytoken:\n%s\n\n", updatedToken,
 		)
 		if err != nil {
 			log.Error(err)

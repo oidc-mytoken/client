@@ -9,7 +9,7 @@ import (
 )
 
 var revokeCommand = struct {
-	PTOptions
+	MTOptions
 	Recursive bool
 }{}
 
@@ -19,8 +19,7 @@ func init() {
 			Name:   "revoke",
 			Usage:  "Revokes a mytoken",
 			Action: revoke,
-			Flags: append(
-				getPTFlags(),
+			Flags: appendMTFlags(
 				&cli.BoolFlag{
 					Name:             "recursive",
 					Aliases:          []string{"r"},
@@ -35,8 +34,8 @@ func init() {
 
 func revoke(_ *cli.Context) error {
 	mytoken := config.Get().Mytoken
-	provider, mToken := revokeCommand.Check()
-	err := mytoken.Revocation.Revoke(mToken, provider, revokeCommand.Recursive)
+	mToken := revokeCommand.MustGetToken()
+	err := mytoken.Revocation.Revoke(mToken, "", revokeCommand.Recursive)
 	if err == nil {
 		fmt.Println("Token revoked")
 	}

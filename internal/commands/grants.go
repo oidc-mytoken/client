@@ -11,8 +11,8 @@ import (
 )
 
 func initGrants(parent *cli.Command) {
-	grantsFlags := getPTFlags()
-	subCommandFlags := getPTFlags()
+	grantsFlags := getMTFlags()
+	subCommandFlags := getMTFlags()
 	cmd := &cli.Command{
 		Name:    "grants",
 		Aliases: []string{"grant-types"},
@@ -47,7 +47,7 @@ func initGrants(parent *cli.Command) {
 }
 
 func listGrants(_ *cli.Context) error {
-	_, mytoken := settingsOptions.Check()
+	mytoken := settingsOptions.MustGetToken()
 	res, err := config.Get().Mytoken.UserSettings.Grants.APIGet(mytoken)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func enableGrant(ctx *cli.Context) error {
 		return fmt.Errorf("Must provide exactly one grant to enable")
 	}
 	grant := ctx.Args().Get(0)
-	_, mytoken := settingsOptions.Check()
+	mytoken := settingsOptions.MustGetToken()
 	res, err := config.Get().Mytoken.UserSettings.Grants.APIEnableGrant(mytoken, grant)
 	if err != nil {
 		return err
@@ -107,7 +107,7 @@ func disableGrant(ctx *cli.Context) error {
 		return fmt.Errorf("Must provide exactly one grant to disable")
 	}
 	grant := ctx.Args().Get(0)
-	_, mytoken := settingsOptions.Check()
+	mytoken := settingsOptions.MustGetToken()
 	res, err := config.Get().Mytoken.UserSettings.Grants.APIDisableGrant(mytoken, grant)
 	if err != nil {
 		return err

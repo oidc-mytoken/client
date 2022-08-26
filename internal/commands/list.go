@@ -40,7 +40,7 @@ func listProviders(_ *cli.Context) error {
 	for n, i := range config.Get().Providers {
 		pNamesForIssuer[i] = n
 	}
-	fmt.Println("The connected mytoken instance supports the following providers:")
+	fmt.Printf("The connected mytoken instance ('%s') supports the following providers:\n", config.Get().URL)
 	for _, ip := range instanceProviders {
 		url := ip.Issuer
 		p, found := pNamesForIssuer[url]

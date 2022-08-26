@@ -11,7 +11,7 @@ import (
 )
 
 var atCommand = struct {
-	PTOptions
+	MTOptions
 	Scopes    cli.StringSlice
 	Audiences cli.StringSlice
 	Out       string
@@ -27,8 +27,7 @@ func init() {
 			},
 			Usage:  "Obtain an OIDC access token",
 			Action: getAT,
-			Flags: append(
-				getPTFlags(),
+			Flags: appendMTFlags(
 				&cli.StringSliceFlag{
 					Name:        "scope",
 					Aliases:     []string{"s"},
@@ -68,9 +67,9 @@ func getAT(context *cli.Context) error {
 		return doSSH(ssh, api.SSHRequestAccessToken, req)
 	}
 	mytoken := config.Get().Mytoken
-	provider, mToken := atc.Check()
+	mToken := atc.MustGetToken()
 	atRes, err := mytoken.AccessToken.APIGet(
-		mToken, provider, atc.Scopes.Value(), atc.Audiences.Value(), comment,
+		mToken, "", atc.Scopes.Value(), atc.Audiences.Value(), comment,
 	)
 	if err != nil {
 		return err
