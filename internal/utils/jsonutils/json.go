@@ -17,7 +17,10 @@ func IsJSONArray(data []byte) bool {
 	return json.Unmarshal(data, &d) == nil
 }
 
-var emptyArray = []byte{'[', ']'}
+var emptyArray = []byte{
+	'[',
+	']',
+}
 
 // MergeJSONArrays merges two json arrays into one
 func MergeJSONArrays(a1 []byte, a2 []byte) []byte {
@@ -34,9 +37,19 @@ func MergeJSONArrays(a1 []byte, a2 []byte) []byte {
 
 // Arrayify creates an JSON array with the passed object in
 func Arrayify(o []byte) []byte {
-	return bytes.Join([][]byte{
-		{'['},
-		o,
-		{']'},
-	}, nil)
+	return bytes.Join(
+		[][]byte{
+			{'['},
+			o,
+			{']'},
+		}, nil,
+	)
+}
+
+// UnwrapString removes the " around a string if they exist
+func UnwrapString(s []byte) []byte {
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		return s[1 : len(s)-1]
+	}
+	return s
 }

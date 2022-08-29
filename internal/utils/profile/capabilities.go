@@ -11,7 +11,8 @@ import (
 	"github.com/oidc-mytoken/client/internal/utils/jsonutils"
 )
 
-func parseCapabilityTemplate(content []byte) (api.Capabilities, error) {
+// ParseCapabilityTemplate parses the content of a capability template
+func ParseCapabilityTemplate(content []byte) (api.Capabilities, error) {
 	capStrings, err := _parseCapabilityTemplate(content)
 	capStrings = utils.UniqueSlice(capStrings)
 	var caps api.Capabilities = nil

@@ -12,7 +12,7 @@ import (
 	"github.com/oidc-mytoken/server/shared/utils/unixtime"
 )
 
-var profile_template_dummy_data = map[string]string{
+var profileTemplateDummyData = map[string]string{
 	"/etc/mytoken/profiles.d/A": `{
 			"name": "test_profile_A",
 			"rotation": "!A",
@@ -31,10 +31,10 @@ var profile_template_dummy_data = map[string]string{
 			"restrictions": [{
 				"scope": "openid profile",
 				"include": ["1d"]
-			}, {
-				"include": ["example"]
-			}, {
-				"include": ["1d", "ip-this"]
+			}, 
+			"example",
+			{
+				"include": "1d ip-this"
 			}]
 		}`,
 	"/etc/mytoken/profiles.d/nested":   `{"include":["A","nested-B"]}`,
@@ -45,6 +45,7 @@ var profile_template_dummy_data = map[string]string{
 		"on_other": true
 	}`,
 	"/etc/mytoken/rotation.d/1d":          `{"lifetime":86400}`,
+	"/etc/mytoken/rotation.d/1h":          `{"lifetime":3600}`,
 	"/etc/mytoken/rotation.d/revoke":      `{"auto_revoke":true}`,
 	"~/.config/mytoken/rotation.d/revoke": `{"auto_revoke":false}`,
 
@@ -74,7 +75,7 @@ func TestMain(m *testing.M) {
 }
 
 func readDummyData(path string) ([]byte, error) {
-	return []byte(profile_template_dummy_data[path]), nil
+	return []byte(profileTemplateDummyData[path]), nil
 }
 
 func TestTemplateReader_ReadFile(t *testing.T) {
@@ -93,19 +94,19 @@ func TestTemplateReader_ReadFile(t *testing.T) {
 		{
 			name:    "read global",
 			path:    "restrictions.d/1d",
-			want:    []byte(profile_template_dummy_data["/etc/mytoken/restrictions.d/1d"]),
+			want:    []byte(profileTemplateDummyData["/etc/mytoken/restrictions.d/1d"]),
 			wantErr: false,
 		},
 		{
 			name:    "read user",
 			path:    "capabilities.d/basic",
-			want:    []byte(profile_template_dummy_data["~/.config/mytoken/capabilities.d/basic"]),
+			want:    []byte(profileTemplateDummyData["~/.config/mytoken/capabilities.d/basic"]),
 			wantErr: false,
 		},
 		{
 			name:    "read both, user overwrites",
 			path:    "rotation.d/revoke",
-			want:    []byte(profile_template_dummy_data["~/.config/mytoken/rotation.d/revoke"]),
+			want:    []byte(profileTemplateDummyData["~/.config/mytoken/rotation.d/revoke"]),
 			wantErr: false,
 		},
 		{
@@ -147,7 +148,7 @@ func TestTemplateReader_readCapabilityTemplate(t *testing.T) {
 		{
 			name:    "read",
 			path:    "basic",
-			want:    []byte(profile_template_dummy_data["~/.config/mytoken/capabilities.d/basic"]),
+			want:    []byte(profileTemplateDummyData["~/.config/mytoken/capabilities.d/basic"]),
 			wantErr: false,
 		},
 	}
@@ -183,7 +184,7 @@ func TestTemplateReader_readProfile(t *testing.T) {
 		{
 			name:    "read",
 			path:    "A",
-			want:    []byte(profile_template_dummy_data["/etc/mytoken/profiles.d/A"]),
+			want:    []byte(profileTemplateDummyData["/etc/mytoken/profiles.d/A"]),
 			wantErr: false,
 		},
 	}
@@ -219,7 +220,7 @@ func TestTemplateReader_readRestrictionsTemplate(t *testing.T) {
 		{
 			name:    "read",
 			path:    "example",
-			want:    []byte(profile_template_dummy_data["/etc/mytoken/restrictions.d/example"]),
+			want:    []byte(profileTemplateDummyData["/etc/mytoken/restrictions.d/example"]),
 			wantErr: false,
 		},
 	}
@@ -255,7 +256,7 @@ func TestTemplateReader_readRotationTemplate(t *testing.T) {
 		{
 			name:    "read",
 			path:    "revoke",
-			want:    []byte(profile_template_dummy_data["~/.config/mytoken/rotation.d/revoke"]),
+			want:    []byte(profileTemplateDummyData["~/.config/mytoken/rotation.d/revoke"]),
 			wantErr: false,
 		},
 	}
@@ -295,46 +296,77 @@ func Test__parseCapabilityTemplate(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			name:           "string",
-			content:        []byte("AT other"),
-			wantCapStrings: []string{"AT", "other"},
-			wantErr:        false,
+			name:    "string",
+			content: []byte("AT other"),
+			wantCapStrings: []string{
+				"AT",
+				"other",
+			},
+			wantErr: false,
 		},
 		{
-			name:           "array",
-			content:        []byte(`["AT","other"]`),
-			wantCapStrings: []string{"AT", "other"},
-			wantErr:        false,
+			name:    "array",
+			content: []byte(`["AT","other"]`),
+			wantCapStrings: []string{
+				"AT",
+				"other",
+			},
+			wantErr: false,
 		},
 		{
-			name:           "include in array",
-			content:        []byte(`["!basic"]`),
-			wantCapStrings: []string{"AT", "tokeninfo", "list_mytokens"},
-			wantErr:        false,
+			name:    "include in array",
+			content: []byte(`["!basic"]`),
+			wantCapStrings: []string{
+				"AT",
+				"tokeninfo",
+				"list_mytokens",
+			},
+			wantErr: false,
 		},
 		{
-			name:           "include as string",
-			content:        []byte("!basic"),
-			wantCapStrings: []string{"AT", "tokeninfo", "list_mytokens"},
-			wantErr:        false,
+			name:    "include as string",
+			content: []byte("!basic"),
+			wantCapStrings: []string{
+				"AT",
+				"tokeninfo",
+				"list_mytokens",
+			},
+			wantErr: false,
 		},
 		{
-			name:           "include in string with other",
-			content:        []byte("!basic other"),
-			wantCapStrings: []string{"AT", "tokeninfo", "list_mytokens", "other"},
-			wantErr:        false,
+			name:    "include in string with other",
+			content: []byte("!basic other"),
+			wantCapStrings: []string{
+				"AT",
+				"tokeninfo",
+				"list_mytokens",
+				"other",
+			},
+			wantErr: false,
 		},
 		{
-			name:           "include in array with other",
-			content:        []byte(`["!basic", "other"]`),
-			wantCapStrings: []string{"AT", "tokeninfo", "list_mytokens", "other"},
-			wantErr:        false,
+			name:    "include in array with other",
+			content: []byte(`["!basic", "other"]`),
+			wantCapStrings: []string{
+				"AT",
+				"tokeninfo",
+				"list_mytokens",
+				"other",
+			},
+			wantErr: false,
 		},
 		{
-			name:           "duplicates",
-			content:        []byte(`["other", "!basic", "other", "AT"]`),
-			wantCapStrings: []string{"other", "AT", "tokeninfo", "list_mytokens", "other", "AT"},
-			wantErr:        false,
+			name:    "duplicates",
+			content: []byte(`["other", "!basic", "other", "AT"]`),
+			wantCapStrings: []string{
+				"other",
+				"AT",
+				"tokeninfo",
+				"list_mytokens",
+				"other",
+				"AT",
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -358,13 +390,19 @@ func Test__parseCapabilityTemplateByName(t *testing.T) {
 		name     string
 		fullPath string
 	}{
-		{name: "non-existing", fullPath: "/etc/mytoken/capabilities.d/non-existing"},
-		{name: "basic", fullPath: "~/.config/mytoken/capabilities.d/basic"},
+		{
+			name:     "non-existing",
+			fullPath: "/etc/mytoken/capabilities.d/non-existing",
+		},
+		{
+			name:     "basic",
+			fullPath: "~/.config/mytoken/capabilities.d/basic",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				want, wantErr := _parseCapabilityTemplate([]byte(profile_template_dummy_data[tt.fullPath]))
+				want, wantErr := _parseCapabilityTemplate([]byte(profileTemplateDummyData[tt.fullPath]))
 				got, err := _parseCapabilityTemplateByName(tt.name)
 				if err != nil && wantErr != nil && err.Error() != wantErr.Error() {
 					t.Errorf("_parseCapabilityTemplateByName() error = %v, wantErr %v", err, wantErr)
@@ -433,62 +471,110 @@ func Test_parseCapabilityTemplate(t *testing.T) {
 		{
 			name:    "string",
 			content: []byte("AT tokeninfo"),
-			want:    api.NewCapabilities([]string{"AT", "tokeninfo"}),
+			want: api.NewCapabilities(
+				[]string{
+					"AT",
+					"tokeninfo",
+				},
+			),
 			wantErr: false,
 		},
 		{
 			name:    "string with non-existing cap",
 			content: []byte("AT other"),
-			want:    api.NewCapabilities([]string{"AT", "other"}),
+			want: api.NewCapabilities(
+				[]string{
+					"AT",
+					"other",
+				},
+			),
 			wantErr: false,
 		},
 		{
 			name:    "array",
 			content: []byte(`["AT","tokeninfo"]`),
-			want:    api.NewCapabilities([]string{"AT", "tokeninfo"}),
+			want: api.NewCapabilities(
+				[]string{
+					"AT",
+					"tokeninfo",
+				},
+			),
 			wantErr: false,
 		},
 		{
 			name:    "include in array",
 			content: []byte(`["!basic"]`),
-			want:    api.NewCapabilities([]string{"AT", "tokeninfo", "list_mytokens"}),
+			want: api.NewCapabilities(
+				[]string{
+					"AT",
+					"tokeninfo",
+					"list_mytokens",
+				},
+			),
 			wantErr: false,
 		},
 		{
 			name:    "include as string",
 			content: []byte("!basic"),
-			want:    api.NewCapabilities([]string{"AT", "tokeninfo", "list_mytokens"}),
+			want: api.NewCapabilities(
+				[]string{
+					"AT",
+					"tokeninfo",
+					"list_mytokens",
+				},
+			),
 			wantErr: false,
 		},
 		{
 			name:    "include in string with other",
 			content: []byte("!basic settings"),
-			want:    api.NewCapabilities([]string{"AT", "tokeninfo", "list_mytokens", "settings"}),
+			want: api.NewCapabilities(
+				[]string{
+					"AT",
+					"tokeninfo",
+					"list_mytokens",
+					"settings",
+				},
+			),
 			wantErr: false,
 		},
 		{
 			name:    "include in array with other",
 			content: []byte(`["!basic", "settings"]`),
-			want:    api.NewCapabilities([]string{"AT", "tokeninfo", "list_mytokens", "settings"}),
+			want: api.NewCapabilities(
+				[]string{
+					"AT",
+					"tokeninfo",
+					"list_mytokens",
+					"settings",
+				},
+			),
 			wantErr: false,
 		},
 		{
 			name:    "duplicates",
 			content: []byte(`["settings", "!basic", "settings", "AT"]`),
-			want:    api.NewCapabilities([]string{"settings", "AT", "tokeninfo", "list_mytokens"}),
+			want: api.NewCapabilities(
+				[]string{
+					"settings",
+					"AT",
+					"tokeninfo",
+					"list_mytokens",
+				},
+			),
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				got, err := parseCapabilityTemplate(tt.content)
+				got, err := ParseCapabilityTemplate(tt.content)
 				if (err != nil) != tt.wantErr {
-					t.Errorf("parseCapabilityTemplate() error = %v, wantErr %v", err, tt.wantErr)
+					t.Errorf("ParseCapabilityTemplate() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
 				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("parseCapabilityTemplate() got = %v, want %v", got, tt.want)
+					t.Errorf("ParseCapabilityTemplate() got = %v, want %v", got, tt.want)
 				}
 			},
 		)
@@ -497,8 +583,14 @@ func Test_parseCapabilityTemplate(t *testing.T) {
 
 func Test_parseProfile(t *testing.T) {
 	aProfile := api.GeneralMytokenRequest{
-		Restrictions:         exampleRestrictions,
-		Capabilities:         api.NewCapabilities([]string{"AT", "tokeninfo", "list_mytokens"}),
+		Restrictions: exampleRestrictions,
+		Capabilities: api.NewCapabilities(
+			[]string{
+				"AT",
+				"tokeninfo",
+				"list_mytokens",
+			},
+		),
 		SubtokenCapabilities: api.NewCapabilities([]string{"AT"}),
 		Name:                 "test_profile_A",
 		Rotation: &api.Rotation{
@@ -519,7 +611,13 @@ func Test_parseProfile(t *testing.T) {
 				IPs:       []string{"this"},
 			},
 		},
-		Capabilities:         api.NewCapabilities([]string{"AT", "tokeninfo", "list_mytokens"}),
+		Capabilities: api.NewCapabilities(
+			[]string{
+				"AT",
+				"tokeninfo",
+				"list_mytokens",
+			},
+		),
 		SubtokenCapabilities: api.NewCapabilities([]string{"AT"}),
 		Name:                 "test_profile_B",
 		Rotation: &api.Rotation{
@@ -592,13 +690,13 @@ func Test_parseProfile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				got, err := parseProfile(tt.content)
+				got, err := ParseProfile(tt.content)
 				if (err != nil) != tt.wantErr {
-					t.Errorf("parseProfile() error = %v, wantErr %v", err, tt.wantErr)
+					t.Errorf("ParseProfile() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
 				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("parseProfile() got = %+v, want %+v", got, tt.want)
+					t.Errorf("ParseProfile() got = %+v, want %+v", got, tt.want)
 				}
 			},
 		)
@@ -610,15 +708,24 @@ func Test_parseProfileByName(t *testing.T) {
 		name     string
 		fullPath string
 	}{
-		{name: "non-existing", fullPath: "/etc/mytoken/profiles.d/non-existing"},
-		{name: "A", fullPath: "/etc/mytoken/profiles.d/A"},
-		{name: "B", fullPath: "~/.config/mytoken/profiles.d/B"},
+		{
+			name:     "non-existing",
+			fullPath: "/etc/mytoken/profiles.d/non-existing",
+		},
+		{
+			name:     "A",
+			fullPath: "/etc/mytoken/profiles.d/A",
+		},
+		{
+			name:     "B",
+			fullPath: "~/.config/mytoken/profiles.d/B",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				want, wantErr := parseProfile([]byte(profile_template_dummy_data[tt.fullPath]))
+				want, wantErr := ParseProfile([]byte(profileTemplateDummyData[tt.fullPath]))
 				got, err := parseProfileByName(tt.name)
 				if err != nil && wantErr != nil && err.Error() != wantErr.Error() {
 					t.Errorf("parseProfileByName() error = %v, wantErr %v", err, wantErr)
@@ -633,13 +740,13 @@ func Test_parseProfileByName(t *testing.T) {
 }
 
 var exampleRestrictions = api.Restrictions{
-	api.Restriction{
+	&api.Restriction{
 		Scope:       "openid profile email eduperson_entitlement storage.read",
 		Audiences:   []string{"https://storage.example.com"},
 		UsagesAT:    utils.NewInt64(1),
 		UsagesOther: utils.NewInt64(0),
 	},
-	api.Restriction{
+	&api.Restriction{
 		Scope:       "openid profile email eduperson_entitlement compute",
 		Audiences:   []string{"https://hpc.example.com"},
 		UsagesAT:    utils.NewInt64(1),
@@ -670,7 +777,7 @@ func Test_parseRestrictionsTemplate(t *testing.T) {
 		{
 			name:    "object",
 			content: []byte(`{"usages_AT":1}`),
-			want:    api.Restrictions{api.Restriction{UsagesAT: utils.NewInt64(1)}},
+			want:    api.Restrictions{&api.Restriction{UsagesAT: utils.NewInt64(1)}},
 			wantErr: false,
 		},
 		{
@@ -682,13 +789,13 @@ func Test_parseRestrictionsTemplate(t *testing.T) {
 		{
 			name:    "exp number string",
 			content: []byte(`{"exp":"1"}`),
-			want:    api.Restrictions{api.Restriction{ExpiresAt: 1}},
+			want:    api.Restrictions{&api.Restriction{ExpiresAt: 1}},
 			wantErr: false,
 		},
 		{
 			name:    "exp 1d",
 			content: []byte(`{"exp":"+1d"}`),
-			want:    api.Restrictions{api.Restriction{ExpiresAt: time.Now().Add(time.Hour * 24).Unix()}},
+			want:    api.Restrictions{&api.Restriction{ExpiresAt: time.Now().Add(time.Hour * 24).Unix()}},
 			wantErr: false,
 		},
 		{
@@ -705,8 +812,10 @@ func Test_parseRestrictionsTemplate(t *testing.T) {
 		{
 			name:    "array",
 			content: []byte(`[{"usages_AT":1},{"scope":"openid profile"}]`),
-			want: api.Restrictions{api.Restriction{UsagesAT: utils.NewInt64(1)},
-				api.Restriction{Scope: "openid profile"}},
+			want: api.Restrictions{
+				&api.Restriction{UsagesAT: utils.NewInt64(1)},
+				&api.Restriction{Scope: "openid profile"},
+			},
 			wantErr: false,
 		},
 		{
@@ -737,13 +846,13 @@ func Test_parseRestrictionsTemplate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				got, err := parseRestrictionsTemplate(tt.content)
+				got, err := ParseRestrictionsTemplate(tt.content)
 				if (err != nil) != tt.wantErr {
-					t.Errorf("parseRestrictionsTemplate() error = %v, wantErr %v", err, tt.wantErr)
+					t.Errorf("ParseRestrictionsTemplate() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
 				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("parseRestrictionsTemplate() got = %+v, want %+v", got, tt.want)
+					t.Errorf("ParseRestrictionsTemplate() got = %+v, want %+v", got, tt.want)
 				}
 			},
 		)
@@ -755,17 +864,32 @@ func Test_parseRestrictionsTemplateByName(t *testing.T) {
 		name    string
 		content string
 	}{
-		{name: "non-existing", content: profile_template_dummy_data["/etc/mytoken/restrictions.d/non-existing"]},
-		{name: "example", content: profile_template_dummy_data["/etc/mytoken/restrictions.d/example"]},
-		{name: "1d", content: profile_template_dummy_data["/etc/mytoken/restrictions.d/1d"]},
-		{name: "ip-this", content: profile_template_dummy_data["/etc/mytoken/restrictions.d/ip-this"]},
-		{name: "G", content: `{"exp":"+2d","nbf":"+1h","usages_AT":1}`},
+		{
+			name:    "non-existing",
+			content: profileTemplateDummyData["/etc/mytoken/restrictions.d/non-existing"],
+		},
+		{
+			name:    "example",
+			content: profileTemplateDummyData["/etc/mytoken/restrictions.d/example"],
+		},
+		{
+			name:    "1d",
+			content: profileTemplateDummyData["/etc/mytoken/restrictions.d/1d"],
+		},
+		{
+			name:    "ip-this",
+			content: profileTemplateDummyData["/etc/mytoken/restrictions.d/ip-this"],
+		},
+		{
+			name:    "G",
+			content: `{"exp":"+2d","nbf":"+1h","usages_AT":1}`,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				want, wantErr := parseRestrictionsTemplate([]byte(tt.content))
+				want, wantErr := ParseRestrictionsTemplate([]byte(tt.content))
 				got, err := parseRestrictionsTemplateByName(tt.name)
 				if err != nil && wantErr != nil && err.Error() != wantErr.Error() {
 					t.Errorf("parseRestrictionsTemplateByName() error = %v, wantErr %v", err, wantErr)
@@ -822,17 +946,23 @@ func Test_parseRotationTemplate(t *testing.T) {
 			want:    &api.Rotation{Lifetime: 86400},
 			wantErr: false,
 		},
+		{
+			name:    "overwrite order",
+			content: []byte(`1d 1h`),
+			want:    &api.Rotation{Lifetime: 86400},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				got, err := parseRotationTemplate(tt.content)
+				got, err := ParseRotationTemplate(tt.content)
 				if (err != nil) != tt.wantErr {
-					t.Errorf("parseRotationTemplate() error = %v, wantErr %v", err, tt.wantErr)
+					t.Errorf("ParseRotationTemplate() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
 				if err == nil && !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("parseRotationTemplate() got = %v, want %v", got, tt.want)
+					t.Errorf("ParseRotationTemplate() got = %v, want %v", got, tt.want)
 				}
 			},
 		)
@@ -844,16 +974,28 @@ func Test_parseRotationTemplateByName(t *testing.T) {
 		name     string
 		fullPath string
 	}{
-		{name: "non-existing", fullPath: "/etc/mytoken/rotation.d/non-existing"},
-		{name: "A", fullPath: "/etc/mytoken/rotation.d/A"},
-		{name: "1d", fullPath: "/etc/mytoken/rotation.d/1d"},
-		{name: "revoke", fullPath: "~/.config/mytoken/rotation.d/revoke"},
+		{
+			name:     "non-existing",
+			fullPath: "/etc/mytoken/rotation.d/non-existing",
+		},
+		{
+			name:     "A",
+			fullPath: "/etc/mytoken/rotation.d/A",
+		},
+		{
+			name:     "1d",
+			fullPath: "/etc/mytoken/rotation.d/1d",
+		},
+		{
+			name:     "revoke",
+			fullPath: "~/.config/mytoken/rotation.d/revoke",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				want, wantErr := parseRotationTemplate([]byte(profile_template_dummy_data[tt.fullPath]))
+				want, wantErr := ParseRotationTemplate([]byte(profileTemplateDummyData[tt.fullPath]))
 				got, err := parseRotationTemplateByName(tt.name)
 				if err != nil && wantErr != nil && err.Error() != wantErr.Error() {
 					t.Errorf("parseRotationTemplateByName() error = %v, wantErr %v", err, wantErr)

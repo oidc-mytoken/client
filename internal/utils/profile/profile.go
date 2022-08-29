@@ -35,10 +35,11 @@ func parseProfileByName(name string) (api.GeneralMytokenRequest, error) {
 	if err != nil {
 		return api.GeneralMytokenRequest{}, err
 	}
-	return parseProfile(content)
+	return ParseProfile(content)
 }
 
-func parseProfile(content []byte) (api.GeneralMytokenRequest, error) {
+// ParseProfile parses the content of a profile
+func ParseProfile(content []byte) (api.GeneralMytokenRequest, error) {
 	if len(content) == 0 {
 		return api.GeneralMytokenRequest{}, nil
 	}
@@ -51,19 +52,19 @@ func parseProfile(content []byte) (api.GeneralMytokenRequest, error) {
 	if err = errors.WithStack(json.Unmarshal(content, &p)); err != nil {
 		return p.GeneralMytokenRequest, err
 	}
-	p.GeneralMytokenRequest.Rotation, err = parseRotationTemplate([]byte(p.Rotation))
+	p.GeneralMytokenRequest.Rotation, err = ParseRotationTemplate([]byte(p.Rotation))
 	if err != nil {
 		return p.GeneralMytokenRequest, err
 	}
-	p.GeneralMytokenRequest.Capabilities, err = parseCapabilityTemplate([]byte(p.Capabilities))
+	p.GeneralMytokenRequest.Capabilities, err = ParseCapabilityTemplate([]byte(p.Capabilities))
 	if err != nil {
 		return p.GeneralMytokenRequest, err
 	}
-	p.GeneralMytokenRequest.SubtokenCapabilities, err = parseCapabilityTemplate([]byte(p.SubtokenCapabilities))
+	p.GeneralMytokenRequest.SubtokenCapabilities, err = ParseCapabilityTemplate([]byte(p.SubtokenCapabilities))
 	if err != nil {
 		return p.GeneralMytokenRequest, err
 	}
-	p.GeneralMytokenRequest.Restrictions, err = parseRestrictionsTemplate([]byte(p.Restrictions))
+	p.GeneralMytokenRequest.Restrictions, err = ParseRestrictionsTemplate([]byte(p.Restrictions))
 	if err != nil {
 		return p.GeneralMytokenRequest, err
 	}

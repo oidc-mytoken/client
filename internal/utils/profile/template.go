@@ -3,6 +3,7 @@ package profile
 import (
 	"encoding/json"
 	"path"
+	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/oidc-mytoken/server/shared/utils/fileutil"
@@ -82,7 +83,7 @@ func normalizeTemplateName(name string) string {
 }
 
 type includeTemplates struct {
-	Include []string `json:"include"`
+	Include json.RawMessage `json:"include"`
 }
 
 func createFinalTemplate(content []byte, read readFnc) ([]byte, error) {
@@ -97,6 +98,7 @@ func createFinalTemplate(content []byte, read readFnc) ([]byte, error) {
 		}
 		final := []byte(`[]`)
 		for _, c := range contents {
+			c = jsonutils.UnwrapString(c)
 			cf, err := createFinalTemplate(c, read)
 			if err != nil {
 				return nil, err
@@ -110,19 +112,40 @@ func createFinalTemplate(content []byte, read readFnc) ([]byte, error) {
 	}
 
 	if !jsonutils.IsJSONObject(content) {
-		// must be single template name
-		c, err := read(normalizeTemplateName(string(content)))
-		if err != nil {
-			return nil, err
+		// must be one or multiple template names
+		templates := strings.Split(string(content), " ")
+		if len(templates) == 1 {
+			// must be single template name
+			c, err := read(normalizeTemplateName(templates[0]))
+			if err != nil {
+				return nil, err
+			}
+			return createFinalTemplate(c, read)
 		}
-		return createFinalTemplate(c, read)
+		// multiple templates
+		return parseIncludes([]byte(`{}`), templates, read)
 	}
 	var inc includeTemplates
 	if err := errors.WithStack(json.Unmarshal(content, &inc)); err != nil {
 		return nil, err
 	}
+	includes := make([]string, 0)
+	if len(inc.Include) > 0 {
+		if inc.Include[0] == '[' {
+			if err := json.Unmarshal(inc.Include, &includes); err != nil {
+				return nil, err
+			}
+		} else {
+			inc.Include = jsonutils.UnwrapString(inc.Include)
+			includes = strings.Split(string(inc.Include), " ")
+		}
+	}
+	return parseIncludes(content, includes, read)
+}
 
-	for _, inP := range inc.Include {
+func parseIncludes(content []byte, includes []string, read readFnc) ([]byte, error) {
+	baseIsArray := jsonutils.IsJSONArray(content)
+	for _, inP := range includes {
 		c, err := read(normalizeTemplateName(inP))
 		if err != nil {
 			return nil, err

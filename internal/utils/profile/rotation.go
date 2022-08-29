@@ -12,10 +12,11 @@ func parseRotationTemplateByName(name string) (*api.Rotation, error) {
 	if err != nil {
 		return nil, err
 	}
-	return parseRotationTemplate(content)
+	return ParseRotationTemplate(content)
 }
 
-func parseRotationTemplate(content []byte) (*api.Rotation, error) {
+// ParseRotationTemplate parses the content of a rotation template
+func ParseRotationTemplate(content []byte) (*api.Rotation, error) {
 	if len(content) == 0 {
 		return nil, nil
 	}
