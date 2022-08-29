@@ -23,11 +23,11 @@ var emptyArray = []byte{
 }
 
 // MergeJSONArrays merges two json arrays into one
-func MergeJSONArrays(a1 []byte, a2 []byte) []byte {
-	if bytes.Compare(bytes.Trim(a1, " "), emptyArray) == 0 {
+func MergeJSONArrays(a1, a2 []byte) []byte {
+	if bytes.Equal(bytes.Trim(a1, " "), emptyArray) {
 		return a2
 	}
-	if bytes.Compare(bytes.Trim(a2, " "), emptyArray) == 0 {
+	if bytes.Equal(bytes.Trim(a2, " "), emptyArray) {
 		return a1
 	}
 	res := append(a1[:bytes.LastIndexByte(a1, ']')], ',')

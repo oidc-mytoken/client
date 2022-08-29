@@ -147,7 +147,7 @@ func Test_MergeJSONArrays(t *testing.T) {
 		t.Run(
 			test.name, func(t *testing.T) {
 				res := MergeJSONArrays(test.a1, test.a2)
-				if bytes.Compare(test.expected, res) != 0 {
+				if !bytes.Equal(test.expected, res) {
 					t.Errorf("MergeJSONArrays() = %v, want %v", res, test.expected)
 				}
 			},

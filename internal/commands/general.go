@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -183,7 +182,7 @@ func (mt MTOptions) _getToken() string {
 		}
 	}
 	if mt.MytokenFile() != "" {
-		content, err := ioutil.ReadFile(mt.MytokenFile())
+		content, err := os.ReadFile(mt.MytokenFile())
 		if err != nil {
 			log.Fatal(err)
 		}

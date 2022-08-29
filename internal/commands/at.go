@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
@@ -77,5 +77,5 @@ func getAT(context *cli.Context) error {
 	if atRes.TokenUpdate != nil {
 		updateMytoken(atRes.TokenUpdate.Mytoken)
 	}
-	return ioutil.WriteFile(atc.Out, append([]byte(atRes.AccessToken), '\n'), 0600)
+	return os.WriteFile(atc.Out, append([]byte(atRes.AccessToken), '\n'), 0600)
 }

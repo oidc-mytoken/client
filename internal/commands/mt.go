@@ -3,7 +3,6 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -77,7 +76,7 @@ func (opts *mtOpts) parseRotationOption() error {
 	if rotStr[0] == '{' {
 		return json.Unmarshal([]byte(rotStr), &opts.RotationObj)
 	}
-	data, err := ioutil.ReadFile(rotStr)
+	data, err := os.ReadFile(rotStr)
 	if err != nil {
 		return err
 	}

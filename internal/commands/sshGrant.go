@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -235,7 +234,7 @@ func detectKey(str string) (string, error) {
 		return str, nil
 	}
 	// The passed string is not a valid ssh public key, we assume it is a filepath
-	fileContent, err := ioutil.ReadFile(str)
+	fileContent, err := os.ReadFile(str)
 	if err != nil {
 		return "", errors.Wrap(err, "could not detect ssh public key")
 	}

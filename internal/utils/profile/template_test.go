@@ -124,7 +124,7 @@ func TestTemplateReader_ReadFile(t *testing.T) {
 					t.Errorf("ReadFile() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				if bytes.Compare(got, tt.want) != 0 {
+				if !bytes.Equal(got, tt.want) {
 					t.Errorf("ReadFile() got = '%s', want '%s'", got, tt.want)
 				}
 			},
@@ -160,7 +160,7 @@ func TestTemplateReader_readCapabilityTemplate(t *testing.T) {
 					t.Errorf("readCapabilityTemplate() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				if bytes.Compare(got, tt.want) != 0 {
+				if !bytes.Equal(got, tt.want) {
 					t.Errorf("readCapabilityTemplate() got = '%s', want '%s'", got, tt.want)
 				}
 			},
@@ -196,7 +196,7 @@ func TestTemplateReader_readProfile(t *testing.T) {
 					t.Errorf("readProfile() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				if bytes.Compare(got, tt.want) != 0 {
+				if !bytes.Equal(got, tt.want) {
 					t.Errorf("readProfile() got = '%s', want '%s'", got, tt.want)
 				}
 			},
@@ -232,7 +232,7 @@ func TestTemplateReader_readRestrictionsTemplate(t *testing.T) {
 					t.Errorf("readRestrictionsTemplate() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				if bytes.Compare(got, tt.want) != 0 {
+				if !bytes.Equal(got, tt.want) {
 					t.Errorf("readRestrictionsTemplate() got = '%s', want '%s'", got, tt.want)
 				}
 			},
@@ -268,7 +268,7 @@ func TestTemplateReader_readRotationTemplate(t *testing.T) {
 					t.Errorf("readRotationTemplate() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				if bytes.Compare(got, tt.want) != 0 {
+				if !bytes.Equal(got, tt.want) {
 					t.Errorf("readRotationTemplate() got = '%s', want '%s'", got, tt.want)
 				}
 			},

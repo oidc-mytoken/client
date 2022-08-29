@@ -13,7 +13,7 @@ func init() {
 	uid = os.Getuid()
 }
 
-func FindToken() (t string, f string) {
+func FindToken() (t, f string) {
 	t = lookInEnv()
 	if t != "" {
 		return
@@ -48,7 +48,7 @@ func lookInFile(f string) (string, string) {
 	return strings.TrimSpace(string(t)), f
 }
 
-func lookInTokenFileInDir(dir string) (t string, f string) {
+func lookInTokenFileInDir(dir string) (t, f string) {
 	if dir == "" {
 		return "", ""
 	}
