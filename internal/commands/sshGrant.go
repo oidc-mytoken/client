@@ -20,7 +20,6 @@ import (
 var noWriteHostEntry bool
 var optName string
 var optCapabilities api.Capabilities
-var optSubtokenCapabilities api.Capabilities
 var optRestrictions restrictionOpts
 
 func initSSHGrant(parent *cli.Command) {
@@ -50,7 +49,6 @@ func initSSHGrant(parent *cli.Command) {
 					append(
 						getRestrFlags(&optRestrictions),
 						getCapabilityFlag(&optCapabilities),
-						getSubtokenCapabilityFlag(&optSubtokenCapabilities),
 						&cli.StringFlag{
 							Name:        "key-name",
 							Usage:       "A name for identifying this ssh key",
@@ -169,7 +167,7 @@ func addSSHKey(ctx *cli.Context) error {
 	}
 	res, tokenUpdate, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIAdd(
 		mytoken, key, optName, restrictions,
-		optCapabilities, optSubtokenCapabilities, callbacks,
+		optCapabilities, callbacks,
 	)
 	if tokenUpdate != nil {
 		updateMytoken(tokenUpdate.Mytoken)

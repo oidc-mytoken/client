@@ -44,15 +44,15 @@ func Get() *Config {
 }
 
 func load(name string, locations []string) {
-	data, usedLocation := fileutil.ReadConfigFile(name, locations)
+	data, usedLocation, err := fileutil.ReadConfigFile(name, locations)
+	if err != nil {
+		log.WithError(err).Warning()
+	}
 	conf = &defaultConfig
-	if err := yaml.Unmarshal(data, conf); err != nil {
+	if err = yaml.Unmarshal(data, conf); err != nil {
 		log.Fatal(err)
 	}
 	conf.usedConfigDir = usedLocation
-	// if conf.URL == "" {
-	// 	log.Fatal("Must provide url of the mytoken instance in the config file.")
-	// }
 	mytokenlib.SetClient(httpClient.Do().GetClient())
 	mytoken, err := mytokenlib.NewMytokenServer(conf.URL)
 	if err != nil {

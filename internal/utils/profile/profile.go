@@ -60,10 +60,6 @@ func ParseProfile(content []byte) (api.GeneralMytokenRequest, error) {
 	if err != nil {
 		return p.GeneralMytokenRequest, err
 	}
-	p.GeneralMytokenRequest.SubtokenCapabilities, err = ParseCapabilityTemplate([]byte(p.SubtokenCapabilities))
-	if err != nil {
-		return p.GeneralMytokenRequest, err
-	}
 	p.GeneralMytokenRequest.Restrictions, err = ParseRestrictionsTemplate([]byte(p.Restrictions))
 	if err != nil {
 		return p.GeneralMytokenRequest, err

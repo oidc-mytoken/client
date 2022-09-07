@@ -17,7 +17,6 @@ var profileTemplateDummyData = map[string]string{
 			"name": "test_profile_A",
 			"rotation": "!A",
 			"capabilities": ["AT", "!basic"],
-			"subtoken_capabilities": ["AT"],
 			"restrictions": "example"
 		}`,
 	"~/.config/mytoken/profiles.d/B": `{
@@ -27,7 +26,6 @@ var profileTemplateDummyData = map[string]string{
 				"on_AT": true
 			},
 			"capabilities": "AT !basic",
-			"subtoken_capabilities": "AT",
 			"restrictions": [{
 				"scope": "openid profile",
 				"include": ["1d"]
@@ -591,8 +589,7 @@ func Test_parseProfile(t *testing.T) {
 				"list_mytokens",
 			},
 		),
-		SubtokenCapabilities: api.NewCapabilities([]string{"AT"}),
-		Name:                 "test_profile_A",
+		Name: "test_profile_A",
 		Rotation: &api.Rotation{
 			Lifetime: 86400,
 			OnOther:  true,
@@ -618,8 +615,7 @@ func Test_parseProfile(t *testing.T) {
 				"list_mytokens",
 			},
 		),
-		SubtokenCapabilities: api.NewCapabilities([]string{"AT"}),
-		Name:                 "test_profile_B",
+		Name: "test_profile_B",
 		Rotation: &api.Rotation{
 			Lifetime:   86400,
 			OnAT:       true,
@@ -627,15 +623,14 @@ func Test_parseProfile(t *testing.T) {
 		},
 	}
 	bProfile2 := api.GeneralMytokenRequest{
-		Issuer:               bProfile.Issuer,
-		GrantType:            bProfile.GrantType,
-		Restrictions:         bProfile.Restrictions,
-		Capabilities:         bProfile.Capabilities,
-		SubtokenCapabilities: bProfile.SubtokenCapabilities,
-		Name:                 "changed",
-		ResponseType:         bProfile.ResponseType,
-		MaxTokenLen:          bProfile.MaxTokenLen,
-		Rotation:             bProfile.Rotation,
+		Issuer:       bProfile.Issuer,
+		GrantType:    bProfile.GrantType,
+		Restrictions: bProfile.Restrictions,
+		Capabilities: bProfile.Capabilities,
+		Name:         "changed",
+		ResponseType: bProfile.ResponseType,
+		MaxTokenLen:  bProfile.MaxTokenLen,
+		Rotation:     bProfile.Rotation,
 	}
 
 	tests := []struct {

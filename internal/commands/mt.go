@@ -34,8 +34,7 @@ type mtOpts struct {
 	UseOIDCFlow  bool
 	Provider     string
 
-	Capabilities         api.Capabilities
-	SubtokenCapabilities api.Capabilities
+	Capabilities api.Capabilities
 
 	restrictionOpts
 
@@ -110,22 +109,6 @@ func getCapabilityFlag(c *api.Capabilities) cli.Flag {
 		Aliases:     []string{"capabilities"},
 		Choice:      cli.NewChoice(caps),
 		Usage:       "Request the passed capabilities. Can be used multiple times",
-		DefaultText: "from config file",
-		Destination: c,
-		Placeholder: "CAPABILITY",
-	}
-}
-
-func getSubtokenCapabilityFlag(c *api.Capabilities) cli.Flag {
-	caps := make(cli.Choices)
-	for _, c := range api.AllCapabilities {
-		caps[c.Name] = c
-	}
-	return &cli.ChoiceFlag{
-		Name:        "subtoken-capability",
-		Aliases:     []string{"subtoken-capabilities"},
-		Choice:      cli.NewChoice(caps),
-		Usage:       "Request the passed subtoken capabilities. Can be used multiple times",
 		DefaultText: "from config file",
 		Destination: c,
 		Placeholder: "CAPABILITY",
@@ -288,7 +271,6 @@ func init() {
 			Placeholder: "PROVIDER",
 		},
 		getCapabilityFlag(&mtCommand.Capabilities),
-		getSubtokenCapabilityFlag(&mtCommand.SubtokenCapabilities),
 	)
 	flags = append(flags, getRotationFlags(&mtCommand.RotationStr, &mtCommand.RotationObj)...)
 	flags = append(
@@ -398,13 +380,13 @@ func obtainMT(context *cli.Context) (string, error) {
 	}
 	if ssh := mtCommand.SSH(); ssh != "" {
 		req := api.GeneralMytokenRequest{
-			GrantType:            api.GrantTypeSSH,
-			Restrictions:         r,
-			Capabilities:         mtCommand.Capabilities,
-			SubtokenCapabilities: mtCommand.SubtokenCapabilities,
-			Name:                 tokenName,
-			ResponseType:         mtCommand.TokenType,
-			Rotation:             mtCommand.Rotation(),
+			GrantType:       api.GrantTypeSSH,
+			Restrictions:    r,
+			Capabilities:    mtCommand.Capabilities,
+			Name:            tokenName,
+			ResponseType:    mtCommand.TokenType,
+			Rotation:        mtCommand.Rotation(),
+			ApplicationName: "mytoken client",
 		}
 		mt, err := doSSHReturnOutput(ssh, api.SSHRequestMytoken, req)
 		if mt != "" && mt[len(mt)-1] == '\n' {
@@ -416,8 +398,7 @@ func obtainMT(context *cli.Context) (string, error) {
 	if mtGrant != "" && !mtCommand.UseOIDCFlow {
 		mtRes, err := mytoken.Mytoken.APIFromMytoken(
 			mtGrant, mtCommand.Provider, r, mtCommand.Capabilities,
-			mtCommand.SubtokenCapabilities, mtCommand.Rotation(),
-			mtCommand.TokenType, tokenName,
+			mtCommand.Rotation(), mtCommand.TokenType, tokenName,
 		)
 		if err != nil {
 			return "", err
@@ -456,9 +437,7 @@ func obtainMT(context *cli.Context) (string, error) {
 		},
 	}
 	return mytoken.Mytoken.FromAuthorizationFlow(
-		provider, r, mtCommand.Capabilities,
-		mtCommand.SubtokenCapabilities, mtCommand.Rotation(), mtCommand.TokenType,
-		tokenName, callbacks,
+		provider, r, mtCommand.Capabilities, mtCommand.Rotation(), mtCommand.TokenType, tokenName, callbacks,
 	)
 }
 
