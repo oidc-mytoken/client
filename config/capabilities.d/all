@@ -1,0 +1,1 @@
+AT tokeninfo create_mytoken list_mytokens revoke_any_token settings
