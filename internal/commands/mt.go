@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/oidc-mytoken/client/internal/config"
 	cutils "github.com/oidc-mytoken/client/internal/utils"
+	"github.com/oidc-mytoken/client/internal/utils/profile"
 )
 
 type restrictionOpts struct {
@@ -28,87 +28,191 @@ type restrictionOpts struct {
 	RestrictUsagesAT      int64
 }
 
+type rotationOPts struct {
+	api.Rotation
+	RotationStr string
+}
+
+type profileOpts struct {
+	restrictionOpts
+	CapabilitiesStr string
+	rotationOPts
+	Name      string
+	TokenType string
+	provider  string
+}
+
 type mtOpts struct {
 	MTOptions
 	TransferCode string
 	UseOIDCFlow  bool
-	Provider     string
 
-	Capabilities api.Capabilities
+	profile string
+	profileOpts
+	request *api.GeneralMytokenRequest
 
-	restrictionOpts
-
-	RotationStr string
-	RotationObj api.Rotation
-
-	Name      string
-	TokenType string
-	Out       string
+	Out string
 }
 
 var mtCommand mtOpts
 
-func (opts mtOpts) getProvider() (string, error) {
-	if opts.Provider == "" {
-		opts.Provider = config.Get().DefaultProvider
-		if opts.Provider == "" {
-			return "", fmt.Errorf("Provider not specified and no default provider set")
+func (opts *mtOpts) parseProviderOpt() error {
+	if opts.provider == "" {
+		if opts.request.Issuer != "" {
+			return nil
+		}
+		opts.provider = config.Get().DefaultProvider
+		if opts.provider == "" {
+			return fmt.Errorf("Provider not specified and no default provider set")
 		}
 	}
-	if isURL := strings.HasPrefix(opts.Provider, "https://"); isURL {
-		return opts.Provider, nil
+	if isURL := strings.HasPrefix(opts.provider, "https://"); isURL {
+		opts.request.Issuer = opts.provider
+		return nil
 	}
-	pp, ok := config.Get().Providers[opts.Provider]
+	pp, ok := config.Get().Providers[opts.provider]
 	if !ok {
-		return "", fmt.Errorf(
+		return fmt.Errorf(
 			"Provider name '%s' not found in config file. Please provide a valid provider name or the provider url.",
-			opts.Provider,
+			opts.provider,
 		)
 	}
-	return pp, nil
+	opts.request.Issuer = pp
+	return nil
 }
+
+func (opts *mtOpts) parseCapabilitiesOption() error {
+	if opts.CapabilitiesStr == "" {
+		return nil
+	}
+	c, err := profile.ParseCapabilityTemplate([]byte(opts.CapabilitiesStr))
+	if err != nil {
+		return err
+	}
+	if len(c) != 0 {
+		opts.request.Capabilities = c
+	}
+	return nil
+}
+
 func (opts *mtOpts) parseRotationOption() error {
 	rotStr := opts.RotationStr
 	if rotStr == "" {
 		return nil
 	}
-	if rotStr[0] == '{' {
-		return json.Unmarshal([]byte(rotStr), &opts.RotationObj)
-	}
-	data, err := os.ReadFile(rotStr)
+	r, err := profile.ParseRotationTemplate([]byte(rotStr))
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(data, &opts.RotationObj)
-}
-
-func (opts mtOpts) Rotation() *api.Rotation {
-	rot := opts.RotationObj
-	if rot.OnAT {
-		return &rot
+	if opts.request.Rotation == nil {
+		opts.request.Rotation = r
+		return nil
 	}
-	if rot.OnOther {
-		return &rot
-	}
-	if rot.AutoRevoke {
-		return &rot
-	}
-	if rot.Lifetime > 0 {
-		return &rot
+	opts.request.Rotation.OnAT = opts.request.Rotation.OnAT || r.OnAT || opts.OnAT
+	opts.request.Rotation.OnOther = opts.request.Rotation.OnOther || r.OnOther || opts.OnOther
+	opts.request.Rotation.AutoRevoke = opts.request.Rotation.AutoRevoke || r.AutoRevoke || opts.AutoRevoke
+	if opts.Lifetime != 0 {
+		opts.request.Rotation.Lifetime = opts.Lifetime
+	} else if r.Lifetime != 0 {
+		opts.request.Rotation.Lifetime = r.Lifetime
 	}
 	return nil
 }
 
-func getCapabilityFlag(c *api.Capabilities) cli.Flag {
-	caps := make(cli.Choices)
-	for _, c := range api.AllCapabilities {
-		caps[c.Name] = c
+func parseRestrictionOpts(rOpts restrictionOpts, ctx *cli.Context) (api.Restrictions, error) {
+	mto := mtOpts{
+		profileOpts: profileOpts{
+			restrictionOpts: rOpts,
+		},
+		request: &api.GeneralMytokenRequest{},
 	}
-	return &cli.ChoiceFlag{
+	err := mto.parseRestrictionOpts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return mto.request.Restrictions, nil
+}
+
+func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
+	if opts.Restrictions != "" {
+		opts.request.Restrictions, err = profile.ParseRestrictionsTemplate([]byte(opts.Restrictions))
+		if err != nil {
+			return
+		}
+		return
+	}
+	nbf, err := cutils.ParseTime(opts.RestrictNbf)
+	if err != nil {
+		return
+	}
+	exp, err := cutils.ParseTime(opts.RestrictExp)
+	if err != nil {
+		return
+	}
+	rr := &api.Restriction{
+		NotBefore:     nbf,
+		ExpiresAt:     exp,
+		Scope:         strings.Join(opts.RestrictScopes.Value(), " "),
+		Audiences:     opts.RestrictAudiences.Value(),
+		IPs:           opts.RestrictIP.Value(),
+		GeoIPAllow:    opts.RestrictGeoIPAllow.Value(),
+		GeoIPDisallow: opts.RestrictGeoIPDisallow.Value(),
+	}
+	if ctx.IsSet("usages-AT") {
+		rr.UsagesAT = utils.NewInt64(opts.RestrictUsagesAT)
+	}
+	if ctx.IsSet("usages-other") {
+		rr.UsagesOther = utils.NewInt64(opts.RestrictUsagesOther)
+	}
+	if rr.UsagesAT != nil || rr.UsagesOther != nil || rr.NotBefore != 0 || rr.ExpiresAt != 0 || len(rr.Scope) != 0 ||
+		len(rr.Audiences) != 0 || len(rr.IPs) != 0 || len(rr.GeoIPAllow) != 0 || len(rr.GeoIPAllow) != 0 {
+		opts.request.Restrictions = api.Restrictions{rr}
+	}
+	return
+}
+
+func (opts *mtOpts) Request(ctx *cli.Context) (*api.GeneralMytokenRequest, error) {
+	if opts.request != nil {
+		return opts.request, nil
+	}
+	if opts.profile == "" {
+		opts.request = &api.GeneralMytokenRequest{}
+	} else {
+		r, err := profile.ParseProfile([]byte(opts.profile))
+		if err != nil {
+			return nil, err
+		}
+		opts.request = &r
+	}
+	if opts.Name != "" {
+		opts.request.Name = opts.Name
+	}
+	if opts.TokenType != "" {
+		opts.request.ResponseType = opts.TokenType
+	}
+	err := opts.parseRotationOption()
+	if err != nil {
+		return nil, err
+	}
+	err = opts.parseRestrictionOpts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = opts.parseCapabilitiesOption()
+	if err != nil {
+		return nil, err
+	}
+	if len(opts.request.Capabilities) == 0 {
+		opts.request.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities)
+	}
+	return opts.request, nil
+}
+
+func getCapabilityFlag(c *string) cli.Flag {
+	return &cli.StringFlag{
 		Name:        "capability",
 		Aliases:     []string{"capabilities"},
-		Choice:      cli.NewChoice(caps),
-		Usage:       "Request the passed capabilities. Can be used multiple times",
+		Usage:       "Request the passed capabilities.",
 		DefaultText: "from config file",
 		Destination: c,
 		Placeholder: "CAPABILITY",
@@ -245,7 +349,20 @@ func getRotationFlags(rotStr *string, rot *api.Rotation) []cli.Flag {
 
 func init() {
 	flags := append(
-		getRestrFlags(&mtCommand.restrictionOpts),
+		append(
+			[]cli.Flag{
+				&cli.StringFlag{
+					Name:  "profile",
+					Usage: "A mytoken profile describing the properties of the mytoken to be requested",
+					EnvVars: []string{
+						"MYTOKEN_PROFILE",
+					},
+					Destination: &mtCommand.profile,
+					Placeholder: "PROFILE",
+				},
+			},
+			getRestrFlags(&mtCommand.restrictionOpts)...,
+		),
 		&cli.StringFlag{
 			Name:        "TC",
 			Usage:       "Use the passed `TRANSFER_CODE` to exchange it into a mytoken",
@@ -267,12 +384,12 @@ func init() {
 			Usage: "The name or issuer url of the OpenID provider that should be used; only needed if mytoken is" +
 				" obtained through OIDC",
 			EnvVars:     []string{"MYTOKEN_PROVIDER"},
-			Destination: &mtCommand.Provider,
+			Destination: &mtCommand.provider,
 			Placeholder: "PROVIDER",
 		},
-		getCapabilityFlag(&mtCommand.Capabilities),
+		getCapabilityFlag(&mtCommand.CapabilitiesStr),
 	)
-	flags = append(flags, getRotationFlags(&mtCommand.RotationStr, &mtCommand.RotationObj)...)
+	flags = append(flags, getRotationFlags(&mtCommand.RotationStr, &mtCommand.Rotation)...)
 	flags = append(
 		flags,
 		&cli.StringFlag{
@@ -286,7 +403,7 @@ func init() {
 			Name:        "token-type",
 			Usage:       "The type of the returned token.",
 			Value:       "token",
-			Choice:      cli.NewStringChoice("token", "short", "transfer"),
+			Choice:      cli.NewStringChoice(api.ResponseTypeToken, "short", "transfer"),
 			Destination: &mtCommand.TokenType,
 			Placeholder: "TYPE",
 		},
@@ -314,9 +431,6 @@ func init() {
 }
 
 func obtainMTCmd(context *cli.Context) error {
-	if len(mtCommand.Capabilities) == 0 {
-		mtCommand.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities)
-	}
 
 	mt, err := obtainMT(context)
 	if err != nil {
@@ -325,80 +439,34 @@ func obtainMTCmd(context *cli.Context) error {
 	return os.WriteFile(mtCommand.Out, append([]byte(mt), '\n'), 0600)
 }
 
-func parseRestrictionOpts(opts *restrictionOpts, ctx *cli.Context) (r api.Restrictions, err error) {
-	if opts.Restrictions != "" {
-		r, err = parseRestrictionOption(opts.Restrictions)
-		if err != nil {
-			return
-		}
-		return
-	}
-	nbf, err := cutils.ParseTime(opts.RestrictNbf)
-	if err != nil {
-		return
-	}
-	exp, err := cutils.ParseTime(opts.RestrictExp)
-	if err != nil {
-		return
-	}
-	rr := &api.Restriction{
-		NotBefore:     nbf,
-		ExpiresAt:     exp,
-		Scope:         strings.Join(opts.RestrictScopes.Value(), " "),
-		Audiences:     opts.RestrictAudiences.Value(),
-		IPs:           opts.RestrictIP.Value(),
-		GeoIPAllow:    opts.RestrictGeoIPAllow.Value(),
-		GeoIPDisallow: opts.RestrictGeoIPDisallow.Value(),
-	}
-	if ctx.IsSet("usages-AT") {
-		rr.UsagesAT = utils.NewInt64(opts.RestrictUsagesAT)
-	}
-	if ctx.IsSet("usages-other") {
-		rr.UsagesOther = utils.NewInt64(opts.RestrictUsagesOther)
-	}
-	r = api.Restrictions{rr}
-	return
-}
-
 func obtainMT(context *cli.Context) (string, error) {
 	mytoken := config.Get().Mytoken
 	if mtCommand.TransferCode != "" {
 		return mytoken.Mytoken.FromTransferCode(mtCommand.TransferCode)
 	}
-
-	tokenName := mtCommand.Name
-	prefix := config.Get().TokenNamePrefix
-	if tokenName != "" && prefix != "" {
-		tokenName = fmt.Sprintf("%s:%s", prefix, tokenName)
-	}
-	if err := mtCommand.parseRotationOption(); err != nil {
-		return "", err
-	}
-	r, err := parseRestrictionOpts(&mtCommand.restrictionOpts, context)
+	req, err := mtCommand.Request(context)
 	if err != nil {
 		return "", err
 	}
+	prefix := config.Get().TokenNamePrefix
+	if req.Name != "" && prefix != "" {
+		req.Name = fmt.Sprintf("%s:%s", prefix, req.Name)
+	}
 	if ssh := mtCommand.SSH(); ssh != "" {
-		req := api.GeneralMytokenRequest{
-			GrantType:       api.GrantTypeSSH,
-			Restrictions:    r,
-			Capabilities:    mtCommand.Capabilities,
-			Name:            tokenName,
-			ResponseType:    mtCommand.TokenType,
-			Rotation:        mtCommand.Rotation(),
-			ApplicationName: "mytoken client",
-		}
+		req.GrantType = api.GrantTypeSSH
+		req.ApplicationName = "mytoken client"
 		mt, err := doSSHReturnOutput(ssh, api.SSHRequestMytoken, req)
 		if mt != "" && mt[len(mt)-1] == '\n' {
 			mt = mt[:len(mt)-1]
 		}
 		return mt, err
 	}
-	mtGrant := mtCommand.GetToken(&mtCommand.Provider)
+	mtGrant := mtCommand.GetToken()
 	if mtGrant != "" && !mtCommand.UseOIDCFlow {
+
 		mtRes, err := mytoken.Mytoken.APIFromMytoken(
-			mtGrant, mtCommand.Provider, r, mtCommand.Capabilities,
-			mtCommand.Rotation(), mtCommand.TokenType, tokenName,
+			mtGrant, req.Issuer, req.Restrictions, req.Capabilities,
+			req.Rotation, req.ResponseType, req.Name,
 		)
 		if err != nil {
 			return "", err
@@ -410,7 +478,7 @@ func obtainMT(context *cli.Context) (string, error) {
 	}
 
 	// OIDC
-	provider, err := mtCommand.getProvider()
+	err = mtCommand.parseProviderOpt()
 	if err != nil {
 		return "", err
 	}
@@ -437,42 +505,6 @@ func obtainMT(context *cli.Context) (string, error) {
 		},
 	}
 	return mytoken.Mytoken.FromAuthorizationFlow(
-		provider, r, mtCommand.Capabilities, mtCommand.Rotation(), mtCommand.TokenType, tokenName, callbacks,
+		req.Issuer, req.Restrictions, req.Capabilities, req.Rotation, req.ResponseType, req.Name, callbacks,
 	)
-}
-
-func parseRestrictionOption(arg string) (api.Restrictions, error) {
-	if arg == "" {
-		return nil, nil
-	}
-	if arg[0] == '[' || arg[0] == '{' {
-		return parseRestrictions(arg)
-	}
-	data, err := os.ReadFile(arg)
-	if err != nil {
-		return nil, err
-	}
-	return parseRestrictions(string(data))
-}
-
-func parseRestrictions(str string) (api.Restrictions, error) {
-	str = strings.TrimSpace(str)
-	switch str[0] {
-	case '[': // multiple restrictions
-		var rs []cutils.APIRestriction
-		err := json.Unmarshal([]byte(str), &rs)
-		r := api.Restrictions{}
-		for _, rr := range rs {
-			tmp := api.Restriction(rr)
-			r = append(r, &tmp)
-		}
-		return r, err
-	case '{': // single restriction
-		var r cutils.APIRestriction
-		err := json.Unmarshal([]byte(str), &r)
-		tmp := api.Restriction(r)
-		return api.Restrictions{&tmp}, err
-	default:
-		return nil, fmt.Errorf("malformed restriction")
-	}
 }

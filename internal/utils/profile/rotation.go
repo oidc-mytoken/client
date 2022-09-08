@@ -26,6 +26,9 @@ func ParseRotationTemplate(content []byte) (*api.Rotation, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(content) == 0 {
+		return nil, nil
+	}
 	err = errors.WithStack(json.Unmarshal(content, &rot))
 	return &rot, err
 }

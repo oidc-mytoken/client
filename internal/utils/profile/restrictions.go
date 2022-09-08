@@ -24,15 +24,18 @@ func ParseRestrictionsTemplate(content []byte) (api.Restrictions, error) {
 	if len(content) == 0 {
 		return nil, nil
 	}
-	if jsonutils.IsJSONObject(content) {
-		content = jsonutils.Arrayify(content)
-	}
 
 	var err error
 	var restr []utils.APIRestriction
 	content, err = createFinalTemplate(content, templateReader.readRestrictionsTemplate)
 	if err != nil {
 		return nil, err
+	}
+	if len(content) == 0 {
+		return nil, nil
+	}
+	if jsonutils.IsJSONObject(content) {
+		content = jsonutils.Arrayify(content)
 	}
 	if err = errors.WithStack(json.Unmarshal(content, &restr)); err != nil {
 		return nil, err

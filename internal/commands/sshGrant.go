@@ -14,12 +14,13 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
+	"github.com/oidc-mytoken/client/internal/utils/profile"
 	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
 )
 
 var noWriteHostEntry bool
 var optName string
-var optCapabilities api.Capabilities
+var optCapabilities string
 var optRestrictions restrictionOpts
 
 func initSSHGrant(parent *cli.Command) {
@@ -161,13 +162,17 @@ func addSSHKey(ctx *cli.Context) error {
 			fmt.Fprintln(os.Stderr, "success")
 		},
 	}
-	restrictions, err := parseRestrictionOpts(&optRestrictions, ctx)
+	caps, err := profile.ParseCapabilityTemplate([]byte(optCapabilities))
+	if err != nil {
+		return err
+	}
+	restrictions, err := parseRestrictionOpts(optRestrictions, ctx)
 	if err != nil {
 		return err
 	}
 	res, tokenUpdate, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIAdd(
 		mytoken, key, optName, restrictions,
-		optCapabilities, callbacks,
+		caps, callbacks,
 	)
 	if tokenUpdate != nil {
 		updateMytoken(tokenUpdate.Mytoken)

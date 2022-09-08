@@ -49,8 +49,10 @@ func ParseProfile(content []byte) (api.GeneralMytokenRequest, error) {
 	if err != nil {
 		return p.GeneralMytokenRequest, err
 	}
-	if err = errors.WithStack(json.Unmarshal(content, &p)); err != nil {
-		return p.GeneralMytokenRequest, err
+	if len(content) > 0 {
+		if err = errors.WithStack(json.Unmarshal(content, &p)); err != nil {
+			return p.GeneralMytokenRequest, err
+		}
 	}
 	p.GeneralMytokenRequest.Rotation, err = ParseRotationTemplate([]byte(p.Rotation))
 	if err != nil {

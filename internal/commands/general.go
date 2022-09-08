@@ -6,7 +6,9 @@ import (
 	"strings"
 
 	"github.com/Songmu/prompter"
+	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/server/shared/utils"
+	"github.com/oidc-mytoken/server/shared/utils/issuerUtils"
 	"github.com/oidc-mytoken/server/shared/utils/jwtutils"
 	"github.com/oidc-mytoken/server/shared/utils/ternary"
 	log "github.com/sirupsen/logrus"
@@ -142,29 +144,35 @@ func appendMTFlags(flags ...cli.Flag) []cli.Flag {
 	return append(flags, getMTFlags()...)
 }
 
-func updateIssuersFromJWT(token string, provider ...*string) {
-	if utils.IsJWT(token) {
-		p, ok := jwtutils.GetStringFromJWT(log.StandardLogger(), token, "oidc_iss")
-		if ok && len(provider) > 0 {
-			*(provider[0]) = p
-		}
-		iss, ok := jwtutils.GetStringFromJWT(log.StandardLogger(), token, "iss")
-		if ok {
-			config.Get().URL = iss
-		}
+func updateMytokenServerFromJWT(token string) {
+	if !utils.IsJWT(token) {
+		return
 	}
+	iss, ok := jwtutils.GetStringFromJWT(log.StandardLogger(), token, "iss")
+	if !ok {
+		return
+	}
+	if issuerUtils.CompareIssuerURLs(config.Get().URL, iss) {
+		return
+	}
+	config.Get().URL = iss
+	mytoken, err := mytokenlib.NewMytokenServer(iss)
+	if err != nil {
+		log.Fatal(err)
+	}
+	*(config.Get().Mytoken) = *mytoken
 }
-func (mt MTOptions) GetToken(provider ...*string) string {
+func (mt MTOptions) GetToken() string {
 	token := mt._getToken()
-	updateIssuersFromJWT(token, provider...)
+	updateMytokenServerFromJWT(token)
 	return token
 }
-func (mt MTOptions) MustGetToken(provider ...*string) string {
+func (mt MTOptions) MustGetToken() string {
 	token := mt._getToken()
 	if token == "" {
 		log.Fatal("No mytoken provided.")
 	}
-	updateIssuersFromJWT(token, provider...)
+	updateMytokenServerFromJWT(token)
 	return token
 }
 
