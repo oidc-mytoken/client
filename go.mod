@@ -8,7 +8,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.4
 	github.com/oidc-mytoken/api v0.8.0
 	github.com/oidc-mytoken/lib v0.5.0
-	github.com/oidc-mytoken/server v0.5.0
+	github.com/oidc-mytoken/server v0.5.5-0.20220907095920-beac501d4181
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
@@ -20,5 +20,3 @@ require (
 )
 
 replace github.com/urfave/cli/v2 => github.com/zachmann/cli/v2 v2.3.1-0.20211220102037-d619fd40a704
-
-replace github.com/oidc-mytoken/server => ../server
