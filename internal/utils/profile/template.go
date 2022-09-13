@@ -76,7 +76,7 @@ func (r TemplateReader) readProfile(name string) ([]byte, error) {
 }
 
 func normalizeTemplateName(name string) string {
-	if name != "" && name[0] == '!' {
+	if name != "" && name[0] == '@' {
 		return name[1:]
 	}
 	return name

@@ -15,8 +15,8 @@ import (
 var profileTemplateDummyData = map[string]string{
 	"/etc/mytoken/profiles.d/A": `{
 			"name": "test_profile_A",
-			"rotation": "!A",
-			"capabilities": ["AT", "!basic"],
+			"rotation": "@A",
+			"capabilities": ["AT", "@basic"],
 			"restrictions": "example"
 		}`,
 	"~/.config/mytoken/profiles.d/B": `{
@@ -25,7 +25,7 @@ var profileTemplateDummyData = map[string]string{
 				"include": ["1d", "revoke"],
 				"on_AT": true
 			},
-			"capabilities": "AT !basic",
+			"capabilities": "AT @basic",
 			"restrictions": [{
 				"scope": "openid profile",
 				"include": ["1d"]
@@ -313,7 +313,7 @@ func Test__parseCapabilityTemplate(t *testing.T) {
 		},
 		{
 			name:    "include in array",
-			content: []byte(`["!basic"]`),
+			content: []byte(`["@basic"]`),
 			wantCapStrings: []string{
 				"AT",
 				"tokeninfo",
@@ -323,7 +323,7 @@ func Test__parseCapabilityTemplate(t *testing.T) {
 		},
 		{
 			name:    "include as string",
-			content: []byte("!basic"),
+			content: []byte("@basic"),
 			wantCapStrings: []string{
 				"AT",
 				"tokeninfo",
@@ -333,7 +333,7 @@ func Test__parseCapabilityTemplate(t *testing.T) {
 		},
 		{
 			name:    "include in string with other",
-			content: []byte("!basic other"),
+			content: []byte("@basic other"),
 			wantCapStrings: []string{
 				"AT",
 				"tokeninfo",
@@ -344,7 +344,7 @@ func Test__parseCapabilityTemplate(t *testing.T) {
 		},
 		{
 			name:    "include in array with other",
-			content: []byte(`["!basic", "other"]`),
+			content: []byte(`["@basic", "other"]`),
 			wantCapStrings: []string{
 				"AT",
 				"tokeninfo",
@@ -355,7 +355,7 @@ func Test__parseCapabilityTemplate(t *testing.T) {
 		},
 		{
 			name:    "duplicates",
-			content: []byte(`["other", "!basic", "other", "AT"]`),
+			content: []byte(`["other", "@basic", "other", "AT"]`),
 			wantCapStrings: []string{
 				"other",
 				"AT",
@@ -426,13 +426,13 @@ func Test_normalizeTemplateName(t *testing.T) {
 			want: "",
 		},
 		{
-			name: "without !",
+			name: "without @",
 			in:   "example",
 			want: "example",
 		},
 		{
-			name: "with !",
-			in:   "!example",
+			name: "with @",
+			in:   "@example",
 			want: "example",
 		},
 	}
@@ -501,7 +501,7 @@ func Test_parseCapabilityTemplate(t *testing.T) {
 		},
 		{
 			name:    "include in array",
-			content: []byte(`["!basic"]`),
+			content: []byte(`["@basic"]`),
 			want: api.NewCapabilities(
 				[]string{
 					"AT",
@@ -513,7 +513,7 @@ func Test_parseCapabilityTemplate(t *testing.T) {
 		},
 		{
 			name:    "include as string",
-			content: []byte("!basic"),
+			content: []byte("@basic"),
 			want: api.NewCapabilities(
 				[]string{
 					"AT",
@@ -525,7 +525,7 @@ func Test_parseCapabilityTemplate(t *testing.T) {
 		},
 		{
 			name:    "include in string with other",
-			content: []byte("!basic settings"),
+			content: []byte("@basic settings"),
 			want: api.NewCapabilities(
 				[]string{
 					"AT",
@@ -538,7 +538,7 @@ func Test_parseCapabilityTemplate(t *testing.T) {
 		},
 		{
 			name:    "include in array with other",
-			content: []byte(`["!basic", "settings"]`),
+			content: []byte(`["@basic", "settings"]`),
 			want: api.NewCapabilities(
 				[]string{
 					"AT",
@@ -551,7 +551,7 @@ func Test_parseCapabilityTemplate(t *testing.T) {
 		},
 		{
 			name:    "duplicates",
-			content: []byte(`["settings", "!basic", "settings", "AT"]`),
+			content: []byte(`["settings", "@basic", "settings", "AT"]`),
 			want: api.NewCapabilities(
 				[]string{
 					"settings",
@@ -820,20 +820,20 @@ func Test_parseRestrictionsTemplate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "single include in object without !",
+			name:    "single include in object without @",
 			content: []byte(`{"include":["example"]}`),
 			want:    exampleRestrictions,
 			wantErr: false,
 		},
 		{
-			name:    "single include in object with !",
-			content: []byte(`{"include":["!example"]}`),
+			name:    "single include in object with @",
+			content: []byte(`{"include":["@example"]}`),
 			want:    exampleRestrictions,
 			wantErr: false,
 		},
 		{
 			name:    "single include in array",
-			content: []byte(`[{"include":["!example"]}]`),
+			content: []byte(`[{"include":["@example"]}]`),
 			want:    exampleRestrictions,
 			wantErr: false,
 		},
@@ -936,8 +936,8 @@ func Test_parseRotationTemplate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "single template name with !",
-			content: []byte(`!1d`),
+			name:    "single template name with @",
+			content: []byte(`@1d`),
 			want:    &api.Rotation{Lifetime: 86400},
 			wantErr: false,
 		},

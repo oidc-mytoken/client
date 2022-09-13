@@ -43,7 +43,7 @@ func _parseCapabilityTemplate(content []byte) (capStrings []string, err error) {
 		tmpCapStrings = strings.Split(string(content), " ")
 	}
 	for _, c := range tmpCapStrings {
-		if !strings.HasPrefix(c, "!") {
+		if !strings.HasPrefix(c, "@") {
 			capStrings = append(capStrings, c)
 		} else {
 			templateCaps, e := _parseCapabilityTemplateByName(c[1:])
