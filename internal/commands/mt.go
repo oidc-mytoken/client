@@ -164,7 +164,7 @@ func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
 	if ctx.IsSet("usages-other") {
 		rr.UsagesOther = utils.NewInt64(opts.RestrictUsagesOther)
 	}
-	if rr.UsagesAT != nil || rr.UsagesOther != nil || rr.NotBefore != 0 || rr.ExpiresAt != 0 || len(rr.Scope) != 0 ||
+	if rr.UsagesAT != nil || rr.UsagesOther != nil || rr.NotBefore != 0 || rr.ExpiresAt != 0 || rr.Scope != "" ||
 		len(rr.Audiences) != 0 || len(rr.IPs) != 0 || len(rr.GeoIPAllow) != 0 || len(rr.GeoIPAllow) != 0 {
 		opts.request.Restrictions = api.Restrictions{rr}
 	}
