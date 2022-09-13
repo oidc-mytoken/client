@@ -30,7 +30,7 @@ func MergeJSONArrays(a1, a2 []byte) []byte {
 	if bytes.Equal(bytes.Trim(a2, " "), emptyArray) {
 		return a1
 	}
-	res := append(a1[:bytes.LastIndexByte(a1, ']')], ',')
+	res := append(a1[:bytes.LastIndexByte(a1, ']')], ',') // skipcq: CRT-D0001
 	res = append(res, a2[bytes.IndexByte(a2, '[')+1:]...)
 	return res
 }
