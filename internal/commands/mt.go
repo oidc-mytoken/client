@@ -188,7 +188,14 @@ func (opts *mtOpts) Request(ctx *cli.Context) (*api.GeneralMytokenRequest, error
 		opts.request.Name = opts.Name
 	}
 	if opts.TokenType != "" {
-		opts.request.ResponseType = opts.TokenType
+		switch opts.TokenType {
+		case cmdArgTokenTypeShort:
+			opts.request.ResponseType = api.ResponseTypeShortToken
+		case cmdArgTokenTypeTransfer:
+			opts.request.ResponseType = api.ResponseTypeTransferCode
+		default:
+			opts.request.ResponseType = opts.TokenType
+		}
 	}
 	err := opts.parseRotationOption()
 	if err != nil {
@@ -347,6 +354,11 @@ func getRotationFlags(rotStr *string, rot *api.Rotation) []cli.Flag {
 	}
 }
 
+const (
+	cmdArgTokenTypeShort    = "short"
+	cmdArgTokenTypeTransfer = "transfer"
+)
+
 func init() {
 	flags := append(
 		append(
@@ -403,7 +415,7 @@ func init() {
 			Name:        "token-type",
 			Usage:       "The type of the returned token.",
 			Value:       "token",
-			Choice:      cli.NewStringChoice(api.ResponseTypeToken, "short", "transfer"),
+			Choice:      cli.NewStringChoice(api.ResponseTypeToken, cmdArgTokenTypeShort, cmdArgTokenTypeTransfer),
 			Destination: &mtCommand.TokenType,
 			Placeholder: "TYPE",
 		},
