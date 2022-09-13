@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/Songmu/prompter v0.5.1
-	github.com/evanphx/json-patch v0.5.2
+	github.com/evanphx/json-patch v5.6.0+incompatible
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/oidc-mytoken/api v0.8.0
 	github.com/oidc-mytoken/lib v0.5.0
