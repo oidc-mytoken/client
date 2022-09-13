@@ -1,49 +1,26 @@
 # The issuer url of the mytoken instance you want to connect to
 instance: "https://mytoken.data.kit.edu"
 
-# Mytoken can be named so they can be identified better, if specified this string is used as a prefix.
+# Mytokens can be named, so they can be identified better; if specified this string is used as a prefix.
 # The special value <hostname> is substituted with your machine's hostname
 token_name_prefix: "<hostname>"
 
-# The default oidc flow to use with the --oidc option
-default_oidc_flow: "auth"
 # The default capabilities for mytokens
 default_token_capabilities:
-  # The default capabilities for mytokens that are stored by the client
-  stored:
-    - "AT"                    # allows to obtain access tokens
-    - "create_mytoken"        # allows to create subtokens
-    - "tokeninfo"             # allows to query the tokeninfo endpoint for different information about the token
-  #  - "settings"             # allows to change user settings
-  #  - "list_mytokens"        # allows to list all your tokens
-  # The default capabilities for mytokens that are returned for other usage
-  returned:
     - "AT"
     - "tokeninfo"             # allows to query the tokeninfo endpoint for different information about the token
-# The global default for the used gpg_key id
-default_gpg_key:
-# The name of the provider you want to use as your default. If no provider is specified the default provider is used.
+
+# The default provider to use
 default_provider:
 
-# Here you can assign names to providers and set some defaults
-providers:
-    # The issuer url of the OpenID Connect provider
-  - url: "https://aai.egi.eu/oidc/"
-    # A short name for easy reference
-    name: "egi"
-    # The name of the mytoken that should be used as the default for this provider.
-    default_token:
-    # The provider default for the used gpg_key id
-    default_gpg_key:
-  - url: "https://aai-dev.egi.eu/oidc/"
-    name: "egi-dev"
-    default_token:
-    default_gpg_key:
-  - url: "https://wlcg.cloud.cnaf.infn.it/"
-    name: "wlcg"
-    default_token:
-    default_gpg_key:
+# Determines if WLCG Bearer Token Discovery
+# (https://github.com/WLCG-AuthZ-WG/bearer-token-discovery/blob/master/specification.md) should be used or not
+# (mytokens passed more directly, i.e. through command line options take precedence)
+use_wlcg_token_discovery: true
 
-# The file where the mytokens are stored by the client. Default is 'tokens.json' in the same directory as this
-# config file. If a relative path is given it is interpreted relative to this config file.
-tokens_file: "tokens.json"
+# Here you can assign names to providers
+providers:
+  egi: "https://aai.egi.eu/auth/realms/egi"
+  egi-dev: "https://aai-dev.egi.eu/auth/realms/egi"
+  wlcg: "https://wlcg.cloud.cnaf.infn.it/"
+

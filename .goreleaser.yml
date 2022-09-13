@@ -31,7 +31,7 @@ nfpms:
     file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Arch }}"
     builds:
       - client
-    homepage: https://mytoken-doc.data.kit.edu/
+    homepage: https://mytoken-docs.data.kit.edu/
     maintainer: Gabriel Zachmann <gabriel.zachmann@kit.edu>
     description: Mytoken is a command line client for the central web service mytoken. It can be used to easily obtain OpenID Connect access tokens across devices.
     license: MIT
@@ -44,6 +44,20 @@ nfpms:
       - src: config/example-config.yaml
         dst: /etc/mytoken/example-config.yaml
         type: config
+      - src: config/profiles.d/
+        dst: /etc/mytoken/profiles.d/
+        type: config
+      - src: config/capabilities.d/
+        dst: /etc/mytoken/capabilities.d/
+        type: config
+      - src: config/restrictions.d/
+        dst: /etc/mytoken/restrictions.d/
+        type: config
+      - src: config/rotation.d/
+        dst: /etc/mytoken/rotation.d/
+        type: config
+      - dst: /etc/mytoken/profiles.d/
+        type: dir
     overrides:
       rpm:
         replacements:
@@ -55,7 +69,7 @@ release:
   draft: true
   name_template: "{{.ProjectName}} {{.Version}}"
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  name_template: "{{ .Version }}+devel"
 changelog:
   sort: asc
   filters:

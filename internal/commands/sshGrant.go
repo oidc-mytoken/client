@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -15,18 +14,18 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
+	"github.com/oidc-mytoken/client/internal/utils/profile"
 	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
 )
 
 var noWriteHostEntry bool
 var optName string
-var optCapabilities api.Capabilities
-var optSubtokenCapabilities api.Capabilities
+var optCapabilities string
 var optRestrictions restrictionOpts
 
 func initSSHGrant(parent *cli.Command) {
-	cmdFlags := getPTFlags()
-	subCmdFlags := getPTFlags()
+	cmdFlags := getMTFlags()
+	subCmdFlags := getMTFlags()
 	cmd := &cli.Command{
 		Name:    "ssh",
 		Aliases: []string{"SSH"},
@@ -51,7 +50,6 @@ func initSSHGrant(parent *cli.Command) {
 					append(
 						getRestrFlags(&optRestrictions),
 						getCapabilityFlag(&optCapabilities),
-						getSubtokenCapabilityFlag(&optSubtokenCapabilities),
 						&cli.StringFlag{
 							Name:        "key-name",
 							Usage:       "A name for identifying this ssh key",
@@ -83,19 +81,13 @@ func initSSHGrant(parent *cli.Command) {
 }
 
 func listSSH(_ *cli.Context) error {
-	provider, mytoken := settingsOptions.Check(api.CapabilitySSHGrantRead)
+	mytoken := settingsOptions.MustGetToken()
 	res, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIGet(mytoken)
 	if err != nil {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
-		}
+		updateMytoken(res.TokenUpdate.Mytoken)
 	}
 	if res.GrantEnabled {
 		fmt.Println("SSH Grant Type is enabled.")
@@ -143,7 +135,7 @@ func addSSHKey(ctx *cli.Context) error {
 		return fmt.Errorf("Required argument SSH_KEY missing")
 	}
 	keyArg := ctx.Args().Get(0)
-	provider, mytoken := settingsOptions.Check(api.CapabilitySSHGrant)
+	mytoken := settingsOptions.MustGetToken()
 	key, err := detectKey(keyArg)
 	if err != nil {
 		return err
@@ -170,22 +162,20 @@ func addSSHKey(ctx *cli.Context) error {
 			fmt.Fprintln(os.Stderr, "success")
 		},
 	}
-	restrictions, err := parseRestrictionOpts(&optRestrictions, ctx)
+	caps, err := profile.ParseCapabilityTemplate([]byte(optCapabilities))
+	if err != nil {
+		return err
+	}
+	restrictions, err := parseRestrictionOpts(optRestrictions, ctx)
 	if err != nil {
 		return err
 	}
 	res, tokenUpdate, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIAdd(
 		mytoken, key, optName, restrictions,
-		optCapabilities, optSubtokenCapabilities, callbacks,
+		caps, callbacks,
 	)
 	if tokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(tokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
-		}
+		updateMytoken(tokenUpdate.Mytoken)
 	}
 	if err != nil {
 		return err
@@ -219,7 +209,7 @@ func deleteSSHKey(ctx *cli.Context) error {
 		return fmt.Errorf("Required argument SSH_KEY missing")
 	}
 	keyArg := ctx.Args().Get(0)
-	provider, mytoken := settingsOptions.Check(api.CapabilitySSHGrant)
+	mytoken := settingsOptions.MustGetToken()
 	var keyFP string
 	var key string
 	if isKeyFP(keyArg) {
@@ -236,13 +226,7 @@ func deleteSSHKey(ctx *cli.Context) error {
 		return err
 	}
 	if res.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			infoOptions.Name(), provider.Issuer,
-			config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
-		}
+		updateMytoken(res.TokenUpdate.Mytoken)
 	}
 	fmt.Println("Successfully removed ssh key")
 	return nil
@@ -253,7 +237,7 @@ func detectKey(str string) (string, error) {
 		return str, nil
 	}
 	// The passed string is not a valid ssh public key, we assume it is a filepath
-	fileContent, err := ioutil.ReadFile(str)
+	fileContent, err := os.ReadFile(str)
 	if err != nil {
 		return "", errors.Wrap(err, "could not detect ssh public key")
 	}

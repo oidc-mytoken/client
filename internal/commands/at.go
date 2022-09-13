@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
@@ -11,7 +11,7 @@ import (
 )
 
 var atCommand = struct {
-	PTOptions
+	MTOptions
 	Scopes    cli.StringSlice
 	Audiences cli.StringSlice
 	Out       string
@@ -27,8 +27,7 @@ func init() {
 			},
 			Usage:  "Obtain an OIDC access token",
 			Action: getAT,
-			Flags: append(
-				getPTFlags(),
+			Flags: appendMTFlags(
 				&cli.StringSliceFlag{
 					Name:        "scope",
 					Aliases:     []string{"s"},
@@ -68,21 +67,15 @@ func getAT(context *cli.Context) error {
 		return doSSH(ssh, api.SSHRequestAccessToken, req)
 	}
 	mytoken := config.Get().Mytoken
-	provider, mToken := atc.Check()
+	mToken := atc.MustGetToken()
 	atRes, err := mytoken.AccessToken.APIGet(
-		mToken, provider.Issuer, atc.Scopes.Value(), atc.Audiences.Value(), comment,
+		mToken, "", atc.Scopes.Value(), atc.Audiences.Value(), comment,
 	)
 	if err != nil {
 		return err
 	}
 	if atRes.TokenUpdate != nil {
-		config.Get().TokensFileContent.Update(
-			atc.Name(), provider.Issuer,
-			config.NewPlainStoreToken(atRes.TokenUpdate.Mytoken),
-		)
-		if err = config.Get().TokensFileContent.Save(); err != nil {
-			return err
-		}
+		updateMytoken(atRes.TokenUpdate.Mytoken)
 	}
-	return ioutil.WriteFile(atc.Out, append([]byte(atRes.AccessToken), '\n'), 0600)
+	return os.WriteFile(atc.Out, append([]byte(atRes.AccessToken), '\n'), 0600)
 }

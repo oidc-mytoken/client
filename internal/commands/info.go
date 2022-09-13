@@ -16,17 +16,18 @@ import (
 	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
 )
 
-var infoOptions PTOptions
+var infoOptions MTOptions
 
 func init() {
-	cmdFlags := getPTFlags()
-	subCmdFlags := getPTFlags()
+	cmdFlags := getMTFlags()
+	subCmdFlags := getMTFlags()
 	cmd :=
 		&cli.Command{
-			Name:   "info",
-			Usage:  "Get information about a mytoken",
-			Action: info,
-			Flags:  cmdFlags,
+			Name:    "info",
+			Aliases: []string{"tokeninfo"},
+			Usage:   "Get information about a mytoken",
+			Action:  info,
+			Flags:   cmdFlags,
 			Subcommands: []*cli.Command{
 				{
 					Name:   "history",
@@ -90,7 +91,7 @@ func prettyPrintJSON(obj interface{}) error {
 }
 
 func info(_ *cli.Context) error {
-	_, mToken := infoOptions.Check()
+	mToken := infoOptions.MustGetToken()
 	if !utils.IsJWT(mToken) {
 		return fmt.Errorf("The token is not a JWT.")
 	}
@@ -111,7 +112,7 @@ func introspect(_ *cli.Context) error {
 		return prettyPrintJSONString(res)
 	}
 	mytoken := config.Get().Mytoken
-	_, mToken := infoOptions.Check()
+	mToken := infoOptions.MustGetToken()
 	res, err := mytoken.Tokeninfo.Introspect(mToken)
 	if err != nil {
 		return err
@@ -133,19 +134,13 @@ func history(_ *cli.Context) (err error) {
 		}
 	} else { // no ssh
 		mytoken := config.Get().Mytoken
-		provider, mToken := infoOptions.Check()
+		mToken := infoOptions.MustGetToken()
 		res, err = mytoken.Tokeninfo.APIHistory(mToken)
 		if err != nil {
 			return
 		}
 		if res.TokenUpdate != nil {
-			config.Get().TokensFileContent.Update(
-				infoOptions.Name(), provider.Issuer,
-				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-			)
-			if err = config.Get().TokensFileContent.Save(); err != nil {
-				return err
-			}
+			updateMytoken(res.TokenUpdate.Mytoken)
 		}
 	}
 	outputData := make([]tablewriter.TableWriter, len(res.EventHistory))
@@ -192,19 +187,13 @@ func subTree(_ *cli.Context) (err error) {
 		}
 	} else {
 		mytoken := config.Get().Mytoken
-		provider, mToken := infoOptions.Check()
+		mToken := infoOptions.MustGetToken()
 		res, err = mytoken.Tokeninfo.APISubtokens(mToken)
 		if err != nil {
 			return err
 		}
 		if res.TokenUpdate != nil {
-			config.Get().TokensFileContent.Update(
-				infoOptions.Name(), provider.Issuer,
-				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-			)
-			if err = config.Get().TokensFileContent.Save(); err != nil {
-				return err
-			}
+			updateMytoken(res.TokenUpdate.Mytoken)
 		}
 	}
 	return prettyPrintJSON(res.Tokens)
@@ -224,19 +213,13 @@ func listMytokens(_ *cli.Context) (err error) {
 		}
 	} else {
 		mytoken := config.Get().Mytoken
-		provider, mToken := infoOptions.Check()
+		mToken := infoOptions.MustGetToken()
 		res, err = mytoken.Tokeninfo.APIListMytokens(mToken)
 		if err != nil {
 			return err
 		}
 		if res.TokenUpdate != nil {
-			config.Get().TokensFileContent.Update(
-				infoOptions.Name(), provider.Issuer,
-				config.NewPlainStoreToken(res.TokenUpdate.Mytoken),
-			)
-			if err = config.Get().TokensFileContent.Save(); err != nil {
-				return err
-			}
+			updateMytoken(res.TokenUpdate.Mytoken)
 		}
 	}
 	return prettyPrintJSON(res.Tokens)
