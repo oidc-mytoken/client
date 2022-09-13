@@ -231,7 +231,8 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 		&cli.StringFlag{
 			Name:    "restrictions",
 			Aliases: []string{"restriction"},
-			Usage:   "The restrictions that restrict the requested mytoken. Can be a json object or array, or a path to a json file.'",
+			Usage: "The restrictions that restrict the requested mytoken. " +
+				"Can be a json object or array, or a path to a json file.'",
 			EnvVars: []string{
 				"MYTOKEN_RESTRICTIONS",
 				"MYTOKEN_RESTRICTION",
@@ -245,7 +246,8 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 				"s",
 				"scopes",
 			},
-			Usage:       "Restrict the mytoken so that it can only be used to request ATs with these SCOPES. Can be used multiple times. Overwritten by --restriction.",
+			Usage: "Restrict the mytoken so that it can only be used to request ATs with these SCOPES. " +
+				"Can be used multiple times. Overwritten by --restriction.",
 			Destination: &opts.RestrictScopes,
 			Placeholder: "SCOPE",
 		},
@@ -255,19 +257,24 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 				"audience",
 				"audiences",
 			},
-			Usage:       "Restrict the mytoken so that it can only be used to request ATs with these audiences. Can be used multiple times. Overwritten by --restriction.",
+			Usage: "Restrict the mytoken so that it can only be used to request ATs with these audiences. " +
+				"Can be used multiple times. Overwritten by --restriction.",
 			Destination: &opts.RestrictAudiences,
 			Placeholder: "AUD",
 		},
 		&cli.StringFlag{
-			Name:        "exp",
-			Aliases:     []string{"naf"},
-			Usage:       "Restrict the mytoken so that it cannot be used after `EXP`. The time can be given as an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'.",
+			Name:    "exp",
+			Aliases: []string{"naf"},
+			Usage: "Restrict the mytoken so that it cannot be used after `EXP`. " +
+				"The time can be given as an absolute time given as a unix timestamp, " +
+				"a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'.",
 			Destination: &opts.RestrictExp,
 		},
 		&cli.StringFlag{
-			Name:        "nbf",
-			Usage:       "Restrict the mytoken so that it cannot be used before `NBF`. The time can be given as an absolute time given as a unix timestamp, a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'.",
+			Name: "nbf",
+			Usage: "Restrict the mytoken so that it cannot be used before `NBF`. " +
+				"The time can be given as an absolute time given as a unix timestamp, " +
+				"a relative time string starting with '+' or an absolute time string '2006-01-02 15:04'.",
 			Destination: &opts.RestrictNbf,
 		},
 		&cli.StringSliceFlag{
@@ -276,19 +283,22 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 				"ips",
 				"ip-allow",
 			},
-			Usage:       "Restrict the mytoken so that it can only be used from these IPs. Can be a network address block or a single ip.",
+			Usage: "Restrict the mytoken so that it can only be used from these IPs. " +
+				"Can be a network address block or a single ip.",
 			Destination: &opts.RestrictIP,
 			Placeholder: "IP",
 		},
 		&cli.StringSliceFlag{
-			Name:        "geo-ip-allow",
-			Usage:       "Restrict the mytoken so that it can be only used from these COUNTRIES. Must be a short country code, e.g. 'us'.",
+			Name: "geo-ip-allow",
+			Usage: "Restrict the mytoken so that it can be only used from these COUNTRIES. " +
+				"Must be a short country code, e.g. 'us'.",
 			Destination: &opts.RestrictIP,
 			Placeholder: "COUNTRY",
 		},
 		&cli.StringSliceFlag{
-			Name:        "geo-ip-disallow",
-			Usage:       "Restrict the mytoken so that it cannot be used from these COUNTRIES. Must be a short country code, e.g. 'us'.",
+			Name: "geo-ip-disallow",
+			Usage: "Restrict the mytoken so that it cannot be used from these COUNTRIES. " +
+				"Must be a short country code, e.g. 'us'.",
 			Destination: &opts.RestrictIP,
 			Placeholder: "COUNTRY",
 		},
