@@ -353,8 +353,8 @@ github.com/oidc-mytoken/api v0.8.0 h1:V/8LyLcVtYX1xxj+r6KyShDYUhl1giHLPVB6dTZyQt
 github.com/oidc-mytoken/api v0.8.0/go.mod h1:DBIlUbaIgGlf607VZx8zFC97VR3WNN0kaMVO1AqyTdE=
 github.com/oidc-mytoken/lib v0.5.0 h1:/DHEjHCSVDFE5DXyXUp3dO7NWZfSFN2nYVaigYdmv5w=
 github.com/oidc-mytoken/lib v0.5.0/go.mod h1:r6shfKy8/15vqGJvciCPphRkKffvIegSqj0uA6kzuns=
-github.com/oidc-mytoken/server v0.5.5-0.20220913122955-7d2a1eedffd0 h1:Qd/PeMNKD78xbXiV+MNJJch1g+Nc1t6s4L4KsG1uS14=
-github.com/oidc-mytoken/server v0.5.5-0.20220913122955-7d2a1eedffd0/go.mod h1:UuhznDeB+pgB+b/fNVwn95ui+3tCW0eg2pJOA2lhYyI=
+github.com/oidc-mytoken/server v0.6.0 h1:c3OEJZpshK8sMdrCIHSqLrf6TU7cHIir6I/kHqdovqA=
+github.com/oidc-mytoken/server v0.6.0/go.mod h1:UuhznDeB+pgB+b/fNVwn95ui+3tCW0eg2pJOA2lhYyI=
 github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
