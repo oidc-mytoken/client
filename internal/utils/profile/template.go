@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	jsonpatch "github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/oidc-mytoken/server/shared/utils/fileutil"
 	"github.com/pkg/errors"
 
