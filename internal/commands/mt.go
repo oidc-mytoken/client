@@ -433,7 +433,7 @@ func init() {
 			Name:        "out",
 			Aliases:     []string{"o"},
 			Usage:       "The mytoken will be printed to this output",
-			Value:       "/dev/stdout",
+			Value:       os.Stdout.Name(),
 			Destination: &mtCommand.Out,
 			Placeholder: "FILE",
 		},
@@ -458,7 +458,7 @@ func obtainMTCmd(context *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(mtCommand.Out, append([]byte(mt), '\n'), 0600)
+	return cutils.WriteOutput(mtCommand.Out, mt)
 }
 
 func obtainMT(context *cli.Context) (string, error) {

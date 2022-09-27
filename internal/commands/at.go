@@ -8,6 +8,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
+	cutils "github.com/oidc-mytoken/client/internal/utils"
 )
 
 var atCommand = struct {
@@ -47,7 +48,7 @@ func init() {
 					Name:        "out",
 					Aliases:     []string{"o"},
 					Usage:       "The access token will be printed to this output",
-					Value:       "/dev/stdout",
+					Value:       os.Stdout.Name(),
 					Destination: &atCommand.Out,
 					Placeholder: "FILE",
 				},
@@ -77,5 +78,5 @@ func getAT(context *cli.Context) error {
 	if atRes.TokenUpdate != nil {
 		updateMytoken(atRes.TokenUpdate.Mytoken)
 	}
-	return os.WriteFile(atc.Out, append([]byte(atRes.AccessToken), '\n'), 0600)
+	return cutils.WriteOutput(atc.Out, atRes.AccessToken)
 }
