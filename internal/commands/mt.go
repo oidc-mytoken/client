@@ -13,6 +13,7 @@ import (
 	"github.com/oidc-mytoken/client/internal/config"
 	cutils "github.com/oidc-mytoken/client/internal/utils"
 	"github.com/oidc-mytoken/client/internal/utils/profile"
+	"github.com/oidc-mytoken/client/internal/utils/qr"
 )
 
 type restrictionOpts struct {
@@ -474,9 +475,9 @@ func obtainMT(context *cli.Context) (string, error) {
 	if req.Name != "" && prefix != "" {
 		req.Name = fmt.Sprintf("%s:%s", prefix, req.Name)
 	}
+	req.ApplicationName = fmt.Sprintf("mytoken client on %s", config.Get().Hostname)
 	if ssh := mtCommand.SSH(); ssh != "" {
 		req.GrantType = api.GrantTypeSSH
-		req.ApplicationName = "mytoken client"
 		mt, err := doSSHReturnOutput(ssh, api.SSHRequestMytoken, req)
 		if mt != "" && mt[len(mt)-1] == '\n' {
 			mt = mt[:len(mt)-1]
@@ -506,9 +507,14 @@ func obtainMT(context *cli.Context) (string, error) {
 	}
 	callbacks := mytokenlib.PollingCallbacks{
 		Init: func(authorizationURL string) error {
-			_, _ = fmt.Fprintln(os.Stderr, "Using any device please visit the following url to continue:")
+			_, _ = fmt.Fprintln(
+				os.Stderr,
+				"Using any device please visit the following url to continue or use the qr code:",
+			)
 			_, _ = fmt.Fprintln(os.Stderr)
 			_, _ = fmt.Fprintln(os.Stderr, authorizationURL)
+			_, _ = fmt.Fprintln(os.Stderr)
+			qr.FPrintQR(os.Stderr, authorizationURL)
 			_, _ = fmt.Fprintln(os.Stderr)
 			return nil
 		},
@@ -526,7 +532,6 @@ func obtainMT(context *cli.Context) (string, error) {
 			_, _ = fmt.Fprintln(os.Stderr, "success")
 		},
 	}
-	return mytoken.Mytoken.FromAuthorizationFlow(
-		req.Issuer, req.Restrictions, req.Capabilities, req.Rotation, req.ResponseType, req.Name, callbacks,
-	)
+	resp, err := mytoken.Mytoken.APIFromAuthorizationFlowReq(*req, callbacks)
+	return resp.Mytoken, err
 }

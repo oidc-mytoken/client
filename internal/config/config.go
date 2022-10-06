@@ -24,6 +24,7 @@ type Config struct {
 	Providers                map[string]string `yaml:"providers"`
 
 	usedConfigDir string
+	Hostname      string
 }
 
 var defaultConfig = Config{
@@ -61,6 +62,7 @@ func load(name string, locations []string) {
 	conf.Mytoken = mytoken
 
 	hostname, _ := os.Hostname()
+	conf.Hostname = hostname
 	conf.TokenNamePrefix = strings.ReplaceAll(conf.TokenNamePrefix, "<hostname>", hostname)
 }
 
