@@ -293,14 +293,14 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Name: "geo-ip-allow",
 			Usage: "Restrict the mytoken so that it can be only used from these COUNTRIES. " +
 				"Must be a short country code, e.g. 'us'.",
-			Destination: &opts.RestrictIP,
+			Destination: &opts.RestrictGeoIPAllow,
 			Placeholder: "COUNTRY",
 		},
 		&cli.StringSliceFlag{
 			Name: "geo-ip-disallow",
 			Usage: "Restrict the mytoken so that it cannot be used from these COUNTRIES. " +
 				"Must be a short country code, e.g. 'us'.",
-			Destination: &opts.RestrictIP,
+			Destination: &opts.RestrictGeoIPDisallow,
 			Placeholder: "COUNTRY",
 		},
 		&cli.Int64Flag{
