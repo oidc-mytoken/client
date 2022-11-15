@@ -7,8 +7,8 @@ import (
 
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
-	"github.com/oidc-mytoken/server/shared/httpClient"
-	"github.com/oidc-mytoken/server/shared/utils/fileutil"
+	"github.com/oidc-mytoken/utils/httpclient"
+	"github.com/oidc-mytoken/utils/utils/fileutil"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -54,7 +54,7 @@ func load(name string, locations []string) {
 		log.Fatal(err)
 	}
 	conf.usedConfigDir = usedLocation
-	mytokenlib.SetClient(httpClient.Do().GetClient())
+	mytokenlib.SetClient(httpclient.Do().GetClient())
 	mytoken, err := mytokenlib.NewMytokenServer(conf.URL)
 	if err != nil {
 		log.Fatal(err)

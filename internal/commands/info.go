@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/oidc-mytoken/api/v0"
-	"github.com/oidc-mytoken/server/shared/utils"
+	"github.com/oidc-mytoken/utils/utils/jwtutils"
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
@@ -92,7 +92,7 @@ func prettyPrintJSON(obj interface{}) error {
 
 func info(_ *cli.Context) error {
 	mToken := infoOptions.MustGetToken()
-	if !utils.IsJWT(mToken) {
+	if !jwtutils.IsJWT(mToken) {
 		return fmt.Errorf("The token is not a JWT.")
 	}
 	payload := strings.Split(mToken, ".")[1]

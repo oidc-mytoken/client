@@ -7,10 +7,9 @@ import (
 
 	"github.com/Songmu/prompter"
 	mytokenlib "github.com/oidc-mytoken/lib"
-	"github.com/oidc-mytoken/server/shared/utils"
-	"github.com/oidc-mytoken/server/shared/utils/issuerUtils"
-	"github.com/oidc-mytoken/server/shared/utils/jwtutils"
-	"github.com/oidc-mytoken/server/shared/utils/ternary"
+	"github.com/oidc-mytoken/utils/utils/issuerutils"
+	"github.com/oidc-mytoken/utils/utils/jwtutils"
+	"github.com/oidc-mytoken/utils/utils/ternary"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
@@ -145,14 +144,14 @@ func appendMTFlags(flags ...cli.Flag) []cli.Flag {
 }
 
 func updateMytokenServerFromJWT(token string) {
-	if !utils.IsJWT(token) {
+	if !jwtutils.IsJWT(token) {
 		return
 	}
 	iss, ok := jwtutils.GetStringFromJWT(log.StandardLogger(), token, "iss")
 	if !ok {
 		return
 	}
-	if issuerUtils.CompareIssuerURLs(config.Get().URL, iss) {
+	if issuerutils.CompareIssuerURLs(config.Get().URL, iss) {
 		return
 	}
 	config.Get().URL = iss

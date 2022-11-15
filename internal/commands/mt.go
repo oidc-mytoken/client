@@ -7,12 +7,13 @@ import (
 
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
-	"github.com/oidc-mytoken/server/shared/utils"
+	"github.com/oidc-mytoken/utils/utils"
+	"github.com/oidc-mytoken/utils/utils/profile"
+	"github.com/oidc-mytoken/utils/utils/timerestriction"
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	cutils "github.com/oidc-mytoken/client/internal/utils"
-	"github.com/oidc-mytoken/client/internal/utils/profile"
 	"github.com/oidc-mytoken/client/internal/utils/qr"
 )
 
@@ -142,11 +143,11 @@ func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
 		}
 		return
 	}
-	nbf, err := cutils.ParseTime(opts.RestrictNbf)
+	nbf, err := timerestriction.ParseTime(opts.RestrictNbf)
 	if err != nil {
 		return
 	}
-	exp, err := cutils.ParseTime(opts.RestrictExp)
+	exp, err := timerestriction.ParseTime(opts.RestrictExp)
 	if err != nil {
 		return
 	}
