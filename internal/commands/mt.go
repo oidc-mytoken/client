@@ -155,7 +155,7 @@ func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
 		ExpiresAt:     exp,
 		Scope:         strings.Join(opts.RestrictScopes.Value(), " "),
 		Audiences:     opts.RestrictAudiences.Value(),
-		IPs:           opts.RestrictIP.Value(),
+		Hosts:         opts.RestrictIP.Value(),
 		GeoIPAllow:    opts.RestrictGeoIPAllow.Value(),
 		GeoIPDisallow: opts.RestrictGeoIPDisallow.Value(),
 	}
@@ -166,7 +166,7 @@ func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
 		rr.UsagesOther = utils.NewInt64(opts.RestrictUsagesOther)
 	}
 	if rr.UsagesAT != nil || rr.UsagesOther != nil || rr.NotBefore != 0 || rr.ExpiresAt != 0 || rr.Scope != "" ||
-		len(rr.Audiences) != 0 || len(rr.IPs) != 0 || len(rr.GeoIPAllow) != 0 || len(rr.GeoIPAllow) != 0 {
+		len(rr.Audiences) != 0 || len(rr.Hosts) != 0 || len(rr.GeoIPAllow) != 0 || len(rr.GeoIPAllow) != 0 {
 		opts.request.Restrictions = api.Restrictions{rr}
 	}
 	return
@@ -279,13 +279,15 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Destination: &opts.RestrictNbf,
 		},
 		&cli.StringSliceFlag{
-			Name: "ip",
+			Name: "host",
 			Aliases: []string{
+				"ip",
 				"ips",
 				"ip-allow",
+				"hosts",
 			},
-			Usage: "Restrict the mytoken so that it can only be used from these IPs. " +
-				"Can be a network address block or a single ip.",
+			Usage: "Restrict the mytoken so that it can only be used from these hosts. " +
+				"Can be a network address block, a single ip, or a host name.",
 			Destination: &opts.RestrictIP,
 			Placeholder: "IP",
 		},
