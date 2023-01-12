@@ -60,8 +60,10 @@ dockers:
     ids:
       - client
     image_templates:
-      - "oidcmytoken/mytoken:unstable"
+      - "oidcmytoken/mytoken:latest"
       - "oidcmytoken/mytoken:{{ .Tag }}"
+      - "oidcmytoken/mytoken:{{ .Major }}"
+      - "oidcmytoken/mytoken:{{ .Major }}.{{ .Minor }}"
     dockerfile: cmd/mytoken/Dockerfile
     build_flag_templates:
       - "--pull"
