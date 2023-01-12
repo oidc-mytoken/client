@@ -72,7 +72,7 @@ func LoadDefault() {
 }
 
 // Load loads the config form the provided filepath
-func Load(file string) {
+func Load(file string) { // skipcq RVV-B0001
 	filename := filepath.Base(file)
 	path := filepath.Dir(file)
 	load(filename, []string{path})

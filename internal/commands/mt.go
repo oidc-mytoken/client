@@ -70,7 +70,7 @@ func (opts *mtOpts) parseProviderOpt() error {
 			return fmt.Errorf("Provider not specified and no default provider set")
 		}
 	}
-	if isURL := strings.HasPrefix(opts.provider, "https://"); isURL {
+	if strings.HasPrefix(opts.provider, "https://") {
 		opts.request.Issuer = opts.provider
 		return nil
 	}
