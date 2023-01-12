@@ -28,6 +28,7 @@ test_race:
     - go test -race -v ./...
 
 staticcheck:
+  image: golang:1.19
   stage: lint
   before_script:
     - go install honnef.co/go/tools/cmd/staticcheck@latest
