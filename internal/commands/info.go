@@ -143,8 +143,8 @@ func history(_ *cli.Context) (err error) {
 			updateMytoken(res.TokenUpdate.Mytoken)
 		}
 	}
-	outputData := make([]tablewriter.TableWriter, len(res.EventHistory))
-	for i, d := range res.EventHistory {
+	outputData := make([]tablewriter.TableWriter, len(res.EventHistory.Events))
+	for i, d := range res.EventHistory.Events {
 		outputData[i] = tableEventEntry(d)
 	}
 	tablewriter.PrintTableData(outputData)

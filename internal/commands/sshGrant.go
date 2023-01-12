@@ -162,7 +162,7 @@ func addSSHKey(ctx *cli.Context) error {
 			fmt.Fprintln(os.Stderr, "success")
 		},
 	}
-	caps, err := profile.ParseCapabilityTemplate([]byte(optCapabilities))
+	caps, err := profile.ProfileParser{}.ParseCapabilityTemplate([]byte(optCapabilities))
 	if err != nil {
 		return err
 	}

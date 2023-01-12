@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/utils/utils"
+	"github.com/oidc-mytoken/utils/utils/jsonutils"
 	"github.com/oidc-mytoken/utils/utils/profile"
 	"github.com/oidc-mytoken/utils/utils/timerestriction"
 	"github.com/urfave/cli/v2"
@@ -87,7 +89,7 @@ func (opts *mtOpts) parseCapabilitiesOption() error {
 	if opts.CapabilitiesStr == "" {
 		return nil
 	}
-	c, err := profile.ParseCapabilityTemplate([]byte(opts.CapabilitiesStr))
+	c, err := profile.ProfileParser{}.ParseCapabilityTemplate([]byte(opts.CapabilitiesStr))
 	if err != nil {
 		return err
 	}
@@ -102,21 +104,19 @@ func (opts *mtOpts) parseRotationOption() error {
 	if rotStr == "" {
 		return nil
 	}
-	r, err := profile.ParseRotationTemplate([]byte(rotStr))
-	if err != nil {
-		return err
+	rotBytes := []byte(rotStr)
+	if jsonutils.IsJSONObject(rotBytes) {
+		if err := json.Unmarshal(rotBytes, opts.request.Rotation); err != nil {
+			return err
+		}
+	} else {
+		opts.request.Rotation = &api.Rotation{IncludedProfiles: strings.Split(rotStr, " ")}
 	}
-	if opts.request.Rotation == nil {
-		opts.request.Rotation = r
-		return nil
-	}
-	opts.request.Rotation.OnAT = opts.request.Rotation.OnAT || r.OnAT || opts.OnAT
-	opts.request.Rotation.OnOther = opts.request.Rotation.OnOther || r.OnOther || opts.OnOther
-	opts.request.Rotation.AutoRevoke = opts.request.Rotation.AutoRevoke || r.AutoRevoke || opts.AutoRevoke
+	opts.request.Rotation.OnAT = opts.request.Rotation.OnAT || opts.OnAT
+	opts.request.Rotation.OnOther = opts.request.Rotation.OnOther || opts.OnOther
+	opts.request.Rotation.AutoRevoke = opts.request.Rotation.AutoRevoke || opts.AutoRevoke
 	if opts.Lifetime != 0 {
 		opts.request.Rotation.Lifetime = opts.Lifetime
-	} else if r.Lifetime != 0 {
-		opts.request.Rotation.Lifetime = r.Lifetime
 	}
 	return nil
 }
@@ -137,9 +137,20 @@ func parseRestrictionOpts(rOpts restrictionOpts, ctx *cli.Context) (api.Restrict
 
 func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
 	if opts.Restrictions != "" {
-		opts.request.Restrictions, err = profile.ParseRestrictionsTemplate([]byte(opts.Restrictions))
-		if err != nil {
-			return
+		rBytes := []byte(opts.Restrictions)
+		if jsonutils.IsJSONObject(rBytes) {
+			rBytes = append([]byte{'['}, append(rBytes, ']')...)
+		}
+		if jsonutils.IsJSONArray(rBytes) {
+			if err = json.Unmarshal(rBytes, &opts.request.Restrictions); err != nil {
+				return
+			}
+		} else {
+			opts.request.Restrictions = api.Restrictions{
+				{
+					IncludedProfiles: strings.Split(opts.Restrictions, " "),
+				},
+			}
 		}
 		return
 	}
@@ -177,14 +188,16 @@ func (opts *mtOpts) Request(ctx *cli.Context) (*api.GeneralMytokenRequest, error
 	if opts.request != nil {
 		return opts.request, nil
 	}
-	if opts.profile == "" {
-		opts.request = &api.GeneralMytokenRequest{}
-	} else {
-		r, err := profile.ParseProfile([]byte(opts.profile))
-		if err != nil {
-			return nil, err
+	opts.request = &api.GeneralMytokenRequest{}
+	if opts.profile != "" {
+		bProf := []byte(opts.profile)
+		if jsonutils.IsJSONObject(bProf) {
+			if err := json.Unmarshal(bProf, &opts.request); err != nil {
+				return nil, err
+			}
+		} else {
+			opts.request.IncludedProfiles = strings.Split(opts.profile, " ")
 		}
-		opts.request = &r
 	}
 	if opts.Name != "" {
 		opts.request.Name = opts.Name
