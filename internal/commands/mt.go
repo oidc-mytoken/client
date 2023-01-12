@@ -1,18 +1,21 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
-	"github.com/oidc-mytoken/server/shared/utils"
+	"github.com/oidc-mytoken/utils/utils"
+	"github.com/oidc-mytoken/utils/utils/jsonutils"
+	"github.com/oidc-mytoken/utils/utils/profile"
+	"github.com/oidc-mytoken/utils/utils/timerestriction"
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	cutils "github.com/oidc-mytoken/client/internal/utils"
-	"github.com/oidc-mytoken/client/internal/utils/profile"
 	"github.com/oidc-mytoken/client/internal/utils/qr"
 )
 
@@ -67,7 +70,7 @@ func (opts *mtOpts) parseProviderOpt() error {
 			return fmt.Errorf("Provider not specified and no default provider set")
 		}
 	}
-	if isURL := strings.HasPrefix(opts.provider, "https://"); isURL {
+	if strings.HasPrefix(opts.provider, "https://") {
 		opts.request.Issuer = opts.provider
 		return nil
 	}
@@ -86,7 +89,7 @@ func (opts *mtOpts) parseCapabilitiesOption() error {
 	if opts.CapabilitiesStr == "" {
 		return nil
 	}
-	c, err := profile.ParseCapabilityTemplate([]byte(opts.CapabilitiesStr))
+	c, err := profile.ProfileParser{}.ParseCapabilityTemplate([]byte(opts.CapabilitiesStr))
 	if err != nil {
 		return err
 	}
@@ -101,21 +104,19 @@ func (opts *mtOpts) parseRotationOption() error {
 	if rotStr == "" {
 		return nil
 	}
-	r, err := profile.ParseRotationTemplate([]byte(rotStr))
-	if err != nil {
-		return err
+	rotBytes := []byte(rotStr)
+	if jsonutils.IsJSONObject(rotBytes) {
+		if err := json.Unmarshal(rotBytes, opts.request.Rotation); err != nil {
+			return err
+		}
+	} else {
+		opts.request.Rotation = &api.Rotation{IncludedProfiles: strings.Split(rotStr, " ")}
 	}
-	if opts.request.Rotation == nil {
-		opts.request.Rotation = r
-		return nil
-	}
-	opts.request.Rotation.OnAT = opts.request.Rotation.OnAT || r.OnAT || opts.OnAT
-	opts.request.Rotation.OnOther = opts.request.Rotation.OnOther || r.OnOther || opts.OnOther
-	opts.request.Rotation.AutoRevoke = opts.request.Rotation.AutoRevoke || r.AutoRevoke || opts.AutoRevoke
+	opts.request.Rotation.OnAT = opts.request.Rotation.OnAT || opts.OnAT
+	opts.request.Rotation.OnOther = opts.request.Rotation.OnOther || opts.OnOther
+	opts.request.Rotation.AutoRevoke = opts.request.Rotation.AutoRevoke || opts.AutoRevoke
 	if opts.Lifetime != 0 {
 		opts.request.Rotation.Lifetime = opts.Lifetime
-	} else if r.Lifetime != 0 {
-		opts.request.Rotation.Lifetime = r.Lifetime
 	}
 	return nil
 }
@@ -136,17 +137,28 @@ func parseRestrictionOpts(rOpts restrictionOpts, ctx *cli.Context) (api.Restrict
 
 func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
 	if opts.Restrictions != "" {
-		opts.request.Restrictions, err = profile.ParseRestrictionsTemplate([]byte(opts.Restrictions))
-		if err != nil {
-			return
+		rBytes := []byte(opts.Restrictions)
+		if jsonutils.IsJSONObject(rBytes) {
+			rBytes = append([]byte{'['}, append(rBytes, ']')...)
+		}
+		if jsonutils.IsJSONArray(rBytes) {
+			if err = json.Unmarshal(rBytes, &opts.request.Restrictions); err != nil {
+				return
+			}
+		} else {
+			opts.request.Restrictions = api.Restrictions{
+				{
+					IncludedProfiles: strings.Split(opts.Restrictions, " "),
+				},
+			}
 		}
 		return
 	}
-	nbf, err := cutils.ParseTime(opts.RestrictNbf)
+	nbf, err := timerestriction.ParseTime(opts.RestrictNbf)
 	if err != nil {
 		return
 	}
-	exp, err := cutils.ParseTime(opts.RestrictExp)
+	exp, err := timerestriction.ParseTime(opts.RestrictExp)
 	if err != nil {
 		return
 	}
@@ -155,7 +167,7 @@ func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
 		ExpiresAt:     exp,
 		Scope:         strings.Join(opts.RestrictScopes.Value(), " "),
 		Audiences:     opts.RestrictAudiences.Value(),
-		IPs:           opts.RestrictIP.Value(),
+		Hosts:         opts.RestrictIP.Value(),
 		GeoIPAllow:    opts.RestrictGeoIPAllow.Value(),
 		GeoIPDisallow: opts.RestrictGeoIPDisallow.Value(),
 	}
@@ -166,7 +178,7 @@ func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
 		rr.UsagesOther = utils.NewInt64(opts.RestrictUsagesOther)
 	}
 	if rr.UsagesAT != nil || rr.UsagesOther != nil || rr.NotBefore != 0 || rr.ExpiresAt != 0 || rr.Scope != "" ||
-		len(rr.Audiences) != 0 || len(rr.IPs) != 0 || len(rr.GeoIPAllow) != 0 || len(rr.GeoIPAllow) != 0 {
+		len(rr.Audiences) != 0 || len(rr.Hosts) != 0 || len(rr.GeoIPAllow) != 0 || len(rr.GeoIPAllow) != 0 {
 		opts.request.Restrictions = api.Restrictions{rr}
 	}
 	return
@@ -176,14 +188,16 @@ func (opts *mtOpts) Request(ctx *cli.Context) (*api.GeneralMytokenRequest, error
 	if opts.request != nil {
 		return opts.request, nil
 	}
-	if opts.profile == "" {
-		opts.request = &api.GeneralMytokenRequest{}
-	} else {
-		r, err := profile.ParseProfile([]byte(opts.profile))
-		if err != nil {
-			return nil, err
+	opts.request = &api.GeneralMytokenRequest{}
+	if opts.profile != "" {
+		bProf := []byte(opts.profile)
+		if jsonutils.IsJSONObject(bProf) {
+			if err := json.Unmarshal(bProf, &opts.request); err != nil {
+				return nil, err
+			}
+		} else {
+			opts.request.IncludedProfiles = strings.Split(opts.profile, " ")
 		}
-		opts.request = &r
 	}
 	if opts.Name != "" {
 		opts.request.Name = opts.Name
@@ -279,13 +293,15 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Destination: &opts.RestrictNbf,
 		},
 		&cli.StringSliceFlag{
-			Name: "ip",
+			Name: "host",
 			Aliases: []string{
+				"ip",
 				"ips",
 				"ip-allow",
+				"hosts",
 			},
-			Usage: "Restrict the mytoken so that it can only be used from these IPs. " +
-				"Can be a network address block or a single ip.",
+			Usage: "Restrict the mytoken so that it can only be used from these hosts. " +
+				"Can be a network address block, a single ip, or a host name.",
 			Destination: &opts.RestrictIP,
 			Placeholder: "IP",
 		},
@@ -293,14 +309,14 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Name: "geo-ip-allow",
 			Usage: "Restrict the mytoken so that it can be only used from these COUNTRIES. " +
 				"Must be a short country code, e.g. 'us'.",
-			Destination: &opts.RestrictIP,
+			Destination: &opts.RestrictGeoIPAllow,
 			Placeholder: "COUNTRY",
 		},
 		&cli.StringSliceFlag{
 			Name: "geo-ip-disallow",
 			Usage: "Restrict the mytoken so that it cannot be used from these COUNTRIES. " +
 				"Must be a short country code, e.g. 'us'.",
-			Destination: &opts.RestrictIP,
+			Destination: &opts.RestrictGeoIPDisallow,
 			Placeholder: "COUNTRY",
 		},
 		&cli.Int64Flag{

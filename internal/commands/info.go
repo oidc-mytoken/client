@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/oidc-mytoken/api/v0"
-	"github.com/oidc-mytoken/server/shared/utils"
+	"github.com/oidc-mytoken/utils/utils/jwtutils"
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
@@ -92,7 +92,7 @@ func prettyPrintJSON(obj interface{}) error {
 
 func info(_ *cli.Context) error {
 	mToken := infoOptions.MustGetToken()
-	if !utils.IsJWT(mToken) {
+	if !jwtutils.IsJWT(mToken) {
 		return fmt.Errorf("The token is not a JWT.")
 	}
 	payload := strings.Split(mToken, ".")[1]
@@ -143,8 +143,8 @@ func history(_ *cli.Context) (err error) {
 			updateMytoken(res.TokenUpdate.Mytoken)
 		}
 	}
-	outputData := make([]tablewriter.TableWriter, len(res.EventHistory))
-	for i, d := range res.EventHistory {
+	outputData := make([]tablewriter.TableWriter, len(res.EventHistory.Events))
+	for i, d := range res.EventHistory.Events {
 		outputData[i] = tableEventEntry(d)
 	}
 	tablewriter.PrintTableData(outputData)
