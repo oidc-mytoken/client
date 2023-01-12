@@ -15,7 +15,7 @@ import (
 var ctx = context.Background()
 
 func init() {
-	ctx = context.WithValue(ctx, mytokenlib.ContextKeyUserAgent, fmt.Sprintf("mytoken client %s", version.VERSION()))
+	ctx = context.WithValue(ctx, mytokenlib.ContextKeyUserAgent, fmt.Sprintf("mytoken client %s", version.VERSION))
 }
 
 func main() {

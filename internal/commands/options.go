@@ -15,7 +15,7 @@ import (
 var app = &cli.App{
 	Name:     "mytoken",
 	Usage:    "Command line client for the mytoken server",
-	Version:  version.VERSION(),
+	Version:  version.VERSION,
 	Compiled: time.Time{},
 	Authors: []*cli.Author{
 		{
