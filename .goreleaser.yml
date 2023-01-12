@@ -44,20 +44,6 @@ nfpms:
       - src: config/example-config.yaml
         dst: /etc/mytoken/example-config.yaml
         type: config
-      - src: config/profiles.d/
-        dst: /etc/mytoken/profiles.d/
-        type: config
-      - src: config/capabilities.d/
-        dst: /etc/mytoken/capabilities.d/
-        type: config
-      - src: config/restrictions.d/
-        dst: /etc/mytoken/restrictions.d/
-        type: config
-      - src: config/rotation.d/
-        dst: /etc/mytoken/rotation.d/
-        type: config
-      - dst: /etc/mytoken/profiles.d/
-        type: dir
     overrides:
       rpm:
         replacements:
