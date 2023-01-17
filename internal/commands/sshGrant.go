@@ -9,12 +9,12 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
-	"github.com/oidc-mytoken/server/shared/utils/fileutil"
+	"github.com/oidc-mytoken/utils/utils/fileutil"
+	"github.com/oidc-mytoken/utils/utils/profile"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
-	"github.com/oidc-mytoken/client/internal/utils/profile"
 	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
 )
 
@@ -162,7 +162,7 @@ func addSSHKey(ctx *cli.Context) error {
 			fmt.Fprintln(os.Stderr, "success")
 		},
 	}
-	caps, err := profile.ParseCapabilityTemplate([]byte(optCapabilities))
+	caps, err := profile.ProfileParser{}.ParseCapabilityTemplate([]byte(optCapabilities))
 	if err != nil {
 		return err
 	}

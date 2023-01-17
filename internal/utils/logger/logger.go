@@ -18,7 +18,7 @@ func Init() {
 type errorStringFormatter struct{}
 
 // Format implements the logrus.Formatter interface
-func (f *errorStringFormatter) Format(entry *log.Entry) ([]byte, error) {
+func (*errorStringFormatter) Format(entry *log.Entry) ([]byte, error) {
 	b := bytes.Buffer{}
 	b.WriteString(entry.Message)
 	if len(entry.Data) > 0 {
