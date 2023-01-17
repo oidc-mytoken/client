@@ -1,5 +1,5 @@
 
-## mytoken 0.6.0 PREREL
+## mytoken 0.6.0
 
 ### Breaking Changes
 - Support for local profiles / templates is dropped. Instead, support for server profiles is added.
