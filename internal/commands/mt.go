@@ -224,7 +224,7 @@ func (opts *mtOpts) Request(ctx *cli.Context) (*api.GeneralMytokenRequest, error
 	if err != nil {
 		return nil, err
 	}
-	if len(opts.request.Capabilities) == 0 {
+	if len(opts.request.Capabilities) == 0 && len(opts.request.IncludedProfiles) == 0 {
 		opts.request.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities)
 	}
 	return opts.request, nil
@@ -502,10 +502,12 @@ func obtainMT(context *cli.Context) (string, error) {
 	}
 	mtGrant := mtCommand.GetToken()
 	if mtGrant != "" && !mtCommand.UseOIDCFlow {
-
-		mtRes, err := mytoken.Mytoken.APIFromMytoken(
-			mtGrant, req.Issuer, req.Restrictions, req.Capabilities,
-			req.Rotation, req.ResponseType, req.Name,
+		req.GrantType = api.GrantTypeMytoken
+		mtRes, err := mytoken.Mytoken.APIFromRequest(
+			api.MytokenFromMytokenRequest{
+				GeneralMytokenRequest: *req,
+				Mytoken:               mtGrant,
+			},
 		)
 		if err != nil {
 			return "", err
