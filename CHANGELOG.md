@@ -1,4 +1,7 @@
 
+## mytoken 0.6.1
+- Fail on restrictions error
+
 ## mytoken 0.6.0
 
 ### Breaking Changes

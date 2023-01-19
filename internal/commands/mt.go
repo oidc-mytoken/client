@@ -505,8 +505,9 @@ func obtainMT(context *cli.Context) (string, error) {
 		req.GrantType = api.GrantTypeMytoken
 		mtRes, err := mytoken.Mytoken.APIFromRequest(
 			api.MytokenFromMytokenRequest{
-				GeneralMytokenRequest: *req,
-				Mytoken:               mtGrant,
+				GeneralMytokenRequest:        *req,
+				Mytoken:                      mtGrant,
+				FailOnRestrictionsNotTighter: true,
 			},
 		)
 		if err != nil {
