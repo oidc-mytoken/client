@@ -14,7 +14,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/urfave/cli/v2 v2.3.1-0.20211205195634-e8d81738896c
 	golang.org/x/net v0.0.0-20220906165146-f3363e06e74c
-	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
+	golang.org/x/term v0.7.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
