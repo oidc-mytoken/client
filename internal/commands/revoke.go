@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/oidc-mytoken/api/v0"
 	"github.com/urfave/cli/v2"
 
 	"github.com/oidc-mytoken/client/internal/config"
@@ -11,6 +12,7 @@ import (
 var revokeCommand = struct {
 	MTOptions
 	Recursive bool
+	MOMID     string
 }{}
 
 func init() {
@@ -27,6 +29,23 @@ func init() {
 					Destination:      &revokeCommand.Recursive,
 					HideDefaultValue: true,
 				},
+				&cli.StringFlag{
+					Name: "mom-id",
+					Aliases: []string{
+						"MOM-ID",
+						"mom",
+						"MOM",
+					},
+					Usage: fmt.Sprintf(
+						"If set, "+
+							"the mytoken with the passed mom id is revoked instead of the actual token.	"+
+							"This requires that the token linked to the mom id is either a child of the actual mytoken or"+
+							" the actual mytoken has the %s capability.", api.CapabilityRevokeAnyToken,
+					),
+					EnvVars:     []string{"MOM_ID"},
+					Destination: &revokeCommand.MOMID,
+					Placeholder: "MOM_ID",
+				},
 			),
 		},
 	)
@@ -35,7 +54,12 @@ func init() {
 func revoke(_ *cli.Context) error {
 	mytoken := config.Get().Mytoken
 	mToken := revokeCommand.MustGetToken()
-	err := mytoken.Revocation.Revoke(mToken, "", revokeCommand.Recursive)
+	var err error
+	if revokeCommand.MOMID != "" {
+		err = mytoken.Revocation.RevokeID(revokeCommand.MOMID, mToken, "", revokeCommand.Recursive)
+	} else {
+		err = mytoken.Revocation.Revoke(mToken, "", revokeCommand.Recursive)
+	}
 	if err == nil {
 		fmt.Println("Token revoked")
 	}

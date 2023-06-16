@@ -1,6 +1,7 @@
 
 ## mytoken 0.6.1
 - Fail on restrictions error
+- Added possibility to revoke tokens by `mom_id`
 
 ## mytoken 0.6.0
 
