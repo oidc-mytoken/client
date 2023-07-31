@@ -47,7 +47,7 @@ nfpms:
     bindir: /usr/bin
     contents:
       - src: config/example-config.yaml
-        dst: /etc/mytoken/example-config.yaml
+        dst: /usr/share/doc/mytoken/example-config.yaml
         type: config
     overrides:
       rpm:
