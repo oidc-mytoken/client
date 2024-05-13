@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/Songmu/prompter v0.5.1
-	github.com/gliderlabs/ssh v0.3.5
+	github.com/gliderlabs/ssh v0.3.7
 	github.com/mdp/qrterminal/v3 v3.0.0
 	github.com/oidc-mytoken/api v0.10.0
 	github.com/oidc-mytoken/lib v0.7.0
