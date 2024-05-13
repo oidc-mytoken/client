@@ -13,8 +13,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.2
 	github.com/urfave/cli/v2 v2.3.1-0.20211205195634-e8d81738896c
-	golang.org/x/net v0.10.0
-	golang.org/x/term v0.8.0
+	golang.org/x/net v0.23.0
+	golang.org/x/term v0.18.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
