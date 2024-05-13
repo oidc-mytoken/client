@@ -1,6 +1,6 @@
 module github.com/oidc-mytoken/client
 
-go 1.16
+go 1.22
 
 require (
 	github.com/Songmu/prompter v0.5.1
