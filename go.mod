@@ -11,7 +11,7 @@ require (
 	github.com/oidc-mytoken/utils v0.1.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.9.2
+	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.3.1-0.20211205195634-e8d81738896c
 	golang.org/x/net v0.23.0
 	golang.org/x/term v0.20.0
