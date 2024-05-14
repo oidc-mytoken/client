@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/Songmu/prompter v0.5.1
 	github.com/gliderlabs/ssh v0.3.7
-	github.com/mdp/qrterminal/v3 v3.0.0
+	github.com/mdp/qrterminal/v3 v3.2.0
 	github.com/oidc-mytoken/api v0.10.0
 	github.com/oidc-mytoken/lib v0.7.0
 	github.com/oidc-mytoken/utils v0.1.2
@@ -28,7 +28,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/klauspost/compress v1.15.9 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
