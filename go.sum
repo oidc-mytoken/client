@@ -212,10 +212,10 @@ github.com/mattn/go-runewidth v0.0.9/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m
 github.com/mdp/qrterminal/v3 v3.2.0 h1:qteQMXO3oyTK4IHwj2mWsKYYRBOp1Pj2WRYFYYNTCdk=
 github.com/mdp/qrterminal/v3 v3.2.0/go.mod h1:XGGuua4Lefrl7TLEsSONiD+UEjQXJZ4mPzF+gWYIJkk=
 github.com/oidc-mytoken/api v0.9.1/go.mod h1:DBIlUbaIgGlf607VZx8zFC97VR3WNN0kaMVO1AqyTdE=
-github.com/oidc-mytoken/api v0.10.0 h1:+LCMb7et/roU+Baifho9bcOOAoqDzMSOJt4T1EgI5nk=
-github.com/oidc-mytoken/api v0.10.0/go.mod h1:DS2/0gUjt84jVq/4jqs7mSoUtv1DDEp3xexF7HW1qe4=
-github.com/oidc-mytoken/lib v0.7.0 h1:/uPQ10ColbCZ79wotV6aa3yfU6Lbaucis2+TrfVIXdQ=
-github.com/oidc-mytoken/lib v0.7.0/go.mod h1:D0vrMn1szss52mJKwI+sTsSakVCP6qCk0l0kAjd4YtA=
+github.com/oidc-mytoken/api v0.11.1 h1:znpLzfXruM627lH0bjxoJEMRv2fCWptXmlqFRUjgwQ0=
+github.com/oidc-mytoken/api v0.11.1/go.mod h1:bd7obYvztiIQW1PoRVBTOg8/clWlauNGwcZEu5mRbwg=
+github.com/oidc-mytoken/lib v0.7.1 h1:inqnng/iVU42TU8Cuac7wP8I+JraTYmWMKSXdZvShfU=
+github.com/oidc-mytoken/lib v0.7.1/go.mod h1:LLDCpHCFzyodYLWSf69FDI4cvql/8B2sdKhVjmOBPgI=
 github.com/oidc-mytoken/utils v0.1.2 h1:nmKIw/k4OkQ/9ww06W7krJ4yTwvDbuCRCjjRCmI9gSE=
 github.com/oidc-mytoken/utils v0.1.2/go.mod h1:pAUlvF/mYz8CjinCx4iwoWzG514B9EhuCpu7O+afaD8=
 github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=
@@ -245,8 +245,8 @@ github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
-github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
-github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.3 h1:RP3t2pwF7cMEbC1dqtB6poj3niw/9gnV4Cjg5oW5gtY=
+github.com/stretchr/testify v1.8.3/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasthttp v1.41.0 h1:zeR0Z1my1wDHTRiamBCXVglQdbUwgb9uWG3k1HQz6jY=
