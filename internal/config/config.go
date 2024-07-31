@@ -58,7 +58,7 @@ func (c *Config) Mytoken() *mytokenlib.MytokenServer {
 }
 
 func (c *Config) SetMytokenServer(mytoken *mytokenlib.MytokenServer) {
-	conf.mytoken = mytoken
+	c.mytoken = mytoken
 }
 
 func load(name string, locations []string) {
