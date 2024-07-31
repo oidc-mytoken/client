@@ -67,8 +67,8 @@ func getAT(context *cli.Context) error {
 		req := mytokenlib.NewAccessTokenRequest("", "", atc.Scopes.Value(), atc.Audiences.Value(), comment)
 		return doSSH(ssh, api.SSHRequestAccessToken, req)
 	}
-	mytoken := config.Get().Mytoken
 	mToken := atc.MustGetToken()
+	mytoken := config.Get().Mytoken()
 	atRes, err := mytoken.AccessToken.APIGet(
 		mToken, "", atc.Scopes.Value(), atc.Audiences.Value(), comment,
 	)

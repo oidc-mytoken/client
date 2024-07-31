@@ -82,7 +82,7 @@ func initSSHGrant(parent *cli.Command) {
 
 func listSSH(_ *cli.Context) error {
 	mytoken := settingsOptions.MustGetToken()
-	res, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIGet(mytoken)
+	res, err := config.Get().Mytoken().UserSettings.Grants.SSH.APIGet(mytoken)
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func addSSHKey(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	res, tokenUpdate, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIAdd(
+	res, tokenUpdate, err := config.Get().Mytoken().UserSettings.Grants.SSH.APIAdd(
 		mytoken, key, optName, restrictions,
 		caps, callbacks,
 	)
@@ -221,7 +221,7 @@ func deleteSSHKey(ctx *cli.Context) error {
 			return err
 		}
 	}
-	res, err := config.Get().Mytoken.UserSettings.Grants.SSH.APIRemove(mytoken, keyFP, key)
+	res, err := config.Get().Mytoken().UserSettings.Grants.SSH.APIRemove(mytoken, keyFP, key)
 	if err != nil {
 		return err
 	}

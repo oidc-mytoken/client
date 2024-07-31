@@ -1,5 +1,12 @@
 
-## mytoken 0.6.0 PREREL
+## mytoken 0.6.1
+- Fail on restrictions error
+- Added possibility to revoke tokens by `mom_id`
+- Updated lib / api
+- Updated dependecies
+- Don't fail if defult mytoken server is down but another JWT is used.
+
+## mytoken 0.6.0
 
 ### Breaking Changes
 - Support for local profiles / templates is dropped. Instead, support for server profiles is added.

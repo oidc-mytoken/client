@@ -28,7 +28,7 @@ func init() {
 
 func listProviders(_ *cli.Context) error {
 	defaultProvider := config.Get().DefaultProvider
-	instanceProviders := config.Get().Mytoken.ServerMetadata.ProvidersSupported
+	instanceProviders := config.Get().Mytoken().ServerMetadata.ProvidersSupported
 	urlMaxLen := 0
 	for _, ip := range instanceProviders {
 		length := len(ip.Issuer)

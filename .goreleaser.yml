@@ -20,19 +20,19 @@ builds:
       - -trimpath
     mod_timestamp: '{{ .CommitTimestamp }}'
 archives:
-  - replacements:
-      darwin: macOS
-      386: 32-bit
-      amd64: 64-bit
+  - name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{ if eq .Os "darwin" }}macOS{{- else }}{{ .Os }}{{ end }}_
+      {{- if eq .Arch "386" }}32-bit{{- else if eq .Arch "amd64" }}64-bit{{- else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
         format: zip
 nfpms:
   - id: client-pkg
     package_name: mytoken
-    replacements:
-      386: i386
-    file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Arch }}"
+    file_name_template: >-
+      {{ .PackageName }}_{{ .Version }}_
+      {{- if eq .Arch "386" }}i386{{- else }}{{ .Arch }}{{ end }}
     builds:
       - client
     homepage: https://mytoken-docs.data.kit.edu/
@@ -42,18 +42,18 @@ nfpms:
     formats:
       - deb
       - rpm
-    release: 1
+    release: "1"
     section: misc
     bindir: /usr/bin
     contents:
       - src: config/example-config.yaml
-        dst: /etc/mytoken/example-config.yaml
+        dst: /usr/share/doc/mytoken/example-config.yaml
         type: config
     overrides:
       rpm:
-        replacements:
-          amd64: x86_64
-        file_name_template: "{{ .PackageName }}-{{ .Version }}.{{ .Arch }}"
+        file_name_template: >-
+          {{ .PackageName }}-{{ .Version }}.
+          {{- if eq .Arch "386" }}i386{{- else if eq .Arch "amd64" }}x86_64{{- else }}{{ .Arch }}{{ end }}
 dockers:
   - goos: linux
     goarch: amd64

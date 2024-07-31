@@ -111,8 +111,8 @@ func introspect(_ *cli.Context) error {
 		}
 		return prettyPrintJSONString(res)
 	}
-	mytoken := config.Get().Mytoken
 	mToken := infoOptions.MustGetToken()
+	mytoken := config.Get().Mytoken()
 	res, err := mytoken.Tokeninfo.Introspect(mToken)
 	if err != nil {
 		return err
@@ -133,8 +133,8 @@ func history(_ *cli.Context) (err error) {
 			return
 		}
 	} else { // no ssh
-		mytoken := config.Get().Mytoken
 		mToken := infoOptions.MustGetToken()
+		mytoken := config.Get().Mytoken()
 		res, err = mytoken.Tokeninfo.APIHistory(mToken)
 		if err != nil {
 			return
@@ -186,8 +186,8 @@ func subTree(_ *cli.Context) (err error) {
 			return
 		}
 	} else {
-		mytoken := config.Get().Mytoken
 		mToken := infoOptions.MustGetToken()
+		mytoken := config.Get().Mytoken()
 		res, err = mytoken.Tokeninfo.APISubtokens(mToken)
 		if err != nil {
 			return err
@@ -212,8 +212,8 @@ func listMytokens(_ *cli.Context) (err error) {
 			return
 		}
 	} else {
-		mytoken := config.Get().Mytoken
 		mToken := infoOptions.MustGetToken()
+		mytoken := config.Get().Mytoken()
 		res, err = mytoken.Tokeninfo.APIListMytokens(mToken)
 		if err != nil {
 			return err
