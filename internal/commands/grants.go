@@ -48,7 +48,7 @@ func initGrants(parent *cli.Command) {
 
 func listGrants(_ *cli.Context) error {
 	mytoken := settingsOptions.MustGetToken()
-	res, err := config.Get().Mytoken.UserSettings.Grants.APIGet(mytoken)
+	res, err := config.Get().Mytoken().UserSettings.Grants.APIGet(mytoken)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func enableGrant(ctx *cli.Context) error {
 	}
 	grant := ctx.Args().Get(0)
 	mytoken := settingsOptions.MustGetToken()
-	res, err := config.Get().Mytoken.UserSettings.Grants.APIEnableGrant(mytoken, grant)
+	res, err := config.Get().Mytoken().UserSettings.Grants.APIEnableGrant(mytoken, grant)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func disableGrant(ctx *cli.Context) error {
 	}
 	grant := ctx.Args().Get(0)
 	mytoken := settingsOptions.MustGetToken()
-	res, err := config.Get().Mytoken.UserSettings.Grants.APIDisableGrant(mytoken, grant)
+	res, err := config.Get().Mytoken().UserSettings.Grants.APIDisableGrant(mytoken, grant)
 	if err != nil {
 		return err
 	}

@@ -9,13 +9,14 @@ import (
 	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/utils/httpclient"
 	"github.com/oidc-mytoken/utils/utils/fileutil"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
 	URL     string                    `yaml:"instance"`
-	Mytoken *mytokenlib.MytokenServer `yaml:"-"`
+	mytoken *mytokenlib.MytokenServer `yaml:"-"`
 
 	DefaultProvider          string            `yaml:"default_provider"`
 	DefaultTokenCapabilities []string          `yaml:"default_token_capabilities"`
@@ -44,6 +45,22 @@ func Get() *Config {
 	return conf
 }
 
+func (c *Config) Mytoken() *mytokenlib.MytokenServer {
+	if c.mytoken != nil {
+		return c.mytoken
+	}
+	mytoken, err := mytokenlib.NewMytokenServer(conf.URL)
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "could not initialize mytoken server"))
+	}
+	conf.mytoken = mytoken
+	return mytoken
+}
+
+func (c *Config) SetMytokenServer(mytoken *mytokenlib.MytokenServer) {
+	conf.mytoken = mytoken
+}
+
 func load(name string, locations []string) {
 	data, usedLocation, err := fileutil.ReadConfigFile(name, locations)
 	if err != nil {
@@ -55,11 +72,6 @@ func load(name string, locations []string) {
 	}
 	conf.usedConfigDir = usedLocation
 	mytokenlib.SetClient(httpclient.Do().GetClient())
-	mytoken, err := mytokenlib.NewMytokenServer(conf.URL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	conf.Mytoken = mytoken
 
 	hostname, _ := os.Hostname()
 	conf.Hostname = hostname

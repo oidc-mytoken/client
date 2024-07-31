@@ -159,7 +159,7 @@ func updateMytokenServerFromJWT(token string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	*(config.Get().Mytoken) = *mytoken
+	config.Get().SetMytokenServer(mytoken)
 }
 func (mt MTOptions) GetToken() string {
 	token := mt._getToken()

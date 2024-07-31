@@ -52,8 +52,8 @@ func init() {
 }
 
 func revoke(_ *cli.Context) error {
-	mytoken := config.Get().Mytoken
 	mToken := revokeCommand.MustGetToken()
+	mytoken := config.Get().Mytoken()
 	var err error
 	if revokeCommand.MOMID != "" {
 		err = mytoken.Revocation.RevokeID(revokeCommand.MOMID, mToken, "", revokeCommand.Recursive)

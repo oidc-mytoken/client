@@ -470,7 +470,6 @@ func init() {
 }
 
 func obtainMTCmd(context *cli.Context) error {
-
 	mt, err := obtainMT(context)
 	if err != nil {
 		return err
@@ -479,7 +478,7 @@ func obtainMTCmd(context *cli.Context) error {
 }
 
 func obtainMT(context *cli.Context) (string, error) {
-	mytoken := config.Get().Mytoken
+	mytoken := config.Get().Mytoken()
 	if mtCommand.TransferCode != "" {
 		return mytoken.Mytoken.FromTransferCode(mtCommand.TransferCode)
 	}
