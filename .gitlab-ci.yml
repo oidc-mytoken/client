@@ -4,7 +4,7 @@ include:
 variables:
   UPSTREAM_PROJECT: oidc-mytoken/client
 
-image: golang:1.22
+image: golang:1.24
 stages:
   - build
   - test
@@ -34,7 +34,7 @@ test_race:
     - go test -race -v ./...
 
 staticcheck:
-  image: golang:1.22
+  image: golang:1.24
   stage: lint
   before_script:
     - go install honnef.co/go/tools/cmd/staticcheck@latest
