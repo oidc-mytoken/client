@@ -1,20 +1,20 @@
 
 REPO_TARGET="/prerel"
 if [ -n "$CI_COMMIT_TAG" ] && echo "$CI_COMMIT_TAG" | grep -qv '~'; then
-  REPO_TARGET="/preprod"
+    REPO_TARGET="/preprod"
 fi
 
 # ssh-key-script
 [ -e /tmp/ssh-private-keys/${REPO_USER} ] && {
-  eval $(ssh-agent -s)
-  cat /tmp/ssh-private-keys/${REPO_USER} | tr -d '\r' | ssh-add -
-  test -d ~/.ssh || mkdir -p ~/.ssh
-  chmod 700 ~/.ssh
+    eval $(ssh-agent -s)
+    cat /tmp/ssh-private-keys/${REPO_USER} | tr -d '\r' | ssh-add -
+    test -d ~/.ssh || mkdir -p ~/.ssh
+    chmod 700 ~/.ssh
 }
 [ -e /tmp/ssh-private-keys/known_hosts ] && {
-  test -d ~/.ssh || mkdir -p ~/.ssh
-  cp /tmp/ssh-private-keys/known_hosts ~/.ssh/known_hosts
-  chmod 644 ~/.ssh/known_hosts
+    test -d ~/.ssh || mkdir -p ~/.ssh
+    cp /tmp/ssh-private-keys/known_hosts ~/.ssh/known_hosts
+    chmod 644 ~/.ssh/known_hosts
 }
 ssh-add -l
 ssh -o StrictHostKeyChecking=no "${REPO_USER}@${REPO_HOST}" "hostname -f"
@@ -25,9 +25,9 @@ sign_repos() {
 }
 
 upload_files() {
-  UPLOAD_DIR=/tmp/package-upload
-  ssh "${REPO_USER}@${REPO_HOST}" "rm -rf $UPLOAD_DIR && mkdir -p $UPLOAD_DIR"
-  scp results/* "${REPO_USER}@${REPO_HOST}:${UPLOAD_DIR}"
+    UPLOAD_DIR=/tmp/package-upload
+    ssh "${REPO_USER}@${REPO_HOST}" "rm -rf $UPLOAD_DIR && mkdir -p $UPLOAD_DIR"
+    scp results/* "${REPO_USER}@${REPO_HOST}:${UPLOAD_DIR}"
 }
 
 distribute_files() {
