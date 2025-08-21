@@ -1,9 +1,14 @@
 #!/bin/bash
 
-REPO_TARGET="/prerel"
-if [ -n "$CI_COMMIT_TAG" ] && echo "$CI_COMMIT_TAG" | grep -qv '~'; then
-    REPO_TARGET="/preprod"
-fi
+# REPO_TARGET="/prerel"
+# if [ -n "$CI_COMMIT_TAG" ] && echo "$CI_COMMIT_TAG" | grep -qv '~'; then
+#     REPO_TARGET="/preprod"
+# fi
+REPO_TARGET=${PUBLISH_BUILD_RESULTS_REPO}
+
+echo "REPO_TO_PUBLISH_TO:           ${REPO_TO_PUBLISH_TO}"
+echo "PUBLISH_BUILD_RESULTS_REPO:   ${PUBLISH_BUILD_RESULTS_REPO}"
+echo "REPO_TARGET:                  ${REPO_TARGET}"
 
 # ssh-key-script
 [ -e /tmp/ssh-private-keys/${REPO_USER} ] && {
