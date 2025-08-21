@@ -1,5 +1,6 @@
 include:
   - 'https://codebase.helmholtz.cloud/m-team/tools/ci-voodoo/-/raw/master/ci-include/github-status-sync.yml'
+  - "https://codebase.helmholtz.cloud/m-team/tools/ci-voodoo/raw/master/ci-include/pipeline-jobs-publish-to-repo.yml"
 
 variables:
   UPSTREAM_PROJECT: oidc-mytoken/client
@@ -9,6 +10,8 @@ stages:
   - build
   - test
   - lint
+  - package
+  - publish
   - release
 
 default:
@@ -50,6 +53,48 @@ build:
   stage: build
   script:
     - go build github.com/oidc-mytoken/client/cmd/mytoken
+
+# fixme: consider moving this to a central place (since it's similar in
+# mytoken server and oinit)
+package:
+  stage: package
+  image:
+    name: goreleaser/goreleaser
+    entrypoint: [ "" ]
+  services:
+    - docker:dind
+#  only:
+#    refs:
+#      - tags
+#      - prerel
+  variables:
+    GIT_STRATEGY: clone
+    GIT_DEPTH: 0
+    REPO_HOST: repo.data.kit.edu
+    REPO_USER: cicd
+    DOCKER_REGISTRY: https://index.docker.io/v1/
+  before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin "$DOCKER_REGISTRY"
+  script:
+    - |
+      [[ "$CI_COMMIT_BRANCH" == "${PREREL_BRANCH_NAME}" ]] && {
+          echo "Running set-prerel-version"
+          .gitlab-ci-scripts/set-prerel-version.sh
+      }
+      [[ "$CI_COMMIT_BRANCH" != "${PREREL_BRANCH_NAME}" ]] && {
+          [[ "$CI_COMMIT_BRANCH" != "${CI_DEFAULT_BRANCH}" ]] && {
+              # we're on a devel branch
+              echo "Running set-devel-version"
+              .gitlab-ci-scripts/set-prerel-version.sh --devstring dev
+          }
+      }
+      .gitlab-ci-scripts/goreleaser.sh
+
+  artifacts:
+    paths:
+      - "results/*"
+  after_script:
+    - curl -d "repo=github.com/oidc-mytoken/server" https://goreportcard.com/checks
 
 prerelease:
   stage: release
