@@ -13,8 +13,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.3.1-0.20211205195634-e8d81738896c
-	golang.org/x/net v0.27.0
-	golang.org/x/term v0.22.0
+	golang.org/x/net v0.30.0
+	golang.org/x/term v0.25.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -34,9 +34,9 @@ require (
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.41.0 // indirect
-	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 // indirect
-	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
