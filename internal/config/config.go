@@ -61,6 +61,11 @@ func (c *Config) SetMytokenServer(mytoken *mytokenlib.MytokenServer) {
 	c.mytoken = mytoken
 }
 
+func SetURL(url string) {
+	conf.URL = url
+	conf.mytoken = nil
+}
+
 func load(name string, locations []string) {
 	data, usedLocation, err := fileutil.ReadConfigFile(name, locations)
 	if err != nil {

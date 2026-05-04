@@ -25,19 +25,20 @@ var app = &cli.Command{
 }
 
 var configFile string
+var mytokenURL string
 
 func init() {
 	cli.RootCommandHelpTemplate = `NAME:
-   {{template "helpNameTemplate" .}}
+    {{template "helpNameTemplate" .}}
 
 USAGE:
-   {{if .UsageText}}{{wrap .UsageText 3}}{{else}}{{.FullName}} {{if .VisibleFlags}}[global options]{{end}}{{if .VisibleCommands}} [command [command options]]{{end}}{{if .ArgsUsage}} {{.ArgsUsage}}{{else}}{{if .Arguments}} [arguments...]{{end}}{{end}}{{end}}{{if .Version}}{{if not .HideVersion}}
+    {{if .UsageText}}{{wrap .UsageText 3}}{{else}}{{.FullName}} {{if .VisibleFlags}}[global options]{{end}}{{if .VisibleCommands}} [command [command options]]{{end}}{{if .ArgsUsage}} {{.ArgsUsage}}{{else}}{{if .Arguments}} [arguments...]{{end}}{{end}}{{end}}{{if .Version}}{{if not .HideVersion}}
 
 VERSION:
-   {{.Version}}{{end}}{{end}}{{if .Description}}
+    {{.Version}}{{end}}{{end}}{{if .Description}}
 
 DESCRIPTION:
-   {{template "descriptionTemplate" .}}{{end}}
+    {{template "descriptionTemplate" .}}{{end}}
 {{- if len .Authors}}
 
 AUTHOR{{template "authorsTemplate" .}}{{end}}{{if .VisibleCommands}}
@@ -49,7 +50,7 @@ GLOBAL OPTIONS:{{template "visibleFlagCategoryTemplate" .}}{{else if .VisibleFla
 GLOBAL OPTIONS:{{template "visibleFlagTemplate" .}}{{end}}{{if .Copyright}}
 
 COPYRIGHT:
-   {{template "copyrightTemplate" .}}{{end}}
+    {{template "copyrightTemplate" .}}{{end}}
 
 DOCUMENTATION:
         https://mytoken-docs.data.kit.edu/client/intro
@@ -69,12 +70,24 @@ CONTACT:
 			TakesFile:   true,
 			Destination: &configFile,
 		},
+		&cli.StringFlag{
+			Name:    "url",
+			Aliases: []string{"mytoken-url"},
+			Usage:   "Use the given mytoken server `URL` instead of the one from the config file",
+			Sources: cli.EnvVars(
+				"MYTOKEN_URL",
+			),
+			Destination: &mytokenURL,
+		},
 	)
 	app.Before = func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		if cmd.IsSet("config") {
 			config.Load(configFile)
 		} else {
 			config.LoadDefault()
+		}
+		if cmd.IsSet("url") {
+			config.SetURL(mytokenURL)
 		}
 		return ctx, nil
 	}
