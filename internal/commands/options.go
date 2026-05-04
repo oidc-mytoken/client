@@ -18,7 +18,7 @@ var app = &cli.Command{
 	Authors: []any{
 		"Gabriel Zachmann <gabriel.zachmann@kit.edu>",
 	},
-	Copyright: "Karlsruhe Institute of Technology 2020-2022",
+	Copyright: "Karlsruhe Institute of Technology 2020-2026",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		return cli.ShowAppHelp(cmd)
 	},
