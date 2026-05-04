@@ -12,8 +12,8 @@ func PrintTable(headers []string, data [][]string) {
 
 func FPrintTable(out *os.File, headers []string, data [][]string) {
 	t := tablewriter.NewWriter(out)
-	t.SetHeader(headers)
-	t.AppendBulk(data)
+	t.Header(headers)
+	t.Bulk(data)
 	t.Render()
 }
 
