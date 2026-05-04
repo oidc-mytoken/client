@@ -1,11 +1,12 @@
 package commands
 
 import (
+	"context"
 	"os"
 
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	cutils "github.com/oidc-mytoken/client/internal/utils"
@@ -13,8 +14,8 @@ import (
 
 var atCommand = struct {
 	MTOptions
-	Scopes    cli.StringSlice
-	Audiences cli.StringSlice
+	Scopes    []string
+	Audiences []string
 	Out       string
 }{}
 
@@ -35,42 +36,40 @@ func init() {
 					Usage:       "Request the passed scope.",
 					DefaultText: "all scopes allowed for the used mytoken",
 					Destination: &atCommand.Scopes,
-					Placeholder: "SCOPE",
 				},
 				&cli.StringSliceFlag{
 					Name:        "aud",
 					Aliases:     []string{"audience"},
 					Usage:       "Request the passed audience.",
 					Destination: &atCommand.Audiences,
-					Placeholder: "AUD",
 				},
 				&cli.StringFlag{
 					Name:        "out",
 					Aliases:     []string{"o"},
-					Usage:       "The access token will be printed to this output",
+					Usage:       "The access token will be printed to this `FILE`",
+					TakesFile:   true,
 					Value:       os.Stdout.Name(),
 					Destination: &atCommand.Out,
-					Placeholder: "FILE",
 				},
 			),
 		},
 	)
 }
 
-func getAT(context *cli.Context) error {
+func getAT(ctx context.Context, cmd *cli.Command) error {
 	atc := atCommand
 	var comment string
-	if context.Args().Len() > 0 {
-		comment = context.Args().Get(0)
+	if cmd.Args().Len() > 0 {
+		comment = cmd.Args().Get(0)
 	}
 	if ssh := atc.SSH(); ssh != "" {
-		req := mytokenlib.NewAccessTokenRequest("", "", atc.Scopes.Value(), atc.Audiences.Value(), comment)
+		req := mytokenlib.NewAccessTokenRequest("", "", atc.Scopes, atc.Audiences, comment)
 		return doSSH(ssh, api.SSHRequestAccessToken, req)
 	}
 	mToken := atc.MustGetToken()
 	mytoken := config.Get().Mytoken()
 	atRes, err := mytoken.AccessToken.APIGet(
-		mToken, "", atc.Scopes.Value(), atc.Audiences.Value(), comment,
+		mToken, "", atc.Scopes, atc.Audiences, comment,
 	)
 	if err != nil {
 		return err

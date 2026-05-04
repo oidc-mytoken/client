@@ -1,10 +1,11 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/oidc-mytoken/api/v0"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
@@ -18,7 +19,7 @@ func initGrants(parent *cli.Command) {
 		Aliases: []string{"grant-types"},
 		Usage:   "View and manage your user grant types",
 		Flags:   grantsFlags,
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			{
 				Name:    "list",
 				Aliases: []string{"view"},
@@ -42,11 +43,11 @@ func initGrants(parent *cli.Command) {
 			},
 		},
 	}
-	parent.Subcommands = append(parent.Subcommands, cmd)
+	parent.Commands = append(parent.Commands, cmd)
 	initSSHGrant(cmd)
 }
 
-func listGrants(_ *cli.Context) error {
+func listGrants(_ context.Context, _ *cli.Command) error {
 	mytoken := settingsOptions.MustGetToken()
 	res, err := config.Get().Mytoken().UserSettings.Grants.APIGet(mytoken)
 	if err != nil {
@@ -85,11 +86,11 @@ func (i tableGrantTypeInfo) TableGetRow() []string {
 	}
 }
 
-func enableGrant(ctx *cli.Context) error {
-	if ctx.Args().Len() != 1 {
+func enableGrant(ctx context.Context, cmd *cli.Command) error {
+	if cmd.Args().Len() != 1 {
 		return fmt.Errorf("Must provide exactly one grant to enable")
 	}
-	grant := ctx.Args().Get(0)
+	grant := cmd.Args().Get(0)
 	mytoken := settingsOptions.MustGetToken()
 	res, err := config.Get().Mytoken().UserSettings.Grants.APIEnableGrant(mytoken, grant)
 	if err != nil {
@@ -102,11 +103,11 @@ func enableGrant(ctx *cli.Context) error {
 	return nil
 }
 
-func disableGrant(ctx *cli.Context) error {
-	if ctx.Args().Len() != 1 {
+func disableGrant(ctx context.Context, cmd *cli.Command) error {
+	if cmd.Args().Len() != 1 {
 		return fmt.Errorf("Must provide exactly one grant to disable")
 	}
-	grant := ctx.Args().Get(0)
+	grant := cmd.Args().Get(0)
 	mytoken := settingsOptions.MustGetToken()
 	res, err := config.Get().Mytoken().UserSettings.Grants.APIDisableGrant(mytoken, grant)
 	if err != nil {

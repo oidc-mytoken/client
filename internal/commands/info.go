@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/oidc-mytoken/api/v0"
 	"github.com/oidc-mytoken/utils/utils/jwtutils"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
@@ -28,7 +29,7 @@ func init() {
 			Usage:   "Get information about a mytoken",
 			Action:  info,
 			Flags:   cmdFlags,
-			Subcommands: []*cli.Command{
+			Commands: []*cli.Command{
 				{
 					Name:   "history",
 					Usage:  "List the event history for this token",
@@ -90,7 +91,7 @@ func prettyPrintJSON(obj interface{}) error {
 	return nil
 }
 
-func info(_ *cli.Context) error {
+func info(_ context.Context, _ *cli.Command) error {
 	mToken := infoOptions.MustGetToken()
 	if !jwtutils.IsJWT(mToken) {
 		return fmt.Errorf("The token is not a JWT.")
@@ -103,7 +104,7 @@ func info(_ *cli.Context) error {
 	return prettyPrintJSON(decodedPayload)
 }
 
-func introspect(_ *cli.Context) error {
+func introspect(_ context.Context, _ *cli.Command) error {
 	if ssh := infoOptions.SSH(); ssh != "" {
 		res, err := doSSHReturnOutput(ssh, api.SSHRequestTokenInfoIntrospect, nil)
 		if err != nil {
@@ -120,7 +121,7 @@ func introspect(_ *cli.Context) error {
 	return prettyPrintJSON(res)
 }
 
-func history(_ *cli.Context) (err error) {
+func history(_ context.Context, _ *cli.Command) (err error) {
 	var res api.TokeninfoHistoryResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
 		var resStr string
@@ -173,7 +174,7 @@ func (e tableEventEntry) TableGetRow() []string {
 	}
 }
 
-func subTree(_ *cli.Context) (err error) {
+func subTree(_ context.Context, _ *cli.Command) (err error) {
 	var res api.TokeninfoSubtokensResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
 		var resStr string
@@ -199,7 +200,7 @@ func subTree(_ *cli.Context) (err error) {
 	return prettyPrintJSON(res.Tokens)
 }
 
-func listMytokens(_ *cli.Context) (err error) {
+func listMytokens(_ context.Context, _ *cli.Command) (err error) {
 	var res api.TokeninfoListResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
 		var resStr string

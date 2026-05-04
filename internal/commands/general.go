@@ -11,7 +11,7 @@ import (
 	"github.com/oidc-mytoken/utils/utils/jwtutils"
 	"github.com/oidc-mytoken/utils/utils/ternary"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/utils/wlcgtokendiscovery"
@@ -111,15 +111,15 @@ func getMTFlags() []cli.Flag {
 			Destination: &opts.Mytoken,
 		},
 		&cli.BoolFlag{
-			Name:             "MT-prompt",
-			Usage:            "If set, you are prompted for a mytoken to be passed",
-			Destination:      &opts.MytokenPrompt,
-			HideDefaultValue: true,
+			Name:        "MT-prompt",
+			Usage:       "If set, you are prompted for a mytoken to be passed",
+			Destination: &opts.MytokenPrompt,
 		},
 		&cli.StringFlag{
 			Name:        "MT-file",
 			Usage:       "Read the mytoken that should be used from the first line of the passed `FILE`",
 			TakesFile:   true,
+			Sources:     cli.NewValueSourceChain(cli.File("")),
 			Destination: &opts.MytokenFile,
 		},
 		&cli.StringFlag{
@@ -131,8 +131,7 @@ func getMTFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name: "ssh",
 			Usage: "Use the ssh protocol instead of a mytoken. " +
-				"SSH will be passed as the first argument to the ssh client",
-			Placeholder: "SSH",
+				"`SSH` will be passed as the first argument to the ssh client",
 			Destination: &opts.SSH,
 		},
 	}
