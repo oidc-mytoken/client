@@ -9,6 +9,7 @@ import (
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/model/version"
+	"github.com/oidc-mytoken/client/internal/utils/color"
 )
 
 var app = &cli.Command{
@@ -79,6 +80,10 @@ CONTACT:
 			),
 			Destination: &mytokenURL,
 		},
+		&cli.BoolFlag{
+			Name:  "no-color",
+			Usage: "Disable colored output",
+		},
 	)
 	app.Before = func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		if cmd.IsSet("config") {
@@ -88,6 +93,9 @@ CONTACT:
 		}
 		if cmd.IsSet("url") {
 			config.SetURL(mytokenURL)
+		}
+		if cmd.IsSet("no-color") {
+			color.DisableColors()
 		}
 		return ctx, nil
 	}

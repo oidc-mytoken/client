@@ -86,6 +86,9 @@ func HexToRGB(hex string) (r, g, b int, err error) {
 
 // TerminalColorBlock returns ANSI escape sequence for terminal color visualization
 func TerminalColorBlock(hex string) string {
+	if !ShouldUseColors() {
+		return ""
+	}
 	r, g, b, err := HexToRGB(hex)
 	if err != nil {
 		return "[?]"
@@ -108,6 +111,9 @@ func FormatColoredTag(tag, hex string) string {
 
 // ColorizeText returns ANSI escape sequence for colored text
 func ColorizeText(text, hex string) string {
+	if !ShouldUseColors() {
+		return text
+	}
 	r, g, b, err := HexToRGB(hex)
 	if err != nil {
 		return text
