@@ -221,3 +221,17 @@ func updateMytoken(updatedToken string) {
 		log.Error(err)
 	}
 }
+
+func findCommand(commands []*cli.Command, name string) *cli.Command {
+	for _, c := range commands {
+		if c.Name == name {
+			return c
+		}
+		for _, alias := range c.Aliases {
+			if alias == name {
+				return c
+			}
+		}
+	}
+	return nil
+}

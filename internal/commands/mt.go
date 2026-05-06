@@ -54,6 +54,7 @@ type mtOpts struct {
 
 	profile string
 	profileOpts
+	Tags    []string
 	request *api.GeneralMytokenRequest
 
 	Out string
@@ -224,6 +225,15 @@ func (opts *mtOpts) Request(ctx context.Context, cmd *cli.Command) (*api.General
 	err = opts.parseCapabilitiesOption()
 	if err != nil {
 		return nil, err
+	}
+	if len(opts.Tags) > 0 {
+		for _, tag := range opts.Tags {
+			opts.request.Tags = append(
+				opts.request.Tags, api.CreateMytokenTag{
+					Tag: api.Tag(tag),
+				},
+			)
+		}
 	}
 	if len(opts.request.Capabilities) == 0 && len(opts.request.IncludedProfiles) == 0 {
 		opts.request.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities)
@@ -418,6 +428,23 @@ func init() {
 			Aliases:     []string{"n"},
 			Usage:       "A name for the returned mytoken; used for finding the token in a list of mytokens.",
 			Destination: &mtCommand.Name,
+		},
+		&cli.StringFlag{
+			Name:        "token-type",
+			Usage:       "The type of the returned token.",
+			Value:       "token",
+			Destination: &mtCommand.TokenType,
+		},
+		&cli.StringFlag{
+			Name:        "name",
+			Aliases:     []string{"n"},
+			Usage:       "A name for the returned mytoken; used for finding the token in a list of mytokens.",
+			Destination: &mtCommand.Name,
+		},
+		&cli.StringSliceFlag{
+			Name:        "tags",
+			Usage:       "Tags to assign to the new mytoken (can be used multiple times)",
+			Destination: &mtCommand.Tags,
 		},
 		&cli.StringFlag{
 			Name:        "token-type",

@@ -15,4 +15,6 @@ func init() {
 		}
 	app.Commands = append(app.Commands, cmd)
 	initGrants(cmd)
+	initEmail(cmd)
+	initTags(cmd)
 }

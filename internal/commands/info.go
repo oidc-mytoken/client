@@ -14,10 +14,16 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
+	"github.com/oidc-mytoken/client/internal/utils/color"
 	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
 )
 
 var infoOptions MTOptions
+
+var infoNotificationsOptions = struct {
+	MTOptions
+	MOMIDs []string
+}{}
 
 func init() {
 	cmdFlags := getMTFlags()
@@ -57,6 +63,19 @@ func init() {
 					Usage:  "List all mytokens",
 					Action: listMytokens,
 					Flags:  subCmdFlags,
+				},
+				{
+					Name:   "notifications",
+					Usage:  "Get notifications and calendars for this token",
+					Action: infoNotifications,
+					Flags: append(
+						subCmdFlags,
+						&cli.StringSliceFlag{
+							Name:        "mom-id",
+							Usage:       "Request notifications for specific mom_ids (special values: 'this', 'children')",
+							Destination: &infoNotificationsOptions.MOMIDs,
+						},
+					),
 				},
 			},
 		}
@@ -166,7 +185,7 @@ func (tableEventEntry) TableGetHeader() []string {
 func (e tableEventEntry) TableGetRow() []string {
 	const timeFmt = "2006-01-02 15:04:05"
 	return []string{
-		e.Event,
+		string(e.Event),
 		e.Comment,
 		time.Unix(e.Time, 0).Format(timeFmt),
 		e.IP,
@@ -224,4 +243,109 @@ func listMytokens(_ context.Context, _ *cli.Command) (err error) {
 		}
 	}
 	return prettyPrintJSON(res.Tokens)
+}
+
+func infoNotifications(_ context.Context, _ *cli.Command) (err error) {
+	mToken := infoNotificationsOptions.MustGetToken()
+	mytoken := config.Get().Mytoken()
+
+	var momIDs []string
+	if len(infoNotificationsOptions.MOMIDs) > 0 {
+		momIDs = infoNotificationsOptions.MOMIDs
+	}
+
+	res, err := mytoken.Tokeninfo.APINotifications(mToken, momIDs)
+	if err != nil {
+		return err
+	}
+	if res.TokenUpdate != nil {
+		updateMytoken(res.TokenUpdate.Mytoken)
+	}
+
+	if len(res.Notifications) > 0 {
+		fmt.Println("Notifications:")
+		outputData := make([]tablewriter.TableWriter, len(res.Notifications))
+		for i, n := range res.Notifications {
+			outputData[i] = tableNotificationInfo(n)
+		}
+		tablewriter.PrintTableData(outputData)
+		fmt.Println()
+	}
+
+	if len(res.Calendars) > 0 {
+		fmt.Println("Calendars:")
+		outputData := make([]tablewriter.TableWriter, len(res.Calendars))
+		for i, c := range res.Calendars {
+			outputData[i] = tableCalendarInfo(c)
+		}
+		tablewriter.PrintTableData(outputData)
+		fmt.Println()
+	}
+
+	if len(res.Notifications) == 0 && len(res.Calendars) == 0 {
+		fmt.Println("No notifications or calendars found.")
+	}
+
+	return nil
+}
+
+type tableNotificationInfo api.NotificationInfo
+
+func (tableNotificationInfo) TableGetHeader() []string {
+	return []string{
+		"Type",
+		"Management Code",
+		"Classes",
+		"User Wide",
+		"Tags",
+	}
+}
+
+func (n tableNotificationInfo) TableGetRow() []string {
+	classes := make([]string, len(n.Classes))
+	for i, c := range n.Classes {
+		classes[i] = c.Name
+	}
+
+	tags := ""
+	if len(n.Tags) > 0 {
+		tagStrs := make([]string, len(n.Tags))
+		for i, t := range n.Tags {
+			tagStrs[i] = color.ColorizeText(string(t.Tag), t.Color)
+		}
+		tags = strings.Join(tagStrs, ", ")
+	}
+
+	return []string{
+		n.Type,
+		n.ManagementCode,
+		strings.Join(classes, ", "),
+		fmt.Sprintf("%v", n.UserWide),
+		tags,
+	}
+}
+
+type tableCalendarInfo api.CalendarInfo
+
+func (tableCalendarInfo) TableGetHeader() []string {
+	return []string{
+		"Description",
+		"Tags",
+	}
+}
+
+func (c tableCalendarInfo) TableGetRow() []string {
+	tags := ""
+	if len(c.Tags) > 0 {
+		tagStrs := make([]string, len(c.Tags))
+		for i, t := range c.Tags {
+			tagStrs[i] = color.ColorizeText(string(t.Tag), t.Color)
+		}
+		tags = strings.Join(tagStrs, ", ")
+	}
+
+	return []string{
+		c.Description,
+		tags,
+	}
 }

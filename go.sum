@@ -222,10 +222,8 @@ github.com/mattn/go-runewidth v0.0.23/go.mod h1:XBkDxAl56ILZc9knddidhrOlY5R/pDhg
 github.com/mdp/qrterminal/v3 v3.2.1 h1:6+yQjiiOsSuXT5n9/m60E54vdgFsw0zhADHhHLrFet4=
 github.com/mdp/qrterminal/v3 v3.2.1/go.mod h1:jOTmXvnBsMy5xqLniO0R++Jmjs2sTm9dFSuQ5kpz/SU=
 github.com/oidc-mytoken/api v0.9.1/go.mod h1:DBIlUbaIgGlf607VZx8zFC97VR3WNN0kaMVO1AqyTdE=
-github.com/oidc-mytoken/api v0.11.1 h1:znpLzfXruM627lH0bjxoJEMRv2fCWptXmlqFRUjgwQ0=
-github.com/oidc-mytoken/api v0.11.1/go.mod h1:bd7obYvztiIQW1PoRVBTOg8/clWlauNGwcZEu5mRbwg=
-github.com/oidc-mytoken/lib v0.7.1 h1:inqnng/iVU42TU8Cuac7wP8I+JraTYmWMKSXdZvShfU=
-github.com/oidc-mytoken/lib v0.7.1/go.mod h1:LLDCpHCFzyodYLWSf69FDI4cvql/8B2sdKhVjmOBPgI=
+github.com/oidc-mytoken/api v0.12.0 h1:PPK+0MNPHgJ0CcdF5DBhV+df2IrffhHG0nU7GrIh9hA=
+github.com/oidc-mytoken/api v0.12.0/go.mod h1:4QwDXesKKEzbTmH2vENYCVcmdb5/gbDPg3DOm9HQLdg=
 github.com/oidc-mytoken/utils v0.1.2 h1:nmKIw/k4OkQ/9ww06W7krJ4yTwvDbuCRCjjRCmI9gSE=
 github.com/oidc-mytoken/utils v0.1.2/go.mod h1:pAUlvF/mYz8CjinCx4iwoWzG514B9EhuCpu7O+afaD8=
 github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 h1:zrbMGy9YXpIeTnGj4EljqMiZsIcE09mmF8XsD5AYOJc=
@@ -250,14 +248,12 @@ github.com/sirupsen/logrus v1.9.4/go.mod h1:ftWc9WdOfJ0a92nsE2jF5u5ZwH8Bv2zdeOC4
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
-github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
-github.com/stretchr/testify v1.8.3/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/urfave/cli/v3 v3.5.0 h1:qCuFMmdayTF3zmjG8TSsoBzrDqszNrklYg2x3g4MSgw=
