@@ -45,32 +45,43 @@ var NamedColorMap = map[string]string{
 	"wheat":     "#F5DEB3",
 }
 
-// NormalizeColor converts a color string (hex or named) to hex format
+// NormalizeColor converts a color string (hex or named) to hex format (without leading #)
 func NormalizeColor(color string) (string, error) {
 	color = strings.ToLower(strings.TrimSpace(color))
 
 	// Check if it's a named color
 	if hex, ok := NamedColorMap[color]; ok {
-		return hex, nil
+		return strings.TrimPrefix(hex, "#"), nil
 	}
 
-	// Validate hex format (#RRGGBB)
+	// Validate hex format (#RRGGBB or RRGGBB)
 	if strings.HasPrefix(color, "#") && len(color) == 7 {
+		return strings.ToUpper(strings.TrimPrefix(color, "#")), nil
+	}
+	// Also accept without # prefix
+	if !strings.HasPrefix(color, "#") && len(color) == 6 {
 		return strings.ToUpper(color), nil
 	}
 
-	// Validate short hex format (#RGB)
+	// Validate short hex format (#RGB or RGB)
 	if strings.HasPrefix(color, "#") && len(color) == 4 {
 		r := string(color[1])
 		g := string(color[2])
 		b := string(color[3])
-		return strings.ToUpper(fmt.Sprintf("#%s%s%s%s%s%s", r, r, g, g, b, b)), nil
+		return strings.ToUpper(fmt.Sprintf("%s%s%s%s%s%s", r, r, g, g, b, b)), nil
+	}
+	// Also accept without # prefix
+	if !strings.HasPrefix(color, "#") && len(color) == 3 {
+		r := string(color[0])
+		g := string(color[1])
+		b := string(color[2])
+		return strings.ToUpper(fmt.Sprintf("%s%s%s%s%s%s", r, r, g, g, b, b)), nil
 	}
 
 	return "", fmt.Errorf("invalid color: %s", color)
 }
 
-// HexToRGB extracts RGB values from hex color
+// HexToRGB extracts RGB values from hex color (with or without leading #)
 func HexToRGB(hex string) (r, g, b int, err error) {
 	hex = strings.TrimPrefix(hex, "#")
 	if len(hex) != 6 {
