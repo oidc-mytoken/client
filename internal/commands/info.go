@@ -62,7 +62,13 @@ func init() {
 					Name:   "list-mytokens",
 					Usage:  "List all mytokens",
 					Action: listMytokens,
-					Flags:  subCmdFlags,
+					Flags: append(
+						subCmdFlags,
+						&cli.BoolFlag{
+							Name:  "include-mom-id",
+							Usage: "Include the MOM-ID column in the output",
+						},
+					),
 				},
 				{
 					Name:   "notifications",
@@ -219,7 +225,7 @@ func subTree(_ context.Context, _ *cli.Command) (err error) {
 	return prettyPrintJSON(res.Tokens)
 }
 
-func listMytokens(_ context.Context, _ *cli.Command) (err error) {
+func listMytokens(_ context.Context, cmd *cli.Command) (err error) {
 	var res api.TokeninfoListResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
 		var resStr string
@@ -242,7 +248,125 @@ func listMytokens(_ context.Context, _ *cli.Command) (err error) {
 			updateMytoken(res.TokenUpdate.Mytoken)
 		}
 	}
-	return prettyPrintJSON(res.Tokens)
+	includeMOMID := cmd.Bool("include-mom-id")
+	outputData := flattenMytokenEntryTree(res.Tokens, includeMOMID)
+	tablewriter.PrintTableData(outputData)
+	return nil
+}
+
+func flattenMytokenEntryTree(tree []api.MytokenEntryTree, includeMOMID bool) []tablewriter.TableWriter {
+	var result []tablewriter.TableWriter
+	for _, entry := range tree {
+		result = append(
+			result, tableMytokenEntry{
+				entry:        entry.Token,
+				depth:        0,
+				includeMOMID: includeMOMID,
+			},
+		)
+		result = append(result, flattenMytokenEntryTreeRecursive(entry.Children, 1, includeMOMID)...)
+	}
+	return result
+}
+
+func flattenMytokenEntryTreeRecursive(
+	tree []api.MytokenEntryTree, depth int, includeMOMID bool,
+) []tablewriter.TableWriter {
+	var result []tablewriter.TableWriter
+	for _, entry := range tree {
+		result = append(
+			result, tableMytokenEntry{
+				entry:        entry.Token,
+				depth:        depth,
+				includeMOMID: includeMOMID,
+			},
+		)
+		result = append(result, flattenMytokenEntryTreeRecursive(entry.Children, depth+1, includeMOMID)...)
+	}
+	return result
+}
+
+type tableMytokenEntry struct {
+	entry        api.MytokenEntry
+	depth        int
+	includeMOMID bool
+}
+
+func (e tableMytokenEntry) TableGetHeader() []string {
+	if e.includeMOMID {
+		return []string{
+			"MOM-ID",
+			"Name",
+			"Created",
+			"Expires",
+			"Tags",
+			"IP",
+		}
+	}
+	return []string{
+		"Name",
+		"Created",
+		"Expires",
+		"Tags",
+		"IP",
+	}
+}
+
+func (e tableMytokenEntry) TableGetRow() []string {
+	const timeFmt = "2006-01-02 15:04:05"
+	now := time.Now().Unix()
+
+	created := time.Unix(e.entry.CreatedAt, 0).Format(timeFmt)
+	expires := ""
+	expired := false
+	if e.entry.ExpiresAt > 0 {
+		expires = time.Unix(e.entry.ExpiresAt, 0).Format(timeFmt)
+		expired = e.entry.ExpiresAt < now
+	} else {
+		expires = color.Italic("does not expire")
+	}
+
+	tags := ""
+	if len(e.entry.Tags) > 0 {
+		tagStrs := make([]string, len(e.entry.Tags))
+		for i, t := range e.entry.Tags {
+			tagStrs[i] = color.ColorizeText(string(t.Tag), t.Color)
+		}
+		tags = strings.Join(tagStrs, ", ")
+	}
+
+	name := e.entry.Name
+	if name == "" {
+		name = color.Italic("unnamed token")
+	}
+	if e.depth > 0 {
+		name = strings.Repeat("  ", e.depth) + "└─ " + name
+	}
+
+	if expired {
+		name = color.Gray(name)
+		created = color.Gray(created)
+		expires = color.Gray(expires)
+		tags = color.Gray(tags)
+	}
+
+	if e.includeMOMID {
+		return []string{
+			e.entry.MOMID,
+			name,
+			created,
+			expires,
+			tags,
+			e.entry.IP,
+		}
+	}
+	return []string{
+		name,
+		created,
+		expires,
+		tags,
+		e.entry.IP,
+	}
 }
 
 func infoNotifications(_ context.Context, _ *cli.Command) (err error) {

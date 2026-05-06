@@ -120,3 +120,19 @@ func ColorizeText(text, hex string) string {
 	}
 	return fmt.Sprintf("\x1b[38;2;%d;%d;%dm%s\x1b[0m", r, g, b, text)
 }
+
+// Italic returns ANSI escape sequence for italic text
+func Italic(text string) string {
+	if !ShouldUseColors() {
+		return text
+	}
+	return fmt.Sprintf("\x1b[3m%s\x1b[0m", text)
+}
+
+// Gray returns ANSI escape sequence for gray text
+func Gray(text string) string {
+	if !ShouldUseColors() {
+		return text
+	}
+	return fmt.Sprintf("\x1b[38;2;128;128;128m%s\x1b[0m", text)
+}
