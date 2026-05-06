@@ -63,7 +63,11 @@ func initTags(parent *cli.Command) {
 				),
 			},
 			{
-				Name:      "delete",
+				Name: "delete",
+				Aliases: []string{
+					"rm",
+					"remove",
+				},
 				Usage:     "Delete a tag",
 				ArgsUsage: "<name>",
 				Action:    deleteTag,

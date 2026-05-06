@@ -42,7 +42,11 @@ func init() {
 				),
 			},
 			{
-				Name:      "remove",
+				Name: "remove",
+				Aliases: []string{
+					"rm",
+					"delete",
+				},
 				Usage:     "Remove a tag from a mytoken",
 				ArgsUsage: "<tag>",
 				Action:    removeMTTag,

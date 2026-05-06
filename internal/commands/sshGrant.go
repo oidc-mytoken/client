@@ -68,8 +68,11 @@ func initSSHGrant(parent *cli.Command) {
 				),
 			},
 			{
-				Name:      "delete",
-				Aliases:   []string{"remove"},
+				Name: "delete",
+				Aliases: []string{
+					"remove",
+					"rm",
+				},
 				ArgsUsage: "SSH_KEY",
 				Usage: "Removes an ssh key. You can pass the SHA256 fingerprint (recommended), " +
 					"the whole public key, or a filepath to the public key.",
