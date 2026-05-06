@@ -72,7 +72,20 @@ func init() {
 		mtCmd = findCommand(app.Commands, "mytoken")
 	}
 	if mtCmd != nil {
-		mtCmd.Commands = append(mtCmd.Commands, cmd)
+		listCmd := &cli.Command{
+			Name:    "list-mytokens",
+			Aliases: []string{"list"},
+			Usage:   "List all mytokens",
+			Action:  listMytokens,
+			Flags: append(
+				getMTFlags(),
+				&cli.BoolFlag{
+					Name:  "include-mom-id",
+					Usage: "Include the MOM-ID column in the output",
+				},
+			),
+		}
+		mtCmd.Commands = append(mtCmd.Commands, cmd, listCmd)
 	}
 }
 

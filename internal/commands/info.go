@@ -59,9 +59,10 @@ func init() {
 					Flags:  subCmdFlags,
 				},
 				{
-					Name:   "list-mytokens",
-					Usage:  "List all mytokens",
-					Action: listMytokens,
+					Name:    "list-mytokens",
+					Aliases: []string{"list"},
+					Usage:   "List all mytokens",
+					Action:  listMytokens,
 					Flags: append(
 						subCmdFlags,
 						&cli.BoolFlag{
