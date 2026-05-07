@@ -13,7 +13,7 @@ require (
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.4
-	github.com/urfave/cli/v3 v3.5.0
+	github.com/urfave/cli/v3 v3.8.0
 	golang.org/x/net v0.53.0
 	gopkg.in/yaml.v3 v3.0.1
 )
