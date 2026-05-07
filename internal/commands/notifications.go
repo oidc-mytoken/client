@@ -9,6 +9,8 @@ import (
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/urfave/cli/v3"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/utils/color"
@@ -469,7 +471,9 @@ func getOrCreateTags(mytoken string, mtServer *mytokenlib.MytokenServer, tagName
 }
 
 func displayManagementCode(code, entityType string) {
-	fmt.Printf("\n✓ %s created successfully! Management code: %s\n", strings.Title(entityType), code)
+	fmt.Printf(
+		"\n✓ %s created successfully! Management code: %s\n", cases.Title(language.English).String(entityType), code,
+	)
 }
 
 func updateNotification(ctx context.Context, cmd *cli.Command) error {

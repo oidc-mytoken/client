@@ -1,11 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/utils/httpclient"
-	"golang.org/x/net/context"
 
 	"github.com/oidc-mytoken/client/internal/commands"
 	"github.com/oidc-mytoken/client/internal/model/version"
