@@ -6,7 +6,7 @@ variables:
   UPSTREAM_PROJECT: oidc-mytoken/client
   USE_GORELEASER: true
 
-image: golang:1.24
+image: golang:1.25
 stages:
   - build
   - test
