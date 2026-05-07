@@ -5,8 +5,9 @@ go 1.25.0
 require (
 	github.com/Songmu/prompter v0.5.1
 	github.com/gliderlabs/ssh v0.3.8
+	github.com/mattn/go-isatty v0.0.22
 	github.com/mdp/qrterminal/v3 v3.2.1
-	github.com/oidc-mytoken/api v0.12.0
+	github.com/oidc-mytoken/api v0.12.1
 	github.com/oidc-mytoken/lib v0.7.1
 	github.com/oidc-mytoken/utils v0.1.2
 	github.com/olekukonko/tablewriter v1.1.4
@@ -32,7 +33,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-runewidth v0.0.23 // indirect
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/olekukonko/errors v1.3.0 // indirect

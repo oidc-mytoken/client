@@ -222,8 +222,8 @@ github.com/mattn/go-runewidth v0.0.23/go.mod h1:XBkDxAl56ILZc9knddidhrOlY5R/pDhg
 github.com/mdp/qrterminal/v3 v3.2.1 h1:6+yQjiiOsSuXT5n9/m60E54vdgFsw0zhADHhHLrFet4=
 github.com/mdp/qrterminal/v3 v3.2.1/go.mod h1:jOTmXvnBsMy5xqLniO0R++Jmjs2sTm9dFSuQ5kpz/SU=
 github.com/oidc-mytoken/api v0.9.1/go.mod h1:DBIlUbaIgGlf607VZx8zFC97VR3WNN0kaMVO1AqyTdE=
-github.com/oidc-mytoken/api v0.12.0 h1:PPK+0MNPHgJ0CcdF5DBhV+df2IrffhHG0nU7GrIh9hA=
-github.com/oidc-mytoken/api v0.12.0/go.mod h1:4QwDXesKKEzbTmH2vENYCVcmdb5/gbDPg3DOm9HQLdg=
+github.com/oidc-mytoken/api v0.12.1 h1:2VFZ2rFBRmWmqdjH1T2Yw1Z/qkwyNwZF0CBk6LGFumI=
+github.com/oidc-mytoken/api v0.12.1/go.mod h1:4QwDXesKKEzbTmH2vENYCVcmdb5/gbDPg3DOm9HQLdg=
 github.com/oidc-mytoken/utils v0.1.2 h1:nmKIw/k4OkQ/9ww06W7krJ4yTwvDbuCRCjjRCmI9gSE=
 github.com/oidc-mytoken/utils v0.1.2/go.mod h1:pAUlvF/mYz8CjinCx4iwoWzG514B9EhuCpu7O+afaD8=
 github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 h1:zrbMGy9YXpIeTnGj4EljqMiZsIcE09mmF8XsD5AYOJc=
