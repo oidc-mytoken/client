@@ -1,10 +1,11 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 )
@@ -14,7 +15,7 @@ func init() {
 		&cli.Command{
 			Name:  "list",
 			Usage: "List different information",
-			Subcommands: []*cli.Command{
+			Commands: []*cli.Command{
 				{
 					Name:    "providers",
 					Aliases: []string{"issuers"},
@@ -26,7 +27,7 @@ func init() {
 	app.Commands = append(app.Commands, cmd)
 }
 
-func listProviders(_ *cli.Context) error {
+func listProviders(_ context.Context, _ *cli.Command) error {
 	defaultProvider := config.Get().DefaultProvider
 	instanceProviders := config.Get().Mytoken().ServerMetadata.ProvidersSupported
 	urlMaxLen := 0

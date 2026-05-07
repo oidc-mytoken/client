@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,7 +13,7 @@ import (
 	"github.com/oidc-mytoken/utils/utils/jsonutils"
 	"github.com/oidc-mytoken/utils/utils/profile"
 	"github.com/oidc-mytoken/utils/utils/timerestriction"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	cutils "github.com/oidc-mytoken/client/internal/utils"
@@ -21,13 +22,13 @@ import (
 
 type restrictionOpts struct {
 	Restrictions          string
-	RestrictScopes        cli.StringSlice
-	RestrictAudiences     cli.StringSlice
+	RestrictScopes        []string
+	RestrictAudiences     []string
 	RestrictExp           string
 	RestrictNbf           string
-	RestrictIP            cli.StringSlice
-	RestrictGeoIPAllow    cli.StringSlice
-	RestrictGeoIPDisallow cli.StringSlice
+	RestrictIP            []string
+	RestrictGeoIPAllow    []string
+	RestrictGeoIPDisallow []string
 	RestrictUsagesOther   int64
 	RestrictUsagesAT      int64
 }
@@ -53,6 +54,7 @@ type mtOpts struct {
 
 	profile string
 	profileOpts
+	Tags    []string
 	request *api.GeneralMytokenRequest
 
 	Out string
@@ -121,21 +123,7 @@ func (opts *mtOpts) parseRotationOption() error {
 	return nil
 }
 
-func parseRestrictionOpts(rOpts restrictionOpts, ctx *cli.Context) (api.Restrictions, error) {
-	mto := mtOpts{
-		profileOpts: profileOpts{
-			restrictionOpts: rOpts,
-		},
-		request: &api.GeneralMytokenRequest{},
-	}
-	err := mto.parseRestrictionOpts(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return mto.request.Restrictions, nil
-}
-
-func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
+func (opts *mtOpts) parseRestrictionOpts(cmd *cli.Command) (err error) {
 	if opts.Restrictions != "" {
 		rBytes := []byte(opts.Restrictions)
 		if jsonutils.IsJSONObject(rBytes) {
@@ -165,16 +153,16 @@ func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
 	rr := &api.Restriction{
 		NotBefore:     nbf,
 		ExpiresAt:     exp,
-		Scope:         strings.Join(opts.RestrictScopes.Value(), " "),
-		Audiences:     opts.RestrictAudiences.Value(),
-		Hosts:         opts.RestrictIP.Value(),
-		GeoIPAllow:    opts.RestrictGeoIPAllow.Value(),
-		GeoIPDisallow: opts.RestrictGeoIPDisallow.Value(),
+		Scope:         strings.Join(opts.RestrictScopes, " "),
+		Audiences:     opts.RestrictAudiences,
+		Hosts:         opts.RestrictIP,
+		GeoIPAllow:    opts.RestrictGeoIPAllow,
+		GeoIPDisallow: opts.RestrictGeoIPDisallow,
 	}
-	if ctx.IsSet("usages-AT") {
+	if cmd.IsSet("usages-AT") {
 		rr.UsagesAT = utils.NewInt64(opts.RestrictUsagesAT)
 	}
-	if ctx.IsSet("usages-other") {
+	if cmd.IsSet("usages-other") {
 		rr.UsagesOther = utils.NewInt64(opts.RestrictUsagesOther)
 	}
 	if rr.UsagesAT != nil || rr.UsagesOther != nil || rr.NotBefore != 0 || rr.ExpiresAt != 0 || rr.Scope != "" ||
@@ -184,7 +172,21 @@ func (opts *mtOpts) parseRestrictionOpts(ctx *cli.Context) (err error) {
 	return
 }
 
-func (opts *mtOpts) Request(ctx *cli.Context) (*api.GeneralMytokenRequest, error) {
+func parseRestrictionOpts(rOpts restrictionOpts, cmd *cli.Command) (api.Restrictions, error) {
+	mto := mtOpts{
+		profileOpts: profileOpts{
+			restrictionOpts: rOpts,
+		},
+		request: &api.GeneralMytokenRequest{},
+	}
+	err := mto.parseRestrictionOpts(cmd)
+	if err != nil {
+		return nil, err
+	}
+	return mto.request.Restrictions, nil
+}
+
+func (opts *mtOpts) Request(_ context.Context, cmd *cli.Command) (*api.GeneralMytokenRequest, error) {
 	if opts.request != nil {
 		return opts.request, nil
 	}
@@ -216,13 +218,22 @@ func (opts *mtOpts) Request(ctx *cli.Context) (*api.GeneralMytokenRequest, error
 	if err != nil {
 		return nil, err
 	}
-	err = opts.parseRestrictionOpts(ctx)
+	err = opts.parseRestrictionOpts(cmd)
 	if err != nil {
 		return nil, err
 	}
 	err = opts.parseCapabilitiesOption()
 	if err != nil {
 		return nil, err
+	}
+	if len(opts.Tags) > 0 {
+		for _, tag := range opts.Tags {
+			opts.request.Tags = append(
+				opts.request.Tags, api.CreateMytokenTag{
+					Tag: api.Tag(tag),
+				},
+			)
+		}
 	}
 	if len(opts.request.Capabilities) == 0 && len(opts.request.IncludedProfiles) == 0 {
 		opts.request.Capabilities = api.NewCapabilities(config.Get().DefaultTokenCapabilities)
@@ -237,7 +248,6 @@ func getCapabilityFlag(c *string) cli.Flag {
 		Usage:       "Request the passed capabilities.",
 		DefaultText: "from config file",
 		Destination: c,
-		Placeholder: "CAPABILITY",
 	}
 }
 
@@ -248,12 +258,11 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Aliases: []string{"restriction"},
 			Usage: "The restrictions that restrict the requested mytoken. " +
 				"Can be a json object or array, or a path to a json file.'",
-			EnvVars: []string{
+			Sources: cli.EnvVars(
 				"MYTOKEN_RESTRICTIONS",
 				"MYTOKEN_RESTRICTION",
-			},
+			),
 			Destination: &opts.Restrictions,
-			Placeholder: "RESTRICTIONS",
 		},
 		&cli.StringSliceFlag{
 			Name: "scope",
@@ -264,7 +273,6 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Usage: "Restrict the mytoken so that it can only be used to request ATs with these SCOPES. " +
 				"Can be used multiple times. Overwritten by --restriction.",
 			Destination: &opts.RestrictScopes,
-			Placeholder: "SCOPE",
 		},
 		&cli.StringSliceFlag{
 			Name: "aud",
@@ -275,7 +283,6 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Usage: "Restrict the mytoken so that it can only be used to request ATs with these audiences. " +
 				"Can be used multiple times. Overwritten by --restriction.",
 			Destination: &opts.RestrictAudiences,
-			Placeholder: "AUD",
 		},
 		&cli.StringFlag{
 			Name:    "exp",
@@ -303,21 +310,18 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Usage: "Restrict the mytoken so that it can only be used from these hosts. " +
 				"Can be a network address block, a single ip, or a host name.",
 			Destination: &opts.RestrictIP,
-			Placeholder: "IP",
 		},
 		&cli.StringSliceFlag{
 			Name: "geo-ip-allow",
 			Usage: "Restrict the mytoken so that it can be only used from these COUNTRIES. " +
 				"Must be a short country code, e.g. 'us'.",
 			Destination: &opts.RestrictGeoIPAllow,
-			Placeholder: "COUNTRY",
 		},
 		&cli.StringSliceFlag{
 			Name: "geo-ip-disallow",
 			Usage: "Restrict the mytoken so that it cannot be used from these COUNTRIES. " +
 				"Must be a short country code, e.g. 'us'.",
 			Destination: &opts.RestrictGeoIPDisallow,
-			Placeholder: "COUNTRY",
 		},
 		&cli.Int64Flag{
 			Name:        "usages-AT",
@@ -325,14 +329,12 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Usage:       "Restrict how often the mytoken can be used for requesting an access token.",
 			DefaultText: "infinite",
 			Destination: &opts.RestrictUsagesAT,
-			Placeholder: "NUM",
 		},
 		&cli.Int64Flag{
 			Name:        "usages-other",
 			Usage:       "Restrict how often the mytoken can be used for actions other than requesting an access token.",
 			DefaultText: "infinite",
 			Destination: &opts.RestrictUsagesOther,
-			Placeholder: "NUM",
 		},
 	}
 }
@@ -342,9 +344,8 @@ func getRotationFlags(rotStr *string, rot *api.Rotation) []cli.Flag {
 			Name:        "rotation",
 			Aliases:     []string{"rotate"},
 			Usage:       "The rotation policy for the requested mytoken. Can be a json object or a path to a json file.'",
-			EnvVars:     []string{"MYTOKEN_ROTATION"},
+			Sources:     cli.EnvVars("MYTOKEN_ROTATION"),
 			Destination: rotStr,
-			Placeholder: "ROTATION",
 		},
 		&cli.BoolFlag{
 			Name: "rotation-on-AT",
@@ -353,30 +354,26 @@ func getRotationFlags(rotStr *string, rot *api.Rotation) []cli.Flag {
 				"rotate-on-at",
 				"rotation-on-at",
 			},
-			Usage:            "Rotate this mytoken when it is used to obtain access tokens",
-			Destination:      &rot.OnAT,
-			HideDefaultValue: true,
+			Usage:       "Rotate this mytoken when it is used to obtain access tokens",
+			Destination: &rot.OnAT,
 		},
 		&cli.BoolFlag{
-			Name:             "rotation-on-other",
-			Aliases:          []string{"rotate-on-other"},
-			Usage:            "Rotate this mytoken when it is used for actions other than obtaining access tokens",
-			Destination:      &rot.OnOther,
-			HideDefaultValue: true,
+			Name:        "rotation-on-other",
+			Aliases:     []string{"rotate-on-other"},
+			Usage:       "Rotate this mytoken when it is used for actions other than obtaining access tokens",
+			Destination: &rot.OnOther,
 		},
 		&cli.BoolFlag{
 			Name: "rotation-auto-revoke",
 			Usage: "If set, " +
 				"the mytoken and all it subtokens are automatically revoked when a potential abuse is detected",
-			Destination:      &rot.AutoRevoke,
-			HideDefaultValue: true,
+			Destination: &rot.AutoRevoke,
 		},
 		&cli.Uint64Flag{
 			Name:        "rotation-lifetime",
 			Usage:       "Restrict the lifetime of a single rotated mytoken; given in seconds",
 			DefaultText: "infinite",
 			Destination: &rot.Lifetime,
-			Placeholder: "LIFETIME",
 		},
 	}
 }
@@ -391,13 +388,10 @@ func init() {
 		append(
 			[]cli.Flag{
 				&cli.StringFlag{
-					Name:  "profile",
-					Usage: "A mytoken profile describing the properties of the mytoken to be requested",
-					EnvVars: []string{
-						"MYTOKEN_PROFILE",
-					},
+					Name:        "profile",
+					Usage:       "A mytoken profile describing the properties of the mytoken to be requested",
+					Sources:     cli.EnvVars("MYTOKEN_PROFILE"),
 					Destination: &mtCommand.profile,
-					Placeholder: "PROFILE",
 				},
 			},
 			getRestrFlags(&mtCommand.restrictionOpts)...,
@@ -405,14 +399,13 @@ func init() {
 		&cli.StringFlag{
 			Name:        "TC",
 			Usage:       "Use the passed `TRANSFER_CODE` to exchange it into a mytoken",
-			EnvVars:     []string{"MYTOKEN_TC"},
+			Sources:     cli.EnvVars("MYTOKEN_TC"),
 			Destination: &mtCommand.TransferCode,
 		},
 		&cli.BoolFlag{
-			Name:             "oidc",
-			Usage:            "Use an OpenID Connect flow to create a mytoken",
-			Destination:      &mtCommand.UseOIDCFlow,
-			HideDefaultValue: true,
+			Name:        "oidc",
+			Usage:       "Use an OpenID Connect flow to create a mytoken",
+			Destination: &mtCommand.UseOIDCFlow,
 		},
 		&cli.StringFlag{
 			Name: "provider",
@@ -422,9 +415,8 @@ func init() {
 			},
 			Usage: "The name or issuer url of the OpenID provider that should be used; only needed if mytoken is" +
 				" obtained through OIDC",
-			EnvVars:     []string{"MYTOKEN_PROVIDER"},
+			Sources:     cli.EnvVars("MYTOKEN_PROVIDER"),
 			Destination: &mtCommand.provider,
-			Placeholder: "PROVIDER",
 		},
 		getCapabilityFlag(&mtCommand.CapabilitiesStr),
 	)
@@ -436,23 +428,37 @@ func init() {
 			Aliases:     []string{"n"},
 			Usage:       "A name for the returned mytoken; used for finding the token in a list of mytokens.",
 			Destination: &mtCommand.Name,
-			Placeholder: "NAME",
 		},
-		&cli.ChoiceFlag{
+		&cli.StringFlag{
 			Name:        "token-type",
 			Usage:       "The type of the returned token.",
 			Value:       "token",
-			Choice:      cli.NewStringChoice(api.ResponseTypeToken, cmdArgTokenTypeShort, cmdArgTokenTypeTransfer),
 			Destination: &mtCommand.TokenType,
-			Placeholder: "TYPE",
+		},
+		&cli.StringFlag{
+			Name:        "name",
+			Aliases:     []string{"n"},
+			Usage:       "A name for the returned mytoken; used for finding the token in a list of mytokens.",
+			Destination: &mtCommand.Name,
+		},
+		&cli.StringSliceFlag{
+			Name:        "tags",
+			Usage:       "Tags to assign to the new mytoken (can be used multiple times)",
+			Destination: &mtCommand.Tags,
+		},
+		&cli.StringFlag{
+			Name:        "token-type",
+			Usage:       "The type of the returned token.",
+			Value:       "token",
+			Destination: &mtCommand.TokenType,
 		},
 		&cli.StringFlag{
 			Name:        "out",
 			Aliases:     []string{"o"},
-			Usage:       "The mytoken will be printed to this output",
+			Usage:       "The mytoken will be printed to this `FILE`",
+			TakesFile:   true,
 			Value:       os.Stdout.Name(),
 			Destination: &mtCommand.Out,
-			Placeholder: "FILE",
 		},
 	)
 	app.Commands = append(
@@ -469,20 +475,20 @@ func init() {
 	)
 }
 
-func obtainMTCmd(context *cli.Context) error {
-	mt, err := obtainMT(context)
+func obtainMTCmd(ctx context.Context, cmd *cli.Command) error {
+	mt, err := obtainMT(ctx, cmd)
 	if err != nil {
 		return err
 	}
 	return cutils.WriteOutput(mtCommand.Out, mt)
 }
 
-func obtainMT(context *cli.Context) (string, error) {
+func obtainMT(ctx context.Context, cmd *cli.Command) (string, error) {
 	mytoken := config.Get().Mytoken()
 	if mtCommand.TransferCode != "" {
 		return mytoken.Mytoken.FromTransferCode(mtCommand.TransferCode)
 	}
-	req, err := mtCommand.Request(context)
+	req, err := mtCommand.Request(ctx, cmd)
 	if err != nil {
 		return "", err
 	}

@@ -1,94 +1,109 @@
 package commands
 
 import (
+	"context"
 	"os"
-	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
-	"golang.org/x/term"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/model/version"
+	"github.com/oidc-mytoken/client/internal/utils/color"
 )
 
-var app = &cli.App{
-	Name:     "mytoken",
-	Usage:    "Command line client for the mytoken server",
-	Version:  version.VERSION,
-	Compiled: time.Time{},
-	Authors: []*cli.Author{
-		{
-			Name:  "Gabriel Zachmann",
-			Email: "gabriel.zachmann@kit.edu",
-		},
+var app = &cli.Command{
+	Name:    "mytoken",
+	Usage:   "Command line client for the mytoken server",
+	Version: version.VERSION,
+	Authors: []any{
+		"Gabriel Zachmann <gabriel.zachmann@kit.edu>",
 	},
-	Copyright:              "Karlsruhe Institute of Technology 2020-2022",
-	UseShortOptionHandling: true,
+	Copyright: "Karlsruhe Institute of Technology 2020-2026",
+	Action: func(_ context.Context, cmd *cli.Command) error {
+		return cli.ShowAppHelp(cmd)
+	},
 }
 
 var configFile string
+var mytokenURL string
 
 func init() {
-	cli.AppHelpTemplate = `NAME:
-   {{$v := offset .Name 6}}{{wrap .Name 3}}{{if .Usage}} - {{wrap .Usage $v}}{{end}}
+	cli.RootCommandHelpTemplate = `NAME:
+    {{template "helpNameTemplate" .}}
 
 USAGE:
-   {{if .UsageText}}{{wrap .UsageText 3}}{{else}}{{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}{{if .Commands}} command [command options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}{{end}}{{if .Description}}
-
-DESCRIPTION:
-   {{wrap .Description 3}}{{end}}{{if .VisibleCommands}}
-
-COMMANDS:{{range .VisibleCategories}}{{if .Name}}
-   {{.Name}}:{{range .VisibleCommands}}
-     {{join .Names ", "}}{{"\t"}}{{.Usage}}{{end}}{{else}}{{range .VisibleCommands}}
-   {{join .Names ", "}}{{"\t"}}{{.Usage}}{{end}}{{end}}{{end}}{{end}}{{if .VisibleFlags}}
-
-GLOBAL OPTIONS:
-   {{range $index, $option := .VisibleFlags}}{{if $index}}
-   {{end}}{{$option.String}}{{end}}{{end}}{{if .Version}}{{if not .HideVersion}}
+    {{if .UsageText}}{{wrap .UsageText 3}}{{else}}{{.FullName}} {{if .VisibleFlags}}[global options]{{end}}{{if .VisibleCommands}} [command [command options]]{{end}}{{if .ArgsUsage}} {{.ArgsUsage}}{{else}}{{if .Arguments}} [arguments...]{{end}}{{end}}{{end}}{{if .Version}}{{if not .HideVersion}}
 
 VERSION:
-   {{.Version}}{{end}}{{end}}
+    {{.Version}}{{end}}{{end}}{{if .Description}}
 
-DOCUMENTATION: 
-	https://mytoken-docs.data.kit.edu/client/intro
+DESCRIPTION:
+    {{template "descriptionTemplate" .}}{{end}}
+{{- if len .Authors}}
 
-CONTACT: 
-	m-contact@lists.kit.edu
+AUTHOR{{template "authorsTemplate" .}}{{end}}{{if .VisibleCommands}}
+
+COMMANDS:{{template "visibleCommandCategoryTemplate" .}}{{end}}{{if .VisibleFlagCategories}}
+
+GLOBAL OPTIONS:{{template "visibleFlagCategoryTemplate" .}}{{else if .VisibleFlags}}
+
+GLOBAL OPTIONS:{{template "visibleFlagTemplate" .}}{{end}}{{if .Copyright}}
+
+COPYRIGHT:
+    {{template "copyrightTemplate" .}}{{end}}
+
+DOCUMENTATION:
+        https://mytoken-docs.data.kit.edu/client/intro
+
+CONTACT:
+        m-contact@lists.kit.edu
 `
-
-	termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
-	if err == nil {
-		cli.HelpWrapAt = termWidth
-	}
 
 	app.Flags = append(
 		app.Flags, &cli.StringFlag{
 			Name:  "config",
 			Usage: "Load configuration from `FILE`",
-			EnvVars: []string{
+			Sources: cli.EnvVars(
 				"MYTOKEN_CONFIG",
 				"MYTOKEN_CONF",
-			},
+			),
 			TakesFile:   true,
-			DefaultText: "",
 			Destination: &configFile,
 		},
+		&cli.StringFlag{
+			Name:    "url",
+			Aliases: []string{"mytoken-url"},
+			Usage:   "Use the given mytoken server `URL` instead of the one from the config file",
+			Sources: cli.EnvVars(
+				"MYTOKEN_URL",
+			),
+			Destination: &mytokenURL,
+		},
+		&cli.BoolFlag{
+			Name:  "no-color",
+			Usage: "Disable colored output",
+		},
 	)
-	app.Before = func(context *cli.Context) error {
-		if context.IsSet("config") {
+	app.Before = func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+		if cmd.IsSet("config") {
 			config.Load(configFile)
 		} else {
 			config.LoadDefault()
 		}
-		return nil
+		if cmd.IsSet("url") {
+			config.SetURL(mytokenURL)
+		}
+		if cmd.IsSet("no-color") {
+			color.DisableColors()
+		}
+		return ctx, nil
 	}
 }
 
 // Parse parses the command line options and calls the specified command
 func Parse() {
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
 }

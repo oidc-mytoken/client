@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"github.com/oidc-mytoken/utils/utils/fileutil"
 	"github.com/oidc-mytoken/utils/utils/profile"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
@@ -31,7 +32,7 @@ func initSSHGrant(parent *cli.Command) {
 		Aliases: []string{"SSH"},
 		Usage:   "View and manage the ssh grant",
 		Flags:   cmdFlags,
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			{
 				Name:    "list",
 				Aliases: []string{"view"},
@@ -59,7 +60,7 @@ func initSSHGrant(parent *cli.Command) {
 							Name: "no-write-host-entry",
 							Usage: "If set, " +
 								"the created host entry will not be automatically append to your ~/.ssh/config file.",
-							EnvVars:     []string{"NO_WRITE_HOST_ENTRY"},
+							Sources:     cli.EnvVars("NO_WRITE_HOST_ENTRY"),
 							Destination: &noWriteHostEntry,
 						},
 					),
@@ -67,8 +68,11 @@ func initSSHGrant(parent *cli.Command) {
 				),
 			},
 			{
-				Name:      "delete",
-				Aliases:   []string{"remove"},
+				Name: "delete",
+				Aliases: []string{
+					"remove",
+					"rm",
+				},
 				ArgsUsage: "SSH_KEY",
 				Usage: "Removes an ssh key. You can pass the SHA256 fingerprint (recommended), " +
 					"the whole public key, or a filepath to the public key.",
@@ -77,10 +81,10 @@ func initSSHGrant(parent *cli.Command) {
 			},
 		},
 	}
-	parent.Subcommands = append(parent.Subcommands, cmd)
+	parent.Commands = append(parent.Commands, cmd)
 }
 
-func listSSH(_ *cli.Context) error {
+func listSSH(_ context.Context, _ *cli.Command) error {
 	mytoken := settingsOptions.MustGetToken()
 	res, err := config.Get().Mytoken().UserSettings.Grants.SSH.APIGet(mytoken)
 	if err != nil {
@@ -127,14 +131,14 @@ func (i tableSSHKeyInfo) TableGetRow() []string {
 	}
 }
 
-func addSSHKey(ctx *cli.Context) error {
-	if ctx.NArg() != 1 {
-		if ctx.NArg() > 1 {
+func addSSHKey(_ context.Context, cmd *cli.Command) error {
+	if cmd.NArg() != 1 {
+		if cmd.NArg() > 1 {
 			return fmt.Errorf("Need exactly one argument")
 		}
 		return fmt.Errorf("Required argument SSH_KEY missing")
 	}
-	keyArg := ctx.Args().Get(0)
+	keyArg := cmd.Args().Get(0)
 	mytoken := settingsOptions.MustGetToken()
 	key, err := detectKey(keyArg)
 	if err != nil {
@@ -166,7 +170,7 @@ func addSSHKey(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	restrictions, err := parseRestrictionOpts(optRestrictions, ctx)
+	restrictions, err := parseRestrictionOpts(optRestrictions, cmd)
 	if err != nil {
 		return err
 	}
@@ -201,14 +205,14 @@ func addSSHKey(ctx *cli.Context) error {
 	return nil
 }
 
-func deleteSSHKey(ctx *cli.Context) error {
-	if ctx.NArg() != 1 {
-		if ctx.NArg() > 1 {
+func deleteSSHKey(_ context.Context, cmd *cli.Command) error {
+	if cmd.NArg() != 1 {
+		if cmd.NArg() > 1 {
 			return fmt.Errorf("Need exactly one argument")
 		}
 		return fmt.Errorf("Required argument SSH_KEY missing")
 	}
-	keyArg := ctx.Args().Get(0)
+	keyArg := cmd.Args().Get(0)
 	mytoken := settingsOptions.MustGetToken()
 	var keyFP string
 	var key string
