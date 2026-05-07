@@ -8,7 +8,7 @@ require (
 	github.com/mattn/go-isatty v0.0.22
 	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/oidc-mytoken/api v0.12.1
-	github.com/oidc-mytoken/lib v0.7.1
+	github.com/oidc-mytoken/lib v0.8.0
 	github.com/oidc-mytoken/utils v0.1.2
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/pkg/errors v0.9.1
@@ -48,5 +48,3 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )
-
-replace github.com/oidc-mytoken/lib => ../lib
