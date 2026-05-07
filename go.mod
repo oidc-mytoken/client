@@ -8,7 +8,7 @@ require (
 	github.com/mattn/go-isatty v0.0.22
 	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/oidc-mytoken/api v0.12.1
-	github.com/oidc-mytoken/lib v0.8.0
+	github.com/oidc-mytoken/lib v0.8.1-0.20260507130659-1d2d0a003337
 	github.com/oidc-mytoken/utils v0.1.2
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/pkg/errors v0.9.1
