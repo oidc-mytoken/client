@@ -476,7 +476,7 @@ func displayManagementCode(code, entityType string) {
 	)
 }
 
-func updateNotification(ctx context.Context, cmd *cli.Command) error {
+func updateNotification(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Len() < 1 {
 		return fmt.Errorf("management-code is required")
 	}
@@ -575,7 +575,7 @@ func updateNotification(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func deleteNotification(ctx context.Context, cmd *cli.Command) error {
+func deleteNotification(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Len() < 1 {
 		return fmt.Errorf("management-code is required")
 	}

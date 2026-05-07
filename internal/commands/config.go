@@ -71,7 +71,7 @@ func getCapabilities(_ context.Context, _ *cli.Command) error {
 	}
 
 	// Make HTTP request to capabilities endpoint
-	req, err := http.NewRequest("GET", capsURL, nil)
+	req, err := http.NewRequest("GET", capsURL, http.NoBody)
 	if err != nil {
 		return err
 	}

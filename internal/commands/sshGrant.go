@@ -131,7 +131,7 @@ func (i tableSSHKeyInfo) TableGetRow() []string {
 	}
 }
 
-func addSSHKey(ctx context.Context, cmd *cli.Command) error {
+func addSSHKey(_ context.Context, cmd *cli.Command) error {
 	if cmd.NArg() != 1 {
 		if cmd.NArg() > 1 {
 			return fmt.Errorf("Need exactly one argument")
@@ -205,7 +205,7 @@ func addSSHKey(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func deleteSSHKey(ctx context.Context, cmd *cli.Command) error {
+func deleteSSHKey(_ context.Context, cmd *cli.Command) error {
 	if cmd.NArg() != 1 {
 		if cmd.NArg() > 1 {
 			return fmt.Errorf("Need exactly one argument")

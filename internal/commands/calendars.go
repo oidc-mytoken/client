@@ -290,7 +290,7 @@ func interactiveCreateCalendar(mytoken string, mtServer *mytokenlib.MytokenServe
 	return nil
 }
 
-func updateCalendar(ctx context.Context, cmd *cli.Command) error {
+func updateCalendar(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Len() < 1 {
 		return fmt.Errorf("calendar-id is required")
 	}
@@ -371,7 +371,7 @@ func updateCalendar(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func deleteCalendar(ctx context.Context, cmd *cli.Command) error {
+func deleteCalendar(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Len() < 1 {
 		return fmt.Errorf("calendar-id is required")
 	}

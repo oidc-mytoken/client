@@ -115,7 +115,7 @@ func listTags(_ context.Context, _ *cli.Command) error {
 	return nil
 }
 
-func createTag(ctx context.Context, cmd *cli.Command) error {
+func createTag(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Len() < 1 {
 		return fmt.Errorf("tag name required")
 	}
@@ -141,7 +141,7 @@ func createTag(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func updateTag(ctx context.Context, cmd *cli.Command) error {
+func updateTag(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Len() < 1 {
 		return fmt.Errorf("tag name required")
 	}
@@ -174,7 +174,7 @@ func updateTag(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func deleteTag(ctx context.Context, cmd *cli.Command) error {
+func deleteTag(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Len() < 1 {
 		return fmt.Errorf("tag name required")
 	}

@@ -86,7 +86,7 @@ func (i tableGrantTypeInfo) TableGetRow() []string {
 	}
 }
 
-func enableGrant(ctx context.Context, cmd *cli.Command) error {
+func enableGrant(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Len() != 1 {
 		return fmt.Errorf("Must provide exactly one grant to enable")
 	}
@@ -103,7 +103,7 @@ func enableGrant(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func disableGrant(ctx context.Context, cmd *cli.Command) error {
+func disableGrant(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Len() != 1 {
 		return fmt.Errorf("Must provide exactly one grant to disable")
 	}

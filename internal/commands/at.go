@@ -56,7 +56,7 @@ func init() {
 	)
 }
 
-func getAT(ctx context.Context, cmd *cli.Command) error {
+func getAT(_ context.Context, cmd *cli.Command) error {
 	atc := atCommand
 	var comment string
 	if cmd.Args().Len() > 0 {

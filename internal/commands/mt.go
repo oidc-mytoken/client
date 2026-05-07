@@ -186,7 +186,7 @@ func parseRestrictionOpts(rOpts restrictionOpts, cmd *cli.Command) (api.Restrict
 	return mto.request.Restrictions, nil
 }
 
-func (opts *mtOpts) Request(ctx context.Context, cmd *cli.Command) (*api.GeneralMytokenRequest, error) {
+func (opts *mtOpts) Request(_ context.Context, cmd *cli.Command) (*api.GeneralMytokenRequest, error) {
 	if opts.request != nil {
 		return opts.request, nil
 	}
