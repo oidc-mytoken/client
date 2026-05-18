@@ -3,12 +3,13 @@ package commands
 import (
 	"context"
 	"fmt"
-	"regexp"
 
+	"github.com/oidc-mytoken/api/v0"
 	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/utils/color"
+	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
 )
 
 var tagsOptions = struct {
@@ -90,29 +91,31 @@ func listTags(_ context.Context, _ *cli.Command) error {
 		updateMytoken(res.TokenUpdate.Mytoken)
 	}
 
-	// Print header
-	fmt.Println("COLOR    TAG                       Color (Hex)")
-	fmt.Println("-------- ------------------------- --------------------")
-
-	// ANSI escape code regex to strip for width calculation
-	ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
-
-	// Print tags with color blocks
-	for _, tag := range res.Tags {
-		colorBlock := color.TerminalColorBlock(tag.Color)
-		// Strip ANSI codes to get actual visual width of color block (should be 2 spaces)
-		visualBlock := ansiRegex.ReplaceAllString(colorBlock, "")
-		// Calculate padding needed: we want the color block to take 8 chars total (like "--------")
-		padding := 8 - len(visualBlock)
-		paddingStr := ""
-		if padding > 0 {
-			for i := 0; i < padding; i++ {
-				paddingStr += " "
-			}
-		}
-		fmt.Printf("%s%s  %-24s  %s\n", colorBlock, paddingStr, tag.Tag, tag.Color)
+	outputData := make([]tablewriter.TableWriter, len(res.Tags))
+	for i, t := range res.Tags {
+		outputData[i] = tableTagInfo(t)
 	}
+	tablewriter.PrintTableData(outputData)
 	return nil
+}
+
+type tableTagInfo api.TagInfo
+
+func (tableTagInfo) TableGetHeader() []string {
+	return []string{
+		"Color Block",
+		"Tag",
+		"Color (Hex)",
+	}
+}
+
+func (t tableTagInfo) TableGetRow() []string {
+	colorBlock := color.TerminalColorBlock(t.Color)
+	return []string{
+		colorBlock,
+		string(t.Tag),
+		t.Color,
+	}
 }
 
 func createTag(_ context.Context, cmd *cli.Command) error {
