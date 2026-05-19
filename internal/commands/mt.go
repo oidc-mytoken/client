@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -486,7 +487,14 @@ func obtainMTCmd(ctx context.Context, cmd *cli.Command) error {
 func obtainMT(ctx context.Context, cmd *cli.Command) (string, error) {
 	mytoken := config.Get().Mytoken()
 	if mtCommand.TransferCode != "" {
-		return mytoken.Mytoken.FromTransferCode(mtCommand.TransferCode)
+		mt, err := mytoken.Mytoken.FromTransferCode(mtCommand.TransferCode)
+		if err != nil {
+			return "", err
+		}
+		if mt == "" {
+			return "", errors.New("server returned empty mytoken")
+		}
+		return mt, nil
 	}
 	req, err := mtCommand.Request(ctx, cmd)
 	if err != nil {
@@ -517,6 +525,9 @@ func obtainMT(ctx context.Context, cmd *cli.Command) (string, error) {
 		)
 		if err != nil {
 			return "", err
+		}
+		if mtRes.Mytoken == "" {
+			return "", errors.New("server returned empty mytoken")
 		}
 		if mtRes.TokenUpdate != nil {
 			updateMytoken(mtRes.TokenUpdate.Mytoken)
@@ -557,5 +568,11 @@ func obtainMT(ctx context.Context, cmd *cli.Command) (string, error) {
 		},
 	}
 	resp, err := mytoken.Mytoken.APIFromAuthorizationFlowReq(*req, callbacks)
-	return resp.Mytoken, err
+	if err != nil {
+		return "", err
+	}
+	if resp.Mytoken == "" {
+		return "", errors.New("server returned empty mytoken")
+	}
+	return resp.Mytoken, nil
 }

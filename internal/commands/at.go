@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/oidc-mytoken/api/v0"
@@ -73,6 +74,9 @@ func getAT(_ context.Context, cmd *cli.Command) error {
 	)
 	if err != nil {
 		return err
+	}
+	if atRes.AccessToken == "" {
+		return errors.New("server returned empty access token")
 	}
 	if atRes.TokenUpdate != nil {
 		updateMytoken(atRes.TokenUpdate.Mytoken)
