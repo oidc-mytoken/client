@@ -6,12 +6,13 @@ import (
 	"strings"
 
 	"github.com/Songmu/prompter"
+	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/utils/utils/issuerutils"
 	"github.com/oidc-mytoken/utils/utils/jwtutils"
 	"github.com/oidc-mytoken/utils/utils/ternary"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 	"github.com/oidc-mytoken/client/internal/utils/wlcgtokendiscovery"
@@ -111,15 +112,15 @@ func getMTFlags() []cli.Flag {
 			Destination: &opts.Mytoken,
 		},
 		&cli.BoolFlag{
-			Name:             "MT-prompt",
-			Usage:            "If set, you are prompted for a mytoken to be passed",
-			Destination:      &opts.MytokenPrompt,
-			HideDefaultValue: true,
+			Name:        "MT-prompt",
+			Usage:       "If set, you are prompted for a mytoken to be passed",
+			Destination: &opts.MytokenPrompt,
 		},
 		&cli.StringFlag{
 			Name:        "MT-file",
 			Usage:       "Read the mytoken that should be used from the first line of the passed `FILE`",
 			TakesFile:   true,
+			Sources:     cli.NewValueSourceChain(cli.File("")),
 			Destination: &opts.MytokenFile,
 		},
 		&cli.StringFlag{
@@ -131,8 +132,7 @@ func getMTFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name: "ssh",
 			Usage: "Use the ssh protocol instead of a mytoken. " +
-				"SSH will be passed as the first argument to the ssh client",
-			Placeholder: "SSH",
+				"`SSH` will be passed as the first argument to the ssh client",
 			Destination: &opts.SSH,
 		},
 	}
@@ -221,4 +221,57 @@ func updateMytoken(updatedToken string) {
 	if err != nil {
 		log.Error(err)
 	}
+}
+
+func findCommand(commands []*cli.Command, name string) *cli.Command {
+	for _, c := range commands {
+		if c.Name == name {
+			return c
+		}
+		for _, alias := range c.Aliases {
+			if alias == name {
+				return c
+			}
+		}
+	}
+	return nil
+}
+
+func stringSliceToTags(strings []string) []api.Tag {
+	result := make([]api.Tag, 0, len(strings))
+	for _, s := range strings {
+		if s != "" {
+			result = append(result, api.Tag(s))
+		}
+	}
+	return result
+}
+
+func getOrCreateTagsViaSSH(ssh string, tagNames []string) ([]api.Tag, error) {
+	res, err := doSSHParseJSON[struct {
+		Tags []api.TagInfo `json:"tags"`
+	}](ssh, api.SSHRequestTagsList, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	existingTagMap := make(map[string]bool)
+	for _, tag := range res.Tags {
+		existingTagMap[string(tag.Tag)] = true
+	}
+
+	for _, tagName := range tagNames {
+		if tagName == "" {
+			continue
+		}
+		if !existingTagMap[tagName] {
+			createReq := SSHTagCreateRequest{Tag: api.Tag(tagName)}
+			if err := doSSH(ssh, api.SSHRequestTagCreate, &createReq); err != nil {
+				return nil, fmt.Errorf("failed to create tag '%s': %w", tagName, err)
+			}
+			existingTagMap[tagName] = true
+		}
+	}
+
+	return stringSliceToTags(tagNames), nil
 }

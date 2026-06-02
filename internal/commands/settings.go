@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var settingsOptions MTOptions
@@ -15,4 +15,6 @@ func init() {
 		}
 	app.Commands = append(app.Commands, cmd)
 	initGrants(cmd)
+	initEmail(cmd)
+	initTags(cmd)
 }

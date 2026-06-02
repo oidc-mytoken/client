@@ -1,10 +1,11 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/oidc-mytoken/api/v0"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
 )
@@ -23,11 +24,10 @@ func init() {
 			Action: revoke,
 			Flags: appendMTFlags(
 				&cli.BoolFlag{
-					Name:             "recursive",
-					Aliases:          []string{"r"},
-					Usage:            "If set, also all subtokens are revoked",
-					Destination:      &revokeCommand.Recursive,
-					HideDefaultValue: true,
+					Name:        "recursive",
+					Aliases:     []string{"r"},
+					Usage:       "If set, also all subtokens are revoked",
+					Destination: &revokeCommand.Recursive,
 				},
 				&cli.StringFlag{
 					Name: "mom-id",
@@ -42,16 +42,25 @@ func init() {
 							"This requires that the token linked to the mom id is either a child of the actual mytoken or"+
 							" the actual mytoken has the %s capability.", api.CapabilityRevokeAnyToken,
 					),
-					EnvVars:     []string{"MOM_ID"},
+					Sources:     cli.EnvVars("MOM_ID"),
 					Destination: &revokeCommand.MOMID,
-					Placeholder: "MOM_ID",
 				},
 			),
 		},
 	)
 }
 
-func revoke(_ *cli.Context) error {
+func revoke(_ context.Context, _ *cli.Command) error {
+	if ssh := revokeCommand.SSH(); ssh != "" {
+		if revokeCommand.MOMID != "" {
+			req := api.RevocationRequest{
+				MOMID:     revokeCommand.MOMID,
+				Recursive: revokeCommand.Recursive,
+			}
+			return doSSH(ssh, api.SSHRequestRevoke, &req)
+		}
+		return doSSH(ssh, api.SSHRequestRevoke, nil)
+	}
 	mToken := revokeCommand.MustGetToken()
 	mytoken := config.Get().Mytoken()
 	var err error

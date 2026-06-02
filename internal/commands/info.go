@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -10,13 +11,19 @@ import (
 
 	"github.com/oidc-mytoken/api/v0"
 	"github.com/oidc-mytoken/utils/utils/jwtutils"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/oidc-mytoken/client/internal/config"
+	"github.com/oidc-mytoken/client/internal/utils/color"
 	"github.com/oidc-mytoken/client/internal/utils/tablewriter"
 )
 
 var infoOptions MTOptions
+
+var infoNotificationsOptions = struct {
+	MTOptions
+	MOMIDs []string
+}{}
 
 func init() {
 	cmdFlags := getMTFlags()
@@ -28,7 +35,7 @@ func init() {
 			Usage:   "Get information about a mytoken",
 			Action:  info,
 			Flags:   cmdFlags,
-			Subcommands: []*cli.Command{
+			Commands: []*cli.Command{
 				{
 					Name:   "history",
 					Usage:  "List the event history for this token",
@@ -52,10 +59,30 @@ func init() {
 					Flags:  subCmdFlags,
 				},
 				{
-					Name:   "list-mytokens",
-					Usage:  "List all mytokens",
-					Action: listMytokens,
-					Flags:  subCmdFlags,
+					Name:    "list-mytokens",
+					Aliases: []string{"list"},
+					Usage:   "List all mytokens",
+					Action:  listMytokens,
+					Flags: append(
+						subCmdFlags,
+						&cli.BoolFlag{
+							Name:  "include-mom-id",
+							Usage: "Include the MOM-ID column in the output",
+						},
+					),
+				},
+				{
+					Name:   "notifications",
+					Usage:  "Get notifications and calendars for this token",
+					Action: infoNotifications,
+					Flags: append(
+						subCmdFlags,
+						&cli.StringSliceFlag{
+							Name:        "mom-id",
+							Usage:       "Request notifications for specific mom_ids (special values: 'this', 'children')",
+							Destination: &infoNotificationsOptions.MOMIDs,
+						},
+					),
 				},
 			},
 		}
@@ -90,7 +117,7 @@ func prettyPrintJSON(obj interface{}) error {
 	return nil
 }
 
-func info(_ *cli.Context) error {
+func info(_ context.Context, _ *cli.Command) error {
 	mToken := infoOptions.MustGetToken()
 	if !jwtutils.IsJWT(mToken) {
 		return fmt.Errorf("The token is not a JWT.")
@@ -103,7 +130,7 @@ func info(_ *cli.Context) error {
 	return prettyPrintJSON(decodedPayload)
 }
 
-func introspect(_ *cli.Context) error {
+func introspect(_ context.Context, _ *cli.Command) error {
 	if ssh := infoOptions.SSH(); ssh != "" {
 		res, err := doSSHReturnOutput(ssh, api.SSHRequestTokenInfoIntrospect, nil)
 		if err != nil {
@@ -120,24 +147,21 @@ func introspect(_ *cli.Context) error {
 	return prettyPrintJSON(res)
 }
 
-func history(_ *cli.Context) (err error) {
+func history(_ context.Context, _ *cli.Command) error {
 	var res api.TokeninfoHistoryResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
-		var resStr string
-		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoHistory, nil)
+		pRes, err := doSSHParseJSON[api.TokeninfoHistoryResponse](ssh, api.SSHRequestTokenInfoHistory, nil)
 		if err != nil {
-			return
+			return err
 		}
-		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
-			err = fmt.Errorf("%s", resStr)
-			return
-		}
-	} else { // no ssh
+		res = *pRes
+	} else {
 		mToken := infoOptions.MustGetToken()
 		mytoken := config.Get().Mytoken()
+		var err error
 		res, err = mytoken.Tokeninfo.APIHistory(mToken)
 		if err != nil {
-			return
+			return err
 		}
 		if res.TokenUpdate != nil {
 			updateMytoken(res.TokenUpdate.Mytoken)
@@ -165,7 +189,7 @@ func (tableEventEntry) TableGetHeader() []string {
 func (e tableEventEntry) TableGetRow() []string {
 	const timeFmt = "2006-01-02 15:04:05"
 	return []string{
-		e.Event,
+		string(e.Event),
 		e.Comment,
 		time.Unix(e.Time, 0).Format(timeFmt),
 		e.IP,
@@ -173,21 +197,18 @@ func (e tableEventEntry) TableGetRow() []string {
 	}
 }
 
-func subTree(_ *cli.Context) (err error) {
+func subTree(_ context.Context, _ *cli.Command) error {
 	var res api.TokeninfoSubtokensResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
-		var resStr string
-		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoSubtokens, nil)
+		pRes, err := doSSHParseJSON[api.TokeninfoSubtokensResponse](ssh, api.SSHRequestTokenInfoSubtokens, nil)
 		if err != nil {
-			return
+			return err
 		}
-		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
-			err = fmt.Errorf("%s", resStr)
-			return
-		}
+		res = *pRes
 	} else {
 		mToken := infoOptions.MustGetToken()
 		mytoken := config.Get().Mytoken()
+		var err error
 		res, err = mytoken.Tokeninfo.APISubtokens(mToken)
 		if err != nil {
 			return err
@@ -199,21 +220,18 @@ func subTree(_ *cli.Context) (err error) {
 	return prettyPrintJSON(res.Tokens)
 }
 
-func listMytokens(_ *cli.Context) (err error) {
+func listMytokens(_ context.Context, cmd *cli.Command) error {
 	var res api.TokeninfoListResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
-		var resStr string
-		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoListMytokens, nil)
+		pRes, err := doSSHParseJSON[api.TokeninfoListResponse](ssh, api.SSHRequestTokenInfoListMytokens, nil)
 		if err != nil {
-			return
+			return err
 		}
-		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
-			err = fmt.Errorf("%s", resStr)
-			return
-		}
+		res = *pRes
 	} else {
 		mToken := infoOptions.MustGetToken()
 		mytoken := config.Get().Mytoken()
+		var err error
 		res, err = mytoken.Tokeninfo.APIListMytokens(mToken)
 		if err != nil {
 			return err
@@ -222,5 +240,183 @@ func listMytokens(_ *cli.Context) (err error) {
 			updateMytoken(res.TokenUpdate.Mytoken)
 		}
 	}
-	return prettyPrintJSON(res.Tokens)
+	includeMOMID := cmd.Bool("include-mom-id")
+	outputData := flattenMytokenEntryTree(res.Tokens, includeMOMID)
+	tablewriter.PrintTableData(outputData)
+	return nil
+}
+
+func flattenMytokenEntryTree(tree []api.MytokenEntryTree, includeMOMID bool) []tablewriter.TableWriter {
+	var result []tablewriter.TableWriter
+	for _, entry := range tree {
+		result = append(
+			result, tableMytokenEntry{
+				entry:        entry.Token,
+				depth:        0,
+				includeMOMID: includeMOMID,
+			},
+		)
+		result = append(result, flattenMytokenEntryTreeRecursive(entry.Children, 1, includeMOMID)...)
+	}
+	return result
+}
+
+func flattenMytokenEntryTreeRecursive(
+	tree []api.MytokenEntryTree, depth int, includeMOMID bool,
+) []tablewriter.TableWriter {
+	var result []tablewriter.TableWriter
+	for _, entry := range tree {
+		result = append(
+			result, tableMytokenEntry{
+				entry:        entry.Token,
+				depth:        depth,
+				includeMOMID: includeMOMID,
+			},
+		)
+		result = append(result, flattenMytokenEntryTreeRecursive(entry.Children, depth+1, includeMOMID)...)
+	}
+	return result
+}
+
+type tableMytokenEntry struct {
+	entry        api.MytokenEntry
+	depth        int
+	includeMOMID bool
+}
+
+func (e tableMytokenEntry) TableGetHeader() []string {
+	if e.includeMOMID {
+		return []string{
+			"MOM-ID",
+			"Name",
+			"Created",
+			"Expires",
+			"Tags",
+			"IP",
+		}
+	}
+	return []string{
+		"Name",
+		"Created",
+		"Expires",
+		"Tags",
+		"IP",
+	}
+}
+
+func (e tableMytokenEntry) TableGetRow() []string {
+	const timeFmt = "2006-01-02 15:04:05"
+	now := time.Now().Unix()
+
+	created := time.Unix(e.entry.CreatedAt, 0).Format(timeFmt)
+	expires := ""
+	expired := false
+	if e.entry.ExpiresAt > 0 {
+		expires = time.Unix(e.entry.ExpiresAt, 0).Format(timeFmt)
+		expired = e.entry.ExpiresAt < now
+	} else {
+		expires = color.Italic("does not expire")
+	}
+
+	tags := ""
+	if len(e.entry.Tags) > 0 {
+		tagStrs := make([]string, len(e.entry.Tags))
+		for i, t := range e.entry.Tags {
+			tagStrs[i] = color.ColorizeText(string(t.Tag), t.Color)
+		}
+		tags = strings.Join(tagStrs, ", ")
+	}
+
+	name := e.entry.Name
+	if name == "" {
+		name = color.Italic("unnamed token")
+	}
+	if e.depth > 0 {
+		name = strings.Repeat("  ", e.depth) + "└─ " + name
+	}
+
+	if expired {
+		name = color.Gray(name)
+		created = color.Gray(created)
+		expires = color.Gray(expires)
+		tags = color.Gray(tags)
+	}
+
+	if e.includeMOMID {
+		return []string{
+			e.entry.MOMID,
+			name,
+			created,
+			expires,
+			tags,
+			e.entry.IP,
+		}
+	}
+	return []string{
+		name,
+		created,
+		expires,
+		tags,
+		e.entry.IP,
+	}
+}
+
+func infoNotifications(_ context.Context, _ *cli.Command) (err error) {
+	if ssh := infoNotificationsOptions.SSH(); ssh != "" {
+		req := api.TokenInfoRequest{}
+		if len(infoNotificationsOptions.MOMIDs) > 0 {
+			req.MOMIDs = infoNotificationsOptions.MOMIDs
+		}
+		res, err := doSSHParseJSON[api.TokeninfoNotificationsResponse](ssh, api.SSHRequestTokenInfoNotifications, &req)
+		if err != nil {
+			return err
+		}
+		renderNotificationsCalendars(res.Notifications, res.Calendars)
+		return nil
+	}
+
+	mToken := infoNotificationsOptions.MustGetToken()
+	mytoken := config.Get().Mytoken()
+
+	var momIDs []string
+	if len(infoNotificationsOptions.MOMIDs) > 0 {
+		momIDs = infoNotificationsOptions.MOMIDs
+	}
+
+	res, err := mytoken.Tokeninfo.APINotifications(mToken, momIDs)
+	if err != nil {
+		return err
+	}
+	if res.TokenUpdate != nil {
+		updateMytoken(res.TokenUpdate.Mytoken)
+	}
+
+	renderNotificationsCalendars(res.Notifications, res.Calendars)
+	return nil
+}
+
+func renderNotificationsCalendars(notifications []api.NotificationInfo, calendars []api.CalendarInfo) {
+	if len(notifications) > 0 {
+		fmt.Println("Notifications:")
+		outputData := make([]tablewriter.TableWriter, len(notifications))
+		for i, n := range notifications {
+			outputData[i] = tableNotificationInfo(n)
+		}
+		tablewriter.PrintTableData(outputData)
+		fmt.Println()
+	}
+
+	if len(calendars) > 0 {
+		fmt.Println("Calendars:")
+		outputData := make([]tablewriter.TableWriter, len(calendars))
+		for i, c := range calendars {
+			outputData[i] = tableCalendarInfo(c)
+		}
+		tablewriter.PrintTableData(outputData)
+		fmt.Println()
+	}
+
+	if len(notifications) == 0 && len(calendars) == 0 {
+		fmt.Println("No notifications or calendars found.")
+	}
 }
