@@ -51,6 +51,16 @@ func init() {
 }
 
 func revoke(_ context.Context, _ *cli.Command) error {
+	if ssh := revokeCommand.SSH(); ssh != "" {
+		if revokeCommand.MOMID != "" {
+			req := api.RevocationRequest{
+				MOMID:     revokeCommand.MOMID,
+				Recursive: revokeCommand.Recursive,
+			}
+			return doSSH(ssh, api.SSHRequestRevoke, &req)
+		}
+		return doSSH(ssh, api.SSHRequestRevoke, nil)
+	}
 	mToken := revokeCommand.MustGetToken()
 	mytoken := config.Get().Mytoken()
 	var err error

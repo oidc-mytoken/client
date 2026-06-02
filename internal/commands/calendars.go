@@ -151,6 +151,18 @@ func init() {
 }
 
 func listCalendars(_ context.Context, _ *cli.Command) error {
+	if ssh := calendarsOptions.SSH(); ssh != "" {
+		res, err := doSSHParseJSON[api.CalendarListResponse](ssh, api.SSHRequestCalendars, nil)
+		if err != nil {
+			return err
+		}
+		outputData := make([]tablewriter.TableWriter, len(res.Calendars))
+		for i, c := range res.Calendars {
+			outputData[i] = tableCalendarInfo(c)
+		}
+		tablewriter.PrintTableData(outputData)
+		return nil
+	}
 	mytoken := calendarsOptions.MustGetToken()
 	mtServer := config.Get().Mytoken()
 
@@ -215,6 +227,24 @@ func createCalendar(_ context.Context, _ *cli.Command) error {
 	}
 
 	tags := parseStringSlice(calendarsOptions.Tags)
+
+	if ssh := calendarsOptions.SSH(); ssh != "" {
+		req := api.CreateCalendarRequest{
+			Description: calendarsOptions.Description,
+			Tags:        stringSliceToTags(tags),
+		}
+		createRes, err := doSSHParseJSON[struct {
+			ID          string `json:"id"`
+			Description string `json:"description"`
+			ICSPath     string `json:"ics_path"`
+		}](ssh, api.SSHRequestCalendarCreate, &req)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("\n✓ Calendar created successfully! ID: %s\n", createRes.ID)
+		return nil
+	}
+
 	apiTags, err := getOrCreateTags(mytoken, mtServer, tags)
 	if err != nil {
 		return err
@@ -295,8 +325,6 @@ func updateCalendar(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("calendar-id is required")
 	}
 	calendarID := cmd.Args().Get(0)
-	mytoken := calendarsOptions.MustGetToken()
-	mtServer := config.Get().Mytoken()
 
 	addTags := parseStringSlice(calendarsOptions.AddTags)
 	removeTags := parseStringSlice(calendarsOptions.RemoveTags)
@@ -304,6 +332,68 @@ func updateCalendar(_ context.Context, cmd *cli.Command) error {
 	if calendarsOptions.Description == "" && len(addTags) == 0 && len(removeTags) == 0 {
 		return fmt.Errorf("at least one of --description, --add-tags, or --remove-tags must be provided")
 	}
+
+	if ssh := calendarsOptions.SSH(); ssh != "" {
+		listRes, err := doSSHParseJSON[api.CalendarListResponse](ssh, api.SSHRequestCalendars, nil)
+		if err != nil {
+			return err
+		}
+
+		var currentCalendar *api.CalendarInfo
+		for _, c := range listRes.Calendars {
+			if c.ID == calendarID {
+				currentCalendar = &c
+				break
+			}
+		}
+		if currentCalendar == nil {
+			return fmt.Errorf("calendar with ID '%s' not found", calendarID)
+		}
+
+		newDescription := calendarsOptions.Description
+		if newDescription == "" {
+			newDescription = currentCalendar.Description
+		}
+
+		newTags := make(map[api.Tag]bool)
+		for _, t := range currentCalendar.Tags {
+			newTags[t.Tag] = true
+		}
+
+		apiAddTags, err := getOrCreateTagsViaSSH(ssh, addTags)
+		if err != nil {
+			return err
+		}
+		for _, t := range apiAddTags {
+			newTags[t] = true
+		}
+
+		for _, tagName := range removeTags {
+			delete(newTags, api.Tag(tagName))
+		}
+
+		finalTags := make([]api.Tag, 0, len(newTags))
+		for t := range newTags {
+			finalTags = append(finalTags, t)
+		}
+
+		finalTagStrings := make([]string, len(finalTags))
+		for i, t := range finalTags {
+			finalTagStrings[i] = string(t)
+		}
+
+		req := SSHCalendarUpdateRequest{
+			CalendarID: calendarID,
+			CreateCalendarRequest: api.CreateCalendarRequest{
+				Description: newDescription,
+				Tags:        stringSliceToTags(finalTagStrings),
+			},
+		}
+		return doSSH(ssh, api.SSHRequestCalendarUpdate, &req)
+	}
+
+	mytoken := calendarsOptions.MustGetToken()
+	mtServer := config.Get().Mytoken()
 
 	// Get current calendar state
 	listRes, err := mtServer.Calendars.APIList(mytoken)
@@ -376,8 +466,6 @@ func deleteCalendar(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("calendar-id is required")
 	}
 	calendarID := cmd.Args().Get(0)
-	mytoken := calendarsOptions.MustGetToken()
-	mtServer := config.Get().Mytoken()
 
 	if !calendarsOptions.Force {
 		prompt := fmt.Sprintf("Are you sure you want to delete calendar %s?", calendarID)
@@ -386,6 +474,14 @@ func deleteCalendar(_ context.Context, cmd *cli.Command) error {
 			return nil
 		}
 	}
+
+	if ssh := calendarsOptions.SSH(); ssh != "" {
+		req := SSHCalendarIDRequest{CalendarID: calendarID}
+		return doSSH(ssh, api.SSHRequestCalendarDelete, &req)
+	}
+
+	mytoken := calendarsOptions.MustGetToken()
+	mtServer := config.Get().Mytoken()
 
 	res, err := mtServer.Calendars.APIDelete(mytoken, calendarID)
 	if err != nil {
@@ -404,6 +500,18 @@ func subscribeToCalendar(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("calendar-id is required")
 	}
 	calendarID := cmd.Args().Get(0)
+
+	if ssh := calendarsOptions.SSH(); ssh != "" {
+		req := SSHCalendarSubscriptionRequest{
+			CalendarID: calendarID,
+			AddMytokenToCalendarRequest: api.AddMytokenToCalendarRequest{
+				MomID:   calendarsOptions.MomID,
+				Comment: calendarsOptions.Comment,
+			},
+		}
+		return doSSH(ssh, api.SSHRequestCalendarAddMytoken, &req)
+	}
+
 	mytoken := calendarsOptions.MustGetToken()
 	mtServer := config.Get().Mytoken()
 
@@ -429,6 +537,17 @@ func unsubscribeFromCalendar(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("calendar-id is required")
 	}
 	calendarID := cmd.Args().Get(0)
+
+	if ssh := calendarsOptions.SSH(); ssh != "" {
+		req := SSHCalendarSubscriptionRequest{
+			CalendarID: calendarID,
+			AddMytokenToCalendarRequest: api.AddMytokenToCalendarRequest{
+				MomID: calendarsOptions.MomID,
+			},
+		}
+		return doSSH(ssh, api.SSHRequestCalendarRemoveMytoken, &req)
+	}
+
 	mytoken := calendarsOptions.MustGetToken()
 	mtServer := config.Get().Mytoken()
 

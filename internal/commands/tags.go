@@ -80,6 +80,20 @@ func initTags(parent *cli.Command) {
 }
 
 func listTags(_ context.Context, _ *cli.Command) error {
+	if ssh := tagsOptions.SSH(); ssh != "" {
+		res, err := doSSHParseJSON[struct {
+			Tags []api.TagInfo `json:"tags"`
+		}](ssh, api.SSHRequestTagsList, nil)
+		if err != nil {
+			return err
+		}
+		outputData := make([]tablewriter.TableWriter, len(res.Tags))
+		for i, t := range res.Tags {
+			outputData[i] = tableTagInfo(t)
+		}
+		tablewriter.PrintTableData(outputData)
+		return nil
+	}
 	mytoken := settingsOptions.MustGetToken()
 	mtServer := config.Get().Mytoken()
 
@@ -123,8 +137,6 @@ func createTag(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("tag name required")
 	}
 	tagName := cmd.Args().Get(0)
-	mytoken := settingsOptions.MustGetToken()
-	mtServer := config.Get().Mytoken()
 
 	var tagColor string
 	if tagsOptions.Color != "" {
@@ -134,6 +146,21 @@ func createTag(_ context.Context, cmd *cli.Command) error {
 		}
 		tagColor = normalizedColor
 	}
+
+	if ssh := tagsOptions.SSH(); ssh != "" {
+		req := SSHTagCreateRequest{Tag: api.Tag(tagName)}
+		if tagColor != "" {
+			req.Color = &tagColor
+		}
+		if err := doSSH(ssh, api.SSHRequestTagCreate, &req); err != nil {
+			return err
+		}
+		fmt.Printf("Tag '%s' created successfully\n", tagName)
+		return nil
+	}
+
+	mytoken := settingsOptions.MustGetToken()
+	mtServer := config.Get().Mytoken()
 
 	err := mtServer.UserSettings.Tags.APICreate(mytoken, tagName, tagColor)
 	if err != nil {
@@ -149,8 +176,6 @@ func updateTag(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("tag name required")
 	}
 	tagName := cmd.Args().Get(0)
-	mytoken := settingsOptions.MustGetToken()
-	mtServer := config.Get().Mytoken()
 
 	if tagsOptions.NewTagName == "" && tagsOptions.Color == "" {
 		return fmt.Errorf("at least one of --new-name or --color must be provided")
@@ -164,6 +189,24 @@ func updateTag(_ context.Context, cmd *cli.Command) error {
 		}
 		newColor = normalizedColor
 	}
+
+	if ssh := tagsOptions.SSH(); ssh != "" {
+		req := SSHTagUpdateRequest{Tag: api.Tag(tagName)}
+		if newColor != "" {
+			req.Color = &newColor
+		}
+		if tagsOptions.NewTagName != "" {
+			req.Name = &tagsOptions.NewTagName
+		}
+		if err := doSSH(ssh, api.SSHRequestTagUpdate, &req); err != nil {
+			return err
+		}
+		fmt.Printf("Tag '%s' updated successfully\n", tagName)
+		return nil
+	}
+
+	mytoken := settingsOptions.MustGetToken()
+	mtServer := config.Get().Mytoken()
 
 	res, err := mtServer.UserSettings.Tags.APIUpdate(mytoken, tagName, tagsOptions.NewTagName, newColor)
 	if err != nil {
@@ -182,6 +225,16 @@ func deleteTag(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("tag name required")
 	}
 	tagName := cmd.Args().Get(0)
+
+	if ssh := tagsOptions.SSH(); ssh != "" {
+		req := SSHTagDeleteRequest{Tag: api.Tag(tagName)}
+		if err := doSSH(ssh, api.SSHRequestTagDelete, &req); err != nil {
+			return err
+		}
+		fmt.Printf("Tag '%s' deleted successfully\n", tagName)
+		return nil
+	}
+
 	mytoken := settingsOptions.MustGetToken()
 	mtServer := config.Get().Mytoken()
 

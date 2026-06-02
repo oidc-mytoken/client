@@ -98,6 +98,20 @@ func addMTTag(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("tag name required")
 	}
 	tagName := cmd.Args().Get(0)
+
+	if ssh := mtTagsOptions.SSH(); ssh != "" {
+		req := api.AddTagToMytokenRequest{
+			Tag:             api.Tag(tagName),
+			MOMID:           mtTagsOptions.MOMID,
+			IncludeChildren: mtTagsOptions.IncludeChildren,
+		}
+		if err := doSSH(ssh, api.SSHRequestAddTag, &req); err != nil {
+			return err
+		}
+		fmt.Printf("Tag '%s' added successfully\n", tagName)
+		return nil
+	}
+
 	mytoken := mtTagsOptions.MustGetToken()
 	mtServer := config.Get().Mytoken()
 
@@ -125,6 +139,20 @@ func removeMTTag(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("tag name required")
 	}
 	tagName := cmd.Args().Get(0)
+
+	if ssh := mtTagsOptions.SSH(); ssh != "" {
+		req := api.RemoveTagFromMytokenRequest{
+			Tag:             api.Tag(tagName),
+			MOMID:           mtTagsOptions.MOMID,
+			IncludeChildren: mtTagsOptions.IncludeChildren,
+		}
+		if err := doSSH(ssh, api.SSHRequestRemoveTag, &req); err != nil {
+			return err
+		}
+		fmt.Printf("Tag '%s' removed successfully\n", tagName)
+		return nil
+	}
+
 	mytoken := mtTagsOptions.MustGetToken()
 	mtServer := config.Get().Mytoken()
 

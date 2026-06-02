@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Songmu/prompter"
+	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
 	"github.com/oidc-mytoken/utils/utils/issuerutils"
 	"github.com/oidc-mytoken/utils/utils/jwtutils"
@@ -234,4 +235,43 @@ func findCommand(commands []*cli.Command, name string) *cli.Command {
 		}
 	}
 	return nil
+}
+
+func stringSliceToTags(strings []string) []api.Tag {
+	result := make([]api.Tag, 0, len(strings))
+	for _, s := range strings {
+		if s != "" {
+			result = append(result, api.Tag(s))
+		}
+	}
+	return result
+}
+
+func getOrCreateTagsViaSSH(ssh string, tagNames []string) ([]api.Tag, error) {
+	res, err := doSSHParseJSON[struct {
+		Tags []api.TagInfo `json:"tags"`
+	}](ssh, api.SSHRequestTagsList, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	existingTagMap := make(map[string]bool)
+	for _, tag := range res.Tags {
+		existingTagMap[string(tag.Tag)] = true
+	}
+
+	for _, tagName := range tagNames {
+		if tagName == "" {
+			continue
+		}
+		if !existingTagMap[tagName] {
+			createReq := SSHTagCreateRequest{Tag: api.Tag(tagName)}
+			if err := doSSH(ssh, api.SSHRequestTagCreate, &createReq); err != nil {
+				return nil, fmt.Errorf("failed to create tag '%s': %w", tagName, err)
+			}
+			existingTagMap[tagName] = true
+		}
+	}
+
+	return stringSliceToTags(tagNames), nil
 }

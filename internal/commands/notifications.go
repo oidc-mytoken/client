@@ -193,6 +193,18 @@ func parseStringSlice(input []string) []string {
 }
 
 func listNotifications(_ context.Context, _ *cli.Command) error {
+	if ssh := notificationsOptions.SSH(); ssh != "" {
+		res, err := doSSHParseJSON[api.NotificationsListResponse](ssh, api.SSHRequestNotifications, nil)
+		if err != nil {
+			return err
+		}
+		outputData := make([]tablewriter.TableWriter, len(res.Notifications))
+		for i, n := range res.Notifications {
+			outputData[i] = tableNotificationInfo(n)
+		}
+		tablewriter.PrintTableData(outputData)
+		return nil
+	}
 	mytoken := notificationsOptions.MustGetToken()
 	mtServer := config.Get().Mytoken()
 
@@ -282,6 +294,26 @@ func createNotification(_ context.Context, _ *cli.Command) error {
 	}
 
 	tags := parseStringSlice(notificationsOptions.Tags)
+
+	if ssh := notificationsOptions.SSH(); ssh != "" {
+		req := api.SubscribeNotificationRequest{
+			NotificationType:    notificationsOptions.NotificationType,
+			NotificationClasses: parseNotificationClasses(classes),
+			UserWide:            notificationsOptions.UserWide,
+			Tags:                stringSliceToTags(tags),
+			Comment:             notificationsOptions.Comment,
+			MOMID:               notificationsOptions.MOMID,
+		}
+		createRes, err := doSSHParseJSON[struct {
+			ManagementCode string `json:"management_code"`
+		}](ssh, api.SSHRequestNotificationCreate, &req)
+		if err != nil {
+			return err
+		}
+		displayManagementCode(createRes.ManagementCode, "notification")
+		return nil
+	}
+
 	apiTags, err := getOrCreateTags(mytoken, mtServer, tags)
 	if err != nil {
 		return err
@@ -481,8 +513,6 @@ func updateNotification(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("management-code is required")
 	}
 	managementCode := cmd.Args().Get(0)
-	mytoken := notificationsOptions.MustGetToken()
-	mtServer := config.Get().Mytoken()
 
 	addClasses := parseStringSlice(notificationsOptions.AddClasses)
 	removeClasses := parseStringSlice(notificationsOptions.RemoveClasses)
@@ -492,6 +522,74 @@ func updateNotification(_ context.Context, cmd *cli.Command) error {
 	if len(addClasses) == 0 && len(removeClasses) == 0 && len(addTags) == 0 && len(removeTags) == 0 {
 		return fmt.Errorf("at least one of --add-classes, --remove-classes, --add-tags, or --remove-tags must be provided")
 	}
+
+	if ssh := notificationsOptions.SSH(); ssh != "" {
+		listRes, err := doSSHParseJSON[api.NotificationsListResponse](ssh, api.SSHRequestNotifications, nil)
+		if err != nil {
+			return err
+		}
+
+		var currentNotification *api.NotificationInfo
+		for _, n := range listRes.Notifications {
+			if n.ManagementCode == managementCode {
+				currentNotification = &n
+				break
+			}
+		}
+		if currentNotification == nil {
+			return fmt.Errorf("notification with management code '%s' not found", managementCode)
+		}
+
+		newClasses := make(map[string]*api.NotificationClass)
+		for _, c := range currentNotification.Classes {
+			newClasses[c.Name] = c
+		}
+		for _, className := range addClasses {
+			newClasses[className] = api.NewNotificationClass(className)
+		}
+		for _, className := range removeClasses {
+			delete(newClasses, className)
+		}
+
+		finalClasses := make(api.NotificationClasses, 0, len(newClasses))
+		for _, nc := range newClasses {
+			finalClasses = append(finalClasses, nc)
+		}
+
+		newTags := make(map[api.Tag]bool)
+		for _, t := range currentNotification.Tags {
+			newTags[t.Tag] = true
+		}
+
+		apiAddTags, err := getOrCreateTagsViaSSH(ssh, addTags)
+		if err != nil {
+			return err
+		}
+		for _, t := range apiAddTags {
+			newTags[t] = true
+		}
+
+		for _, tagName := range removeTags {
+			delete(newTags, api.Tag(tagName))
+		}
+
+		finalTags := make([]api.Tag, 0, len(newTags))
+		for t := range newTags {
+			finalTags = append(finalTags, t)
+		}
+
+		req := SSHNotificationUpdateRequest{
+			ManagementCode: managementCode,
+			NotificationUpdateRequest: api.NotificationUpdateRequest{
+				Classes: &finalClasses,
+				Tags:    &finalTags,
+			},
+		}
+		return doSSH(ssh, api.SSHRequestNotificationUpdate, &req)
+	}
+
+	mytoken := notificationsOptions.MustGetToken()
+	mtServer := config.Get().Mytoken()
 
 	// First, get current notification state
 	listRes, err := mtServer.Notifications.APIList(mytoken)
@@ -580,8 +678,6 @@ func deleteNotification(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("management-code is required")
 	}
 	managementCode := cmd.Args().Get(0)
-	mytoken := notificationsOptions.MustGetToken()
-	mtServer := config.Get().Mytoken()
 
 	if !notificationsOptions.Force {
 		prompt := fmt.Sprintf("Are you sure you want to delete notification %s?", managementCode)
@@ -590,6 +686,14 @@ func deleteNotification(_ context.Context, cmd *cli.Command) error {
 			return nil
 		}
 	}
+
+	if ssh := notificationsOptions.SSH(); ssh != "" {
+		req := SSHNotificationManagementCodeRequest{ManagementCode: managementCode}
+		return doSSH(ssh, api.SSHRequestNotificationDelete, &req)
+	}
+
+	mytoken := notificationsOptions.MustGetToken()
+	mtServer := config.Get().Mytoken()
 
 	res, err := mtServer.Notifications.APIDelete(mytoken, managementCode)
 	if err != nil {
@@ -608,6 +712,18 @@ func addTokenToNotification(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("management-code is required")
 	}
 	managementCode := cmd.Args().Get(0)
+
+	if ssh := notificationsOptions.SSH(); ssh != "" {
+		req := SSHNotificationAddTokenRequest{
+			ManagementCode: managementCode,
+			NotificationAddTokenRequest: api.NotificationAddTokenRequest{
+				MOMID:           notificationsOptions.MOMID,
+				IncludeChildren: notificationsOptions.IncludeChildren,
+			},
+		}
+		return doSSH(ssh, api.SSHRequestNotificationAddToken, &req)
+	}
+
 	mytoken := notificationsOptions.MustGetToken()
 	mtServer := config.Get().Mytoken()
 
@@ -634,6 +750,20 @@ func removeTokenFromNotification(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("management-code is required")
 	}
 	managementCode := cmd.Args().Get(0)
+
+	if ssh := notificationsOptions.SSH(); ssh != "" {
+		type request struct {
+			ManagementCode string `json:"management_code"`
+			MOMID          string `json:"mom_id"`
+		}
+		return doSSH(
+			ssh, api.SSHRequestNotificationRemoveToken, &request{
+				ManagementCode: managementCode,
+				MOMID:          notificationsOptions.MOMID,
+			},
+		)
+	}
+
 	mytoken := notificationsOptions.MustGetToken()
 	mtServer := config.Get().Mytoken()
 

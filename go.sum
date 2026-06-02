@@ -222,8 +222,8 @@ github.com/mattn/go-runewidth v0.0.23/go.mod h1:XBkDxAl56ILZc9knddidhrOlY5R/pDhg
 github.com/mdp/qrterminal/v3 v3.2.1 h1:6+yQjiiOsSuXT5n9/m60E54vdgFsw0zhADHhHLrFet4=
 github.com/mdp/qrterminal/v3 v3.2.1/go.mod h1:jOTmXvnBsMy5xqLniO0R++Jmjs2sTm9dFSuQ5kpz/SU=
 github.com/oidc-mytoken/api v0.9.1/go.mod h1:DBIlUbaIgGlf607VZx8zFC97VR3WNN0kaMVO1AqyTdE=
-github.com/oidc-mytoken/api v0.12.1 h1:2VFZ2rFBRmWmqdjH1T2Yw1Z/qkwyNwZF0CBk6LGFumI=
-github.com/oidc-mytoken/api v0.12.1/go.mod h1:4QwDXesKKEzbTmH2vENYCVcmdb5/gbDPg3DOm9HQLdg=
+github.com/oidc-mytoken/api v0.12.2-0.20260529132908-2e1359c93a95 h1:e+iQlFDdJpjEV2nQrDy5XtH6K6OO7jScm+SHnzgradY=
+github.com/oidc-mytoken/api v0.12.2-0.20260529132908-2e1359c93a95/go.mod h1:4QwDXesKKEzbTmH2vENYCVcmdb5/gbDPg3DOm9HQLdg=
 github.com/oidc-mytoken/lib v0.8.1-0.20260507130659-1d2d0a003337 h1:bjVCDUP1wPX9hNjhNO5sVOli0vxXK4fTTQUoLGxrdqQ=
 github.com/oidc-mytoken/lib v0.8.1-0.20260507130659-1d2d0a003337/go.mod h1:KhQT/OLSviMWsQEj2C5S6vrq2sh14jpmkVzaMvwXfgU=
 github.com/oidc-mytoken/utils v0.1.2 h1:nmKIw/k4OkQ/9ww06W7krJ4yTwvDbuCRCjjRCmI9gSE=

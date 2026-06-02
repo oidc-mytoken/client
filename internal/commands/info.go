@@ -147,24 +147,21 @@ func introspect(_ context.Context, _ *cli.Command) error {
 	return prettyPrintJSON(res)
 }
 
-func history(_ context.Context, _ *cli.Command) (err error) {
+func history(_ context.Context, _ *cli.Command) error {
 	var res api.TokeninfoHistoryResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
-		var resStr string
-		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoHistory, nil)
+		pRes, err := doSSHParseJSON[api.TokeninfoHistoryResponse](ssh, api.SSHRequestTokenInfoHistory, nil)
 		if err != nil {
-			return
+			return err
 		}
-		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
-			err = fmt.Errorf("%s", resStr)
-			return
-		}
-	} else { // no ssh
+		res = *pRes
+	} else {
 		mToken := infoOptions.MustGetToken()
 		mytoken := config.Get().Mytoken()
+		var err error
 		res, err = mytoken.Tokeninfo.APIHistory(mToken)
 		if err != nil {
-			return
+			return err
 		}
 		if res.TokenUpdate != nil {
 			updateMytoken(res.TokenUpdate.Mytoken)
@@ -200,21 +197,18 @@ func (e tableEventEntry) TableGetRow() []string {
 	}
 }
 
-func subTree(_ context.Context, _ *cli.Command) (err error) {
+func subTree(_ context.Context, _ *cli.Command) error {
 	var res api.TokeninfoSubtokensResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
-		var resStr string
-		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoSubtokens, nil)
+		pRes, err := doSSHParseJSON[api.TokeninfoSubtokensResponse](ssh, api.SSHRequestTokenInfoSubtokens, nil)
 		if err != nil {
-			return
+			return err
 		}
-		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
-			err = fmt.Errorf("%s", resStr)
-			return
-		}
+		res = *pRes
 	} else {
 		mToken := infoOptions.MustGetToken()
 		mytoken := config.Get().Mytoken()
+		var err error
 		res, err = mytoken.Tokeninfo.APISubtokens(mToken)
 		if err != nil {
 			return err
@@ -226,21 +220,18 @@ func subTree(_ context.Context, _ *cli.Command) (err error) {
 	return prettyPrintJSON(res.Tokens)
 }
 
-func listMytokens(_ context.Context, cmd *cli.Command) (err error) {
+func listMytokens(_ context.Context, cmd *cli.Command) error {
 	var res api.TokeninfoListResponse
 	if ssh := infoOptions.SSH(); ssh != "" {
-		var resStr string
-		resStr, err = doSSHReturnOutput(ssh, api.SSHRequestTokenInfoListMytokens, nil)
+		pRes, err := doSSHParseJSON[api.TokeninfoListResponse](ssh, api.SSHRequestTokenInfoListMytokens, nil)
 		if err != nil {
-			return
+			return err
 		}
-		if err = json.Unmarshal([]byte(resStr), &res); err != nil {
-			err = fmt.Errorf("%s", resStr)
-			return
-		}
+		res = *pRes
 	} else {
 		mToken := infoOptions.MustGetToken()
 		mytoken := config.Get().Mytoken()
+		var err error
 		res, err = mytoken.Tokeninfo.APIListMytokens(mToken)
 		if err != nil {
 			return err
@@ -371,6 +362,19 @@ func (e tableMytokenEntry) TableGetRow() []string {
 }
 
 func infoNotifications(_ context.Context, _ *cli.Command) (err error) {
+	if ssh := infoNotificationsOptions.SSH(); ssh != "" {
+		req := api.TokenInfoRequest{}
+		if len(infoNotificationsOptions.MOMIDs) > 0 {
+			req.MOMIDs = infoNotificationsOptions.MOMIDs
+		}
+		res, err := doSSHParseJSON[api.TokeninfoNotificationsResponse](ssh, api.SSHRequestTokenInfoNotifications, &req)
+		if err != nil {
+			return err
+		}
+		renderNotificationsCalendars(res.Notifications, res.Calendars)
+		return nil
+	}
+
 	mToken := infoNotificationsOptions.MustGetToken()
 	mytoken := config.Get().Mytoken()
 
@@ -387,29 +391,32 @@ func infoNotifications(_ context.Context, _ *cli.Command) (err error) {
 		updateMytoken(res.TokenUpdate.Mytoken)
 	}
 
-	if len(res.Notifications) > 0 {
+	renderNotificationsCalendars(res.Notifications, res.Calendars)
+	return nil
+}
+
+func renderNotificationsCalendars(notifications []api.NotificationInfo, calendars []api.CalendarInfo) {
+	if len(notifications) > 0 {
 		fmt.Println("Notifications:")
-		outputData := make([]tablewriter.TableWriter, len(res.Notifications))
-		for i, n := range res.Notifications {
+		outputData := make([]tablewriter.TableWriter, len(notifications))
+		for i, n := range notifications {
 			outputData[i] = tableNotificationInfo(n)
 		}
 		tablewriter.PrintTableData(outputData)
 		fmt.Println()
 	}
 
-	if len(res.Calendars) > 0 {
+	if len(calendars) > 0 {
 		fmt.Println("Calendars:")
-		outputData := make([]tablewriter.TableWriter, len(res.Calendars))
-		for i, c := range res.Calendars {
+		outputData := make([]tablewriter.TableWriter, len(calendars))
+		for i, c := range calendars {
 			outputData[i] = tableCalendarInfo(c)
 		}
 		tablewriter.PrintTableData(outputData)
 		fmt.Println()
 	}
 
-	if len(res.Notifications) == 0 && len(res.Calendars) == 0 {
+	if len(notifications) == 0 && len(calendars) == 0 {
 		fmt.Println("No notifications or calendars found.")
 	}
-
-	return nil
 }
