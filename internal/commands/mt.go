@@ -3,10 +3,12 @@ package commands
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/oidc-mytoken/api/v0"
 	mytokenlib "github.com/oidc-mytoken/lib"
@@ -124,24 +126,89 @@ func (opts *mtOpts) parseRotationOption() error {
 	return nil
 }
 
+func looksLikeFilePath(arg string) bool {
+	if strings.HasPrefix(arg, "./") || strings.HasPrefix(arg, "../") {
+		return true
+	}
+	if filepath.IsAbs(arg) {
+		return true
+	}
+	if strings.HasPrefix(arg, "~/") {
+		return true
+	}
+	return false
+}
+
+func expandTilde(path string) (string, error) {
+	if !strings.HasPrefix(path, "~/") {
+		return path, nil
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.Wrap(err, "could not determine home directory")
+	}
+
+	return filepath.Join(homeDir, path[2:]), nil
+}
+
+func parseRestrictionsFromFile(path string) (api.Restrictions, error) {
+	expandedPath, err := expandTilde(path)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := os.ReadFile(expandedPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, errors.Errorf("restrictions file not found: %s", expandedPath)
+		}
+		return nil, errors.Wrapf(err, "could not read restrictions file %s", expandedPath)
+	}
+
+	rBytes := content
+	if jsonutils.IsJSONObject(rBytes) {
+		rBytes = append([]byte{'['}, append(rBytes, ']')...)
+	}
+
+	var restrictions api.Restrictions
+	if !jsonutils.IsJSONArray(rBytes) {
+		return nil, errors.Errorf("restrictions file must contain a JSON object or array: %s", expandedPath)
+	}
+
+	if err = json.Unmarshal(rBytes, &restrictions); err != nil {
+		return nil, errors.Wrapf(err, "could not parse restrictions file %s", expandedPath)
+	}
+
+	return restrictions, nil
+}
+
 func (opts *mtOpts) parseRestrictionOpts(cmd *cli.Command) (err error) {
 	if opts.Restrictions != "" {
 		rBytes := []byte(opts.Restrictions)
+
 		if jsonutils.IsJSONObject(rBytes) {
 			rBytes = append([]byte{'['}, append(rBytes, ']')...)
 		}
+
 		if jsonutils.IsJSONArray(rBytes) {
 			if err = json.Unmarshal(rBytes, &opts.request.Restrictions); err != nil {
-				return
+				return err
 			}
-		} else {
-			opts.request.Restrictions = api.Restrictions{
-				{
-					IncludedProfiles: strings.Split(opts.Restrictions, " "),
-				},
-			}
+			return nil
 		}
-		return
+
+		if looksLikeFilePath(opts.Restrictions) {
+			opts.request.Restrictions, err = parseRestrictionsFromFile(opts.Restrictions)
+			return err
+		}
+
+		opts.request.Restrictions = api.Restrictions{
+			{
+				IncludedProfiles: strings.Split(opts.Restrictions, " "),
+			},
+		}
+		return nil
 	}
 	nbf, err := timerestriction.ParseTime(opts.RestrictNbf)
 	if err != nil {
@@ -258,7 +325,8 @@ func getRestrFlags(opts *restrictionOpts) []cli.Flag {
 			Name:    "restrictions",
 			Aliases: []string{"restriction"},
 			Usage: "The restrictions that restrict the requested mytoken. " +
-				"Can be a json object or array, or a path to a json file.'",
+				"Can be a JSON object/array, a path to a JSON file (supports ~/... paths), " +
+				"or space-separated profile/template names.",
 			Sources: cli.EnvVars(
 				"MYTOKEN_RESTRICTIONS",
 				"MYTOKEN_RESTRICTION",
