@@ -1,3 +1,21 @@
+## mytoken 0.7.1
+
+- Add support for --restrictions to take a file
+- Updated dependencies
+
+## mytoken 0.7.0
+
+- Added config and capabilities commands
+- Added email, tags, profiles, mttags commands
+- Added calendars and notifications commands
+- Added list-all and groups commands
+- Added SSH support for management commands
+- Added custom mytoken server URL via CLI flag and environment variable
+- Improved colored output control
+- Improved table outputs
+- Updated to urfave/cli v3
+- Updated Go version to 1.25
+- Updated dependencies
 
 ## mytoken 0.6.1
 - Fail on restrictions error
