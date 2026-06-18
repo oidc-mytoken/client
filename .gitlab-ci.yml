@@ -1,3 +1,5 @@
+include:
+  - project: 'm-team/tools/ci-voodoo'
     ref: 'master'
     file: 'ci-include/pipeline-jobs-publish-to-repo.yml'
   - project: 'm-team/tools/ci-voodoo'
