@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/Songmu/prompter v0.5.1
 	github.com/gliderlabs/ssh v0.3.8
-	github.com/mattn/go-isatty v0.0.22
+	github.com/mattn/go-isatty v0.0.24
 	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/oidc-mytoken/api v0.12.2-0.20260529132908-2e1359c93a95
 	github.com/oidc-mytoken/lib v0.8.1-0.20260507130659-1d2d0a003337
