@@ -12,7 +12,7 @@ require (
 	github.com/oidc-mytoken/utils v0.1.2
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.2
 	github.com/urfave/cli/v3 v3.10.1
 	golang.org/x/text v0.39.0
 	gopkg.in/yaml.v3 v3.0.1
