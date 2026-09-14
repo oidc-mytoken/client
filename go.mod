@@ -1,6 +1,6 @@
 module github.com/oidc-mytoken/client
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/Songmu/prompter v0.5.1
@@ -14,7 +14,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.4
 	github.com/urfave/cli/v3 v3.10.1
-	golang.org/x/text v0.39.0
+	golang.org/x/text v0.42.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
